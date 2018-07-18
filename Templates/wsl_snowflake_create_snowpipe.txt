@@ -1,0 +1,52 @@
+{# --                                                                                                                                                       -- #}
+{# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
+{# -- Template Name      : wsl_snowflake_create_snowpipe                                                                                                    -- #}
+{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
+{# -- Description        : This template creates a Snowpipe pipe                                                                                            -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# --                                                                                                                                                       -- #}
+{# -- Notes / History                                                                                                                                       -- #}
+{# -- TK: Snowflake Release 1.0.0 (2018-06-14)                                                                                                              -- #}
+{# --                                                                                                                                                       -- #}
+{# --                                                                                                                                                       -- #}
+{%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
+{%- import "wsl_snowflake_utility" -%}
+{% set SNOWPIPE_STAGE = getExtendedProperty( propertyName = "SF_SNOWPIPE_STAGE" ) | trim %}
+{% set FILE_FORMAT = getExtendedProperty( propertyName = "SF_FILE_FORMAT" ) | trim %}
+
+{% set pipe = table %}
+{% set targetTable = null %}
+{% from table.columns as col where col.sourceTable is defined %}
+  {% if loop.first %}
+    {% fetch col.sourceTable %}
+    {% set targetTable = col.sourceTable %}
+    {% fetch targetTable.target %}
+  {% endif %}
+{% endfrom %}
+
+CREATE OR REPLACE PIPE {{pipe.target.schema}}.{{pipe.name}}{% br %}
+AS
+COPY INTO {{targetTable.target.schema}}.{{targetTable.name}}{% br %}
+( {% for col in targetTable.columns %}
+    {%- if not loop.first %}, {% endif %}
+    {{- col.name }}{%- br %}
+  {%- endfor %}
+){%- br %}
+FROM ({%- br %}{% set csvPos = 0 %}
+  SELECT {% for col in targetTable.columns %}
+           {%- if not loop.first %}       , {% endif %}
+           {%- if col.name == dssRecordSrc %}METADATA$FILENAME
+           {%- elseif col.transformType.code == "A" %}{{ col.source }}
+           {%- else %}{% set csvPos = csvPos + 1 %}t.${{ csvPos }}
+           {%- endif %}{% br %}
+         {%- endfor %}
+  FROM @{{SNOWPIPE_STAGE}} t{%- br %}
+){%- br %}
+FILE_FORMAT = '{{FILE_FORMAT}}'{%- br %}

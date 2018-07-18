@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<data_type_mapping_set name="SNOWFLAKE from DB2" xsi:schemaLocation="http://www.wherescape.com/xml/red ./Data%20Type%20Mapping.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.wherescape.com/xml/red">
+	<mapping_set_description>SNOWFLAKE from DB2
+WFS v0.9 2017-06-10</mapping_set_description>
+	<mapping_set_null_policy>AllowNulls</mapping_set_null_policy>
+	<data_type_mapping match_data_type="char" output_data_type="varchar(%precision)">
+		<match_parameters>
+			<match_precision>*-16777216</match_precision>
+		</match_parameters>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="char" output_data_type="varchar(16777216)">
+		<match_parameters>
+			<match_precision>16777217-*</match_precision>
+		</match_parameters>
+		<transform_code>SUBSTR(%column_name,1,16777216)</transform_code>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="varchar" output_data_type="varchar(%precision)">
+		<match_parameters>
+			<match_precision>*-16777216</match_precision>
+		</match_parameters>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="varchar" output_data_type="varchar(16777216)">
+		<match_parameters>
+			<match_precision>16777217-*</match_precision>
+		</match_parameters>
+		<transform_code>SUBSTR(%column_name,1,16777216)</transform_code>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="long varchar" output_data_type="varchar(16777216)">
+		<transform_code>SUBSTR(%column_name,1,16777216)</transform_code>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="time" output_data_type="varchar(20)"></data_type_mapping>
+	<data_type_mapping match_data_type="date" output_data_type="date">
+		<transform_code>VARCHAR_FORMAT(%column_name, 'YYYY-MM-DD')</transform_code>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="timestamp" output_data_type="timestamp">
+		<transform_code>VARCHAR_FORMAT(%column_name, 'YYYY-MM-DD HH:MI:SS')</transform_code>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="float" output_data_type="float"></data_type_mapping>
+	<data_type_mapping match_data_type="real" output_data_type="float"></data_type_mapping>
+	<data_type_mapping match_data_type="double" output_data_type="float"></data_type_mapping>
+	<data_type_mapping match_data_type="decfloat" output_data_type="float"></data_type_mapping>
+	<data_type_mapping match_data_type="smallint" output_data_type="number"></data_type_mapping>
+	<data_type_mapping match_data_type="int" output_data_type="number"></data_type_mapping>
+	<data_type_mapping match_data_type="integer" output_data_type="number"></data_type_mapping>
+	<data_type_mapping match_data_type="bigint" output_data_type="number"></data_type_mapping>
+	<data_type_mapping match_data_type="decimal" output_data_type="number(%precision)">
+		<match_parameters>
+			<match_scale>0</match_scale>
+		</match_parameters>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="decimal" output_data_type="number(%precision,%scale)">
+		<match_parameters>
+			<match_scale>1-*</match_scale>
+		</match_parameters>
+	</data_type_mapping>
+	<data_type_mapping match_data_type="decimal" output_data_type="number"></data_type_mapping>
+	<data_type_mapping match_data_type="clob" output_data_type="varchar(16777216)"></data_type_mapping>
+</data_type_mapping_set>

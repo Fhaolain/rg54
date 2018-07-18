@@ -1,0 +1,40 @@
+{# --                                                                                                                                                       -- #}
+{# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
+{# -- Template Name      : wsl_snowflake_create_table                                                                                                       -- #}
+{# -- RED Version        : 8.0.1.0                                                                                                                          -- #}
+{# -- Description        : This template creates a Snowflake database table                                                                                 -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# --                                                                                                                                                       -- #}
+{# -- Notes / History                                                                                                                                       -- #}
+{# -- JL: Snowflake Release            1.0.0 (2017-06-06)                                                                                                   -- #}
+{# -- JL: Added Comment Generation     2.0.0 (2018-04-10)                                                                                                   -- #}
+{# --                                                                                                                                                       -- #}
+{# --                                                                                                                                                       -- #}
+
+{%- fetch table.target %}
+
+DROP TABLE IF EXISTS {{table.target.schema}}.{{table.name}};{% br %}
+
+CREATE {{table.extendedPropertyValuesByName.SF_TABLE_TYPE}} TABLE {{table.target.schema}}.{{table.name}}{% br %}(
+  {%- for column in table.columns %}
+    {%- if not loop.first -%},{% endif %} {{column.name}} {{column.fullDataType}}
+      {%- if not column.nullAllowed %} NOT NULL {%- endif -%}
+      {% br %}
+    {%- if loop.last -%}){% br %}{%- endif -%}
+    {%- if not loop.last -%}{% br %} {%- endif -%}
+  {% endfor %}
+{{table.storage.optionalCreateClause}}{% br %}
+;{% br %}
+{%- if (table.description | trim) != "" -%}
+  COMMENT ON TABLE {{table.target.schema}}.{{table.name}} IS '{{table.description | trim}}';{% br %}
+{% endif %}
+{%- from table.columns as column where (column.description | trim) != "" -%}
+  COMMENT ON COLUMN {{table.target.schema}}.{{table.name}}.{{column.name}} IS '{{column.description | trim}}';{% br %}
+{% endfrom %}

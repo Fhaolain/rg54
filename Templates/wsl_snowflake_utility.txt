@@ -1,0 +1,69 @@
+{# --                                                                                                                                                       -- #}
+{# --    © Wherescape Ltd 2017. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
+{# -- Template Name      : wsl_snowflake_utility                                                                                                            -- #}
+{# -- RED Version        : 8.0.1.0                                                                                                                          -- #}
+{# -- Description        : Macros designed to be used in templates                                                                                          -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# --                                                                                                                                                       -- #}
+{# -- Notes / History                                                                                                                                       -- #}
+{# --   TK: Initial Creation (2017-12-20)                                                                                                                   -- #}
+
+{% macro getExtendedProperty ( propertyName = "", default = "", checkTable = true, checkSource = true, checkTarget = true ) %}
+  {%- set EXTENDED_PROPERTY = "" -%}
+  {%- if checkTable -%}
+    {%- if table.extendedPropertyValuesByName[propertyName] is defined -%}
+      {%- if table.extendedPropertyValuesByName[propertyName] is iterable -%}
+        {%- for val in table.extendedPropertyValuesByName[propertyName] -%}
+          {%- if val | trim != "" -%}
+            {%- set EXTENDED_PROPERTY = val -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- else -%}
+        {%- set EXTENDED_PROPERTY = table.extendedPropertyValuesByName[propertyName] -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+  {%- if checkSource -%}
+    {%- if EXTENDED_PROPERTY == "" and table.loadInfo.sourceConnection is defined -%}
+      {%- fetch table.loadInfo.sourceConnection -%}
+      {%- if table.loadInfo.sourceConnection.extendedPropertyValuesByName[propertyName] is defined -%}
+        {%- if table.loadInfo.sourceConnection.extendedPropertyValuesByName[propertyName] is iterable -%}
+          {%- for val in table.loadInfo.sourceConnection.extendedPropertyValuesByName[propertyName] -%}
+            {%- if val | trim != "" -%}
+              {%- set EXTENDED_PROPERTY = val -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          {%- set EXTENDED_PROPERTY = table.loadInfo.sourceConnection.extendedPropertyValuesByName[propertyName] -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+  {%- if checkTarget -%}
+    {%- if EXTENDED_PROPERTY == "" and table.target is defined -%}    
+      {%- fetch table.target -%}
+      {%- if table.target.connection.extendedPropertyValuesByName[propertyName] is defined -%}
+        {%- if table.target.connection.extendedPropertyValuesByName[propertyName] is iterable -%}
+          {%- for val in table.target.connection.extendedPropertyValuesByName[propertyName] -%}
+            {%- if val | trim != "" -%}
+              {%- set EXTENDED_PROPERTY = val -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          {%- set EXTENDED_PROPERTY = table.target.connection.extendedPropertyValuesByName[propertyName] -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+  {%- if EXTENDED_PROPERTY == "" -%}
+    {%- set EXTENDED_PROPERTY = default -%}
+  {%- endif -%}
+  {{ EXTENDED_PROPERTY | trim }}
+{% endmacro %}
