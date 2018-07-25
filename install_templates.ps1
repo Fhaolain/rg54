@@ -290,3 +290,5 @@ foreach($objectMatch in $objectsToInstall) {
 }
 
 $conn.Close()
+
+pause

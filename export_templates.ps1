@@ -5,7 +5,7 @@ if([string]::IsNullOrEmpty($gitProj)) {
     Pause
 }
 
-$objectConfig = "$gitProj\objects_to_commit.txt"
+$objectConfig = "$gitProj\objects_to_export.txt"
 $connectConfig = "$gitProj\connect_info.txt"
 
 if( ! (Test-Path $connectConfig) ) {
@@ -125,3 +125,5 @@ foreach ($object in $dt) {
     }
 
 }
+
+pause
