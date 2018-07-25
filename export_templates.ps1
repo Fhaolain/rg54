@@ -13,7 +13,7 @@ if( ! (Test-Path $connectConfig) ) {
     $dsn | Set-Content $connectConfig
     
     $uid = Read-Host -Prompt "Username"
-    if( ! [string]::IsNullOrEmpty($uid)) {
+    if( ! [string]::IsNullOrWhiteSpace($uid)) {
         $uid | Add-Content $connectConfig
 
         $secPwd = Read-Host -Prompt "Password" -AsSecureString
@@ -26,7 +26,7 @@ if( ! (Test-Path $connectConfig) ) {
     Write-Output  "Delete '$connectConfig' if you wish to be prompted for connection information"
 }
 
-$connInfo = Get-Content $connectConfig | ? { ! [String]::IsNullOrWhiteSpace($_) }
+$connInfo = @(Get-Content $connectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
 $dsn = $connInfo[0]
 if($connInfo.Length -gt 1) {
@@ -64,7 +64,7 @@ if( ! (Test-Path $objectConfig) ) {
 $sql = "SELECT th_name
         FROM ws_tem_header"
 
-$objectsToCommit = Get-Content $objectConfig | ? { ! [String]::IsNullOrWhiteSpace($_) }
+$objectsToCommit = @(Get-Content $objectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
 foreach($string in $objectsToCommit) {
     if($string -eq $objectsToCommit[0]) {

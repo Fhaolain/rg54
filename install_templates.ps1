@@ -27,7 +27,7 @@ if( ! (Test-Path $connectConfig) ) {
     Write-Output  "Delete '$connectConfig' if you wish to be prompted for connection information"
 }
 
-$connInfo = Get-Content $connectConfig | ? { ! [String]::IsNullOrWhiteSpace($_) }
+$connInfo = @(Get-Content $connectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
 $dsn = $connInfo[0]
 if($connInfo.Length -gt 1) {
@@ -63,7 +63,7 @@ if( ! (Test-Path $objectConfig) ) {
     Write-Output  "Delete '$objectConfig' if you wish to be prompted for template names"
 }
 
-$objectsToInstall = Get-Content $objectConfig | ? { ! [String]::IsNullOrWhiteSpace($_) }
+$objectsToInstall = @(Get-Content $objectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
 $conn.Open()
 
