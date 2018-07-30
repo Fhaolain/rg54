@@ -1,4 +1,4 @@
-﻿{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:*                                                                     -- #}
+{# -- TemplateVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:*                                                                     -- #}
 {# --                                                                                                                                                       -- #}
 {# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
@@ -7,7 +7,7 @@
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_create_table                                                                                                       -- #}
-{# -- RED Version        : 8.0.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake database table                                                                                 -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -19,23 +19,26 @@
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
+{%- macro createTable( table, tableName ) -%}
 {%- fetch table.target %}
-
-DROP TABLE IF EXISTS {{table.target.schema}}.{{table.name}};{% br %}
-
-CREATE {{table.extendedPropertyValuesByName.SF_TABLE_TYPE}} TABLE {{table.target.schema}}.{{table.name}}{% br %}(
-  {%- for column in table.columns %}
-    {%- if not loop.first -%},{% endif %} {{column.name}} {{column.fullDataType}}
+CREATE {{table.extendedPropertyValuesByName.SF_TABLE_TYPE}} TABLE {{tableName}}{% br %}(
+  {%- for column in table.columns -%}
+    {%- if not loop.first -%},{% endif %} {{column.name}} {{ column.fullDataType -}}
+      {%- if column.defaultValue != "" %} DEFAULT {{column.defaultValue}}{%- endif -%}
       {%- if not column.nullAllowed %} NOT NULL {%- endif -%}
-      {% br %}
-    {%- if loop.last -%}){% br %}{%- endif -%}
-    {%- if not loop.last -%}{% br %} {%- endif -%}
-  {% endfor %}
-{{table.storage.optionalCreateClause}}{% br %}
-;{% br %}
+      {%- br -%}
+    {%- if loop.last -%}){%- endif -%}
+  {%- endfor -%}
+{%- if table.storage.optionalCreateClause != "" -%}
+  {%- br -%}{{- table.storage.optionalCreateClause}}
+{%- endif -%}
+{%- br -%}{{- options.endOfStatement}}{%- br -%}
 {%- if (table.description | trim) != "" -%}
-  COMMENT ON TABLE {{table.target.schema}}.{{table.name}} IS '{{table.description | trim}}';{% br %}
+  COMMENT ON TABLE {{tableName}} IS '{{table.description | trim}}'{{options.endOfStatement}}{% br %}
 {% endif %}
 {%- from table.columns as column where (column.description | trim) != "" -%}
-  COMMENT ON COLUMN {{table.target.schema}}.{{table.name}}.{{column.name}} IS '{{column.description | trim}}';{% br %}
+  COMMENT ON COLUMN {{tableName}}.{{column.name}} IS '{{column.description | trim}}'{{options.endOfStatement}}{% br %}
 {% endfrom %}
+{%- endmacro -%}
+
+{{- createTable ( table = table, tableName = "$OBJECT$" ) -}}
