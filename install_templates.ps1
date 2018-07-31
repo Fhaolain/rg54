@@ -113,7 +113,7 @@ foreach($objectMatch in $objectsToInstall) {
                 $ws_obj_object_sr4 = $command.ExecuteScalar()
                 $objectKey = $ws_obj_object_sr4
 
-                $ws_tem_header_v_ss1 = "SELECT max(th_version_no) + 1 FROM ws_tem_header_v"
+                $ws_tem_header_v_ss1 = "SELECT coalesce(max(th_version_no),0) + 1 FROM ws_tem_header_v"
                 $command.CommandText = $ws_tem_header_v_ss1
                 $ws_tem_header_v_sr1 = $command.ExecuteScalar()
 
@@ -275,6 +275,8 @@ foreach($objectMatch in $objectsToInstall) {
 
             }
 
+            $sr.Close()
+
             $ws_tem_header_us1 = "UPDATE ws_tem_header SET th_updated = CURRENT_TIMESTAMP WHERE th_name = '$objectName'"
             $command.CommandText = $ws_tem_header_us1
             $ws_tem_header_ur1 = $command.ExecuteScalar()
@@ -283,8 +285,10 @@ foreach($objectMatch in $objectsToInstall) {
         }
         catch {
             try { $trans.Rollback() } catch {}
+            try { $sr.Dispose() } catch {}
             $host.ui.WriteErrorLine("Failed to install template '$objectName'")
             $host.ui.WriteErrorLine($_.Exception.Message)
+            $host.ui.WriteErrorLine($_.InvocationInfo.PositionMessage)
         }
     }
 }
