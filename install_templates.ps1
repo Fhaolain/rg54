@@ -201,6 +201,52 @@ foreach($objectMatch in $objectsToInstall) {
             }
             else {
                 Write-Output "Installing '$objectName'"
+
+                $sw = [System.IO.File]::OpenText($objectPath)
+                $header = $sw.ReadLine()
+                $sw.Close()
+
+                $header = $header.Replace("{# --","").Replace("-- #}","").Trim()
+                $headConf = $header.Split(" ")
+                try { $targetType = $headConf | Where { $_.IndexOf("TargetType:") -ne -1 } | ForEach-Object { $_.Replace("TargetType:","") } } catch {}
+                try { $templateType = $headConf | Where { $_.IndexOf("TemplateType:") -ne -1 } | ForEach-Object { $_.Replace("TemplateType:","") } } catch {}
+
+                if($targetType -eq "SQLServer") {
+                    $ta_val_1 = 2
+                }
+                else {
+                    $ta_val_1 = 13
+                }
+
+                if($templateType -eq "Alter") {
+                    $th_type = "a"
+                }
+                elseif($templateType -eq "DDL") {
+                    $th_type = "6"
+                }
+                elseif($templateType -eq "Powershell") {
+                    $th_type = "5"
+                }
+                elseif($templateType -eq "Utility") {
+                    $th_type = "7"
+                }
+                elseif($templateType -eq "Unix") {
+                    $th_type = "1"
+                }
+                elseif($templateType -eq "Linux") {
+                    $th_type = "1"
+                }
+                elseif($templateType -eq "Windows") {
+                    $th_type = "3"
+                }
+                elseif($templateType -eq "OLAP") {
+                    $th_type = "2"
+                }
+                else {
+                    Write-Warning "Failed to extract template type from template header. Falling back to Powershell"
+                    $th_type = "5"
+                }
+
                 $ws_obj_object_is1 = @"
                   INSERT INTO ws_obj_object (
                       oo_name
@@ -239,7 +285,7 @@ foreach($objectMatch in $objectsToInstall) {
                   VALUES (
                       $objectKey
                     , '$objectName'
-                    , 5
+                    , '$th_type'
                     , CURRENT_TIMESTAMP
                     , CURRENT_TIMESTAMP
                     , 'WhereScape Ltd'
@@ -247,6 +293,25 @@ foreach($objectMatch in $objectsToInstall) {
 "@
                 $command.CommandText = $ws_tem_header_is1
                 $ws_tem_header_ir1 = $command.ExecuteNonQuery()
+
+                $ws_table_attributes_is1 = @"
+                  INSERT INTO ws_table_attributes (
+                      ta_obj_key
+                    , ta_type
+                    , ta_ind_1
+                    , ta_val_1
+                  )
+                  VALUES (
+                      $objectKey
+                    , 'F'
+                    , 'W'
+                    , $ta_val_1
+                  )
+"@
+
+                $command.CommandText = $ws_table_attributes_is1
+                $ws_table_attributes_ir1 = $command.ExecuteNonQuery()
+
             }
 
             $sr = New-Object System.IO.StreamReader($objectPath)
