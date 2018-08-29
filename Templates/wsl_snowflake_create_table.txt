@@ -1,4 +1,4 @@
-{# -- TemplateVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:DDL                                                    -- #}
+﻿{# -- TemplateVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:DDL                                                    -- #}
 {# --                                                                                                                                                       -- #}
 {# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
@@ -34,10 +34,10 @@ CREATE {{table.extendedPropertyValuesByName.SF_TABLE_TYPE}} TABLE {{tableName}}{
 {%- endif -%}
 {%- br -%}{{- options.endOfStatement}}{%- br -%}
 {%- if (table.description | trim) != "" -%}
-  COMMENT ON TABLE {{tableName}} IS '{{table.description | trim}}'{{options.endOfStatement}}{% br %}
+  COMMENT ON TABLE {{tableName}} IS '{% for commLine in table.description|trim|lines %}{{commLine}}{% if not loop.last %} {% endif %}{% endfor %}'{{options.endOfStatement}}{% br %}
 {% endif %}
 {%- from table.columns as column where (column.description | trim) != "" -%}
-  COMMENT ON COLUMN {{tableName}}.{{column.name}} IS '{{column.description | trim}}'{{options.endOfStatement}}{% br %}
+  COMMENT ON COLUMN {{tableName}}.{{column.name}} IS '{% for commLine in column.description|trim|lines %}{{commLine}}{% if not loop.last %} {% endif %}{% endfor %}'{{options.endOfStatement}}{% br %}
 {% endfrom %}
 {%- endmacro -%}
 
