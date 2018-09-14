@@ -1,0 +1,61 @@
+{# -- TemplateVersion:003 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:CUSTOM2 TemplateType:DDL                                              -- #}
+{# --                                                                                                                                                       -- #}
+{# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
+{# -- Template Name      : wsl_snowflake_create_stage                                                                                                       -- #}
+{# -- RED Version        : 8.0.1.0                                                                                                                          -- #}
+{# -- Description        : This template creates a Snowflake stage                                                                                          -- #}
+{# --                                                                                                                                                       -- #}
+{# -- =============================================================================                                                                         -- #}
+{# --                                                                                                                                                       -- #}
+{# --                                                                                                                                                       -- #}
+{# -- Notes / History                                                                                                                                       -- #}
+{# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
+{# -- TK: Reworked to work with both S3 and Azure. Also enabled extended property substitution for values (2018-09-14)                                      -- #}
+{# -- TK: Enabled creation of internal stages (2018-09-14)                                                                                                  -- #}
+{# --                                                                                                                                                       -- #}
+{%- import "wsl_snowflake_utility" -%}
+
+DROP STAGE IF EXISTS [TABLEOWNER].[{{table.name}}]{{options.endOfStatement}}{% br %}
+
+CREATE STAGE [TABLEOWNER].[{{table.name}}]{% br %}
+{% from table.columns as col where (col.name.indexOf("CREDENTIALS") != 0) and (col.name.indexOf("ENCRYPTION") != 0) and (col.name.indexOf("FILE_FORMAT") != 0) and (col.name.indexOf("COPY_OPTIONS") != 0)%}
+  {%- set extProp = getExtendedProperty( propertyName = col.fullDataType, checkSource = false ) | trim %}
+  {{- col.name }} = '{{ extProp != "" ? extProp : col.fullDataType }}'{% br %}
+{%- endfrom %}
+{%- from table.columns as col where (col.name.indexOf("FILE_FORMAT") == 0) %}
+  {%- if loop.first %}FILE_FORMAT = ({% br %}{% endif %}
+    {%- set extProp = getExtendedProperty( propertyName = col.fullDataType, checkSource = false ) | trim %}
+    {{ col.name.replace("FILE_FORMAT_","") }} = '{{ extProp != "" ? extProp : col.fullDataType }}'{% br %}
+  {%- if loop.last %}){% br %}{% endif %}
+{%- endfrom %}
+{%- from table.columns as col where (col.name.indexOf("COPY_OPTIONS") == 0) %}
+  {%- if loop.first %}COPY_OPTIONS = ({% br %}{% endif %}
+    {%- set extProp = getExtendedProperty( propertyName = col.fullDataType, checkSource = false ) | trim %}
+    {{ col.name.replace("COPY_OPTIONS_","") }} = '{{ extProp != "" ? extProp : col.fullDataType }}'{% br %}
+  {%- if loop.last %}){% br %}{% endif %}
+{%- endfrom %}
+{%- from table.columns as col where (col.name.indexOf("CREDENTIALS") == 0) %}
+  {%- if loop.first %}CREDENTIALS = ({% br %}{% endif %}
+    {%- set extProp = getExtendedProperty( propertyName = col.fullDataType, checkSource = false ) | trim %}
+    {{ col.name.replace("CREDENTIALS_","") }} = '{{ extProp != "" ? extProp : col.fullDataType }}'{% br %}
+  {%- if loop.last %}){% br %}{% endif %}
+{%- endfrom %}
+{%- from table.columns as col where (col.name.indexOf("ENCRYPTION") == 0) %}
+  {%- if loop.first %}ENCRYPTION = ({% br %}{% endif %}
+    {%- set extProp = getExtendedProperty( propertyName = col.fullDataType, checkSource = false ) | trim %}
+    {{ col.name.replace("ENCRYPTION_","") }} = '{{ extProp != "" ? extProp : col.fullDataType }}'{% br %}
+  {%- if loop.last %}){% br %}{% endif %}
+{%- endfrom %}
+{%- set commentFound = false %}
+{%- from table.columns as comment where comment.name == "COMMENT" %}
+  {%- set commentFound = true %}
+{%- endfrom %}
+{%- if not commentFound -%}
+  COMMENT = 'Created by WhereScape'{% br %}
+{%- endif %}
+{{options.endOfStatement}}{% br %}

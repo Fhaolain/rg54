@@ -41,8 +41,15 @@ SELECT {% if table.viewInfo.distinct %} DISTINCT{% endif %}{%- br %}
     {{sSourceColumn }},{%- br %}
   {%- endif -%} 
 {%- endfor -%}
-{%- fetch table.columns[0].sourceTable -%}
-{%- set sSource = table.columns[0].sourceTable.name -%}
+{%- set sSource = "" -%}
+{%- from table.columns as col where col.sourceTable is defined -%}
+  {%- if sSource == "" -%}
+    {%- fetch col.sourceTable -%}
+    {%- if col.sourceTable.name|trim != "" -%}
+      {%- set sSource = col.sourceTable.name -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfrom -%}
 {%- if table.viewInfo.whereClause | trim == "" %}
   FROM [TABLEOWNER].[{{sSource}}] {{sSource}}{%br%}
 {%- elseif table.viewInfo.whereClause | trim | upper | slice(0,4) != "FROM" %}
