@@ -40,7 +40,7 @@ if($connInfo.Length -gt 1) {
 $conn = New-Object System.Data.Odbc.OdbcConnection
 $conn.ConnectionString = "DSN=$Dsn"
 if( ! [string]::IsNullOrWhiteSpace($uid)) { $conn.ConnectionString += ";UID=$uid" }
-if( ! [string]::IsNullOrWhiteSpace($pwd)) { $conn.ConnectionString += ";UID=$pwd" }
+if( ! [string]::IsNullOrWhiteSpace($pwd)) { $conn.ConnectionString += ";PWD=$pwd" }
 
 if( ! (Test-Path $objectConfig) ) {
     Write-Output "Enter full or partial names of templates you wish to install"
@@ -241,6 +241,12 @@ foreach($objectMatch in $objectsToInstall) {
                 }
                 elseif($templateType -eq "OLAP") {
                     $th_type = "2"
+                }
+                elseif($templateType -eq "Block") {
+                    $th_type = "8"
+                }
+                elseif($templateType -eq "Procedure") {
+                    $th_type = "9"
                 }
                 else {
                     Write-Warning "Failed to extract template type from template header. Falling back to Powershell"
