@@ -51,11 +51,7 @@ CREATE STAGE [TABLEOWNER].[{{table.name}}]{% br %}
     {{ col.name.replace("ENCRYPTION_","") }} = '{{ extProp != "" ? extProp : col.fullDataType }}'{% br %}
   {%- if loop.last %}){% br %}{% endif %}
 {%- endfrom %}
-{%- set commentFound = false %}
-{%- from table.columns as comment where comment.name == "COMMENT" %}
-  {%- set commentFound = true %}
-{%- endfrom %}
-{%- if not commentFound -%}
-  COMMENT = 'Created by WhereScape'{% br %}
-{%- endif %}
+{%- if (table.description | trim) != "" -%}
+  COMMENT = '{% for commLine in table.description|trim|lines %}{{commLine.Replace("'","''")}}{% if not loop.last %} {% endif %}{% endfor %}'{% br %}
+{% endif %}
 {{options.endOfStatement}}{% br %}

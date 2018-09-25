@@ -14,8 +14,11 @@
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {# -- Notes / History                                                                                                                                       -- #}
-{# -- JL: Snowflake Release            1.0.0 (2017-06-06)                                                                                                   -- #}
-{# -- JL: Added Comment Generation     2.0.0 (2018-04-10)                                                                                                   -- #}
+{# -- JL: Snowflake Release                              1.0.0 (2017-06-06)                                                                                 -- #}
+{# -- JL: Added Comment Generation                       2.0.0 (2018-04-10)                                                                                 -- #}
+{# -- TK: Refactored to use a macro                      3.0.0 (2018-07-15)                                                                                 -- #}
+{# -- TK: Fixed issue with CRs in comments               3.0.1 (2018-08-29)                                                                                 -- #}
+{# -- JL: Added support for single quotes in comments    3.0.2 (2018-08-30)                                                                                 -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
@@ -34,10 +37,10 @@ CREATE {{table.extendedPropertyValuesByName.SF_TABLE_TYPE}} TABLE {{tableName}}{
 {%- endif -%}
 {%- br -%}{{- options.endOfStatement}}{%- br -%}
 {%- if (table.description | trim) != "" -%}
-  COMMENT ON TABLE {{tableName}} IS '{% for commLine in table.description|trim|lines %}{{commLine}}{% if not loop.last %} {% endif %}{% endfor %}'{{options.endOfStatement}}{% br %}
+  COMMENT ON TABLE {{tableName}} IS '{% for commLine in table.description.Replace("'","''")|trim|lines %}{{commLine}}{% if not loop.last %} {% endif %}{% endfor %}'{{options.endOfStatement}}{% br %}
 {% endif %}
 {%- from table.columns as column where (column.description | trim) != "" -%}
-  COMMENT ON COLUMN {{tableName}}.{{column.name}} IS '{% for commLine in column.description|trim|lines %}{{commLine}}{% if not loop.last %} {% endif %}{% endfor %}'{{options.endOfStatement}}{% br %}
+  COMMENT ON COLUMN {{tableName}}.{{column.name}} IS '{% for commLine in column.description.Replace("'","''")|trim|lines %}{{commLine}}{% if not loop.last %} {% endif %}{% endfor %}'{{options.endOfStatement}}{% br %}
 {% endfrom %}
 {%- endmacro -%}
 

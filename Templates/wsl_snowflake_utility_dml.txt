@@ -1,13 +1,13 @@
 {# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:STAR,ODS,NORMAL TemplateType:Utility                                  -- #}
 {# --                                                                                                                                                       -- #}
-{# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_utility_dml                                                                                                        -- #}
-{# -- RED Version        : 8.0.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
 {# -- Description        : Generic macros that can be used to define specific templates for Snowflake                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -17,7 +17,7 @@
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
 {# --                                                                                                                                                       -- #}
-{# --                                                                                                                                                       
+{# --                                                                                                                                                       -- #}
 
 {# -- This macro adds the target columns and dss columns of the destination table-- #}
 {% macro addSetInsertTargetColumns(indent = "", includeIdentity = false) %}

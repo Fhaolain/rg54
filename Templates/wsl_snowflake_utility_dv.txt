@@ -1,13 +1,13 @@
 {# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:DATAVAULT TemplateType:Utility                                        -- #}
 {# --                                                                                                                                                       -- #}
-{# --    (c) Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
+{# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_utility_dv                                                                                                         -- #}
-{# -- RED Version        : 8.0.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
 {# -- Description        : Generic macros that can be used to define specific templates for Snowflake data vaults                                           -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -16,7 +16,7 @@
 {# -- Notes / History                                                                                                                                       -- #}
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
 {# --                                                                                                                                                       -- #}
-{# --                                                                                                                                                       
+{# --                                                                                                                                                       -- #}
 
 {# -- This macro adds hub hash key calculations                                   -- #}
 {% macro addHubHashKey(hashColumn, indentStr = "               ") %}

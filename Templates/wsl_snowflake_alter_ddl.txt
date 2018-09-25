@@ -1,6 +1,6 @@
 {# -- TemplateVersion:001 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Alter                                                  -- #}
 {# --                                                                                                                                                       -- #}
-{# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -43,8 +43,6 @@
       {%- else -%}
         ALTER TABLE {{table.schema}}.{{table.name}} CLUSTER BY {{change.data.expectedValue}}{{- options.endOfStatement}}{%br%}
       {%- endif -%}
-    {%- elseif change.data.changedKey | upper == "COMMENT" -%}
-      COMMENT ON TABLE {{table.schema}}.{{table.name}} IS '{{change.data.expectedValue | trim}}'{{options.endOfStatement}}{% br %}
     {%- else %}
       {%- error "Unhandled change type: " + change.data.changedKey -%}
     {%- endif -%}
@@ -60,9 +58,7 @@
   {%- elseif change.changeType == Types.ChangeType.ColumnDataTypeChange -%}
     ALTER TABLE {{table.schema}}.{{table.name}} MODIFY COLUMN {{change.data.columnName}} SET DATA TYPE {{change.data.dataType}}{{- options.endOfStatement}}{%br%}
   {%- elseif change.changeType == Types.ChangeType.ColumnAdditionalInformationChange -%}
-    {%- if change.data.changedKey | upper == "COMMENT" -%}
-      COMMENT ON COLUMN {{table.schema}}.{{table.name}}.{{change.data.columnName}} IS '{{change.data.expectedValue | trim}}'{{- options.endOfStatement}}{%br%}
-    {%- elseif change.data.changedKey | upper == "NULLABLE" -%}
+    {%- if change.data.changedKey | upper == "NULLABLE" -%}
       {%- if change.data.expectedValue == "YES" -%}
         ALTER TABLE {{table.schema}}.{{table.name}} MODIFY COLUMN {{change.data.columnName}} DROP NOT NULL{{- options.endOfStatement}}{%br%}
       {%- else -%}
