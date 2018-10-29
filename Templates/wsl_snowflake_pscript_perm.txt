@@ -227,12 +227,6 @@ if ( $status -eq 1 ){
     {{batchIndent}}SELECT {{- addSetInsertColumnsSnowflake(indent = batchIndent+"         ")}}
     {{- addLastSurrogateColumn()}}
     {%- for joinLine in (table.sourceJoinDetails.join | trim | lines)%}    {{batchIndent}}{{joinLine}}{%br%}{%- endfor%}
-    {%- if table.subType == "P" %}    {{batchIndent}}LEFT OUTER JOIN [TABLEOWNER].[{{table.name}}] {{table.name}}{% br %}
-      {%- from table.columns as bkCol where bkCol.businessKey %}
-        {{- batchIndent}}    {% if loop.first %}ON {% else %}AND {% endif -%}
-        {{- bkCol.source }} = {{table.name}}.{{bkCol.name}}{% br %}
-      {%- endfrom %}
-    {%- endif %}
     {{- addLastSurrogateCrossJoin() }}
     {%- for whereLine in (table.sourceJoinDetails.where | trim | lines)%}    {{batchIndent}}{{whereLine}}{%br%}{%- endfor%}
     {{- addBatchLoopWhereClause()}}
@@ -256,6 +250,13 @@ if ( $status -eq 1 ){
 {%- if settings.batchProcessingField != "" %}
 } {%br%}
 {%- endif %}
+
+{%- set previousColumn = ((previousColumn("SF_TYPE_3_COLS","PHONE")|trim) == "true") %}
+{%- if previousColumn %}TRUE{%- else %}FALSE{%- endif %}{%br%}{%br%}
+{%- set previousColumn = ((previousColumn("SF_TYPE_3_COLS","prev_PHONE")|trim) == "true") %}
+{%- if previousColumn %}TRUE{%- else %}FALSE{%- endif %}{%br%}{%br%}
+{%- set previousColumn = ((previousColumn("SF_TYPE_3_COLS","COMPANY_NAME")|trim) == "true") %}
+{%- if previousColumn %}TRUE{%- else %}FALSE{%- endif %}{%br%}{%br%}
 
 #--====================================================={%br%}
 #-- All Done report the results{%br%}

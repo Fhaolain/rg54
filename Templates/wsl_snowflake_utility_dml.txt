@@ -22,7 +22,7 @@
 {# -- This macro adds the target columns and dss columns of the destination table-- #}
 {% macro addSetInsertTargetColumns(indent = "", includeIdentity = false) %}
   {%- from table.columns as column where (includeIdentity or column.fullDataType.indexOf("integer identity") != 0) %}
-    {%- set sTargetColumn = column.name -%}
+    {%- set sTargetColumn = column.name -%} 
     {%- if loop.first %}
 ( {{sTargetColumn}}
     {%- else %}
@@ -68,14 +68,6 @@
       {%- else -%}
         CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
       {%- endif%}
-    {%- elseif table.subType == "P" and ((previousColumn("SF_TYPE_3_COLS",column.name)|trim) == "true") -%}
-      {%- if alias == "" %}
-        {%- fetch column.sourceColumn -%}
-        {%- set prevColSrc = column.sourceColumn.name -%}
-        {{ table.name}}.{{prevColSrc}}
-      {%- else -%}
-        {{- getColumnSource(alias = alias)}}
-      {%- endif -%}
     {%- else -%}
       {{- getColumnSource(alias = alias)}}      
     {%- endif %}
@@ -358,6 +350,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- endfor %}
   {%- endif %}
 {% endmacro %}
+
 
 {# -- This macro adds in logic for working out if a column is a type 3 previous column -- #}
 {% macro previousColumn(propertyName = "", columnName = "") %}
