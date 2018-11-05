@@ -16,6 +16,7 @@
 {# -- Notes / History                                                                                                                                       -- #}
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
+{# -- TK: Added support for type 3 dimensions 2.0.4 (2018-11-01)                                                                                            -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 

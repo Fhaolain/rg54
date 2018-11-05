@@ -20,6 +20,7 @@
 {# -- JL: Added logical deleting and batch looping 2.0.1 (2017-09-17)                                                                                       -- #}
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
 {# -- JL: Extended logical deleting to work for tables without an artifical key 2.0.3 (2018-08-26)                                                          -- #}
+{# -- TK: Added support for type 3 dimensions 2.0.4 (2018-11-01)                                                                                            -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
