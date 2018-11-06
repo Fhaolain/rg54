@@ -147,10 +147,10 @@ if ( $status -eq 1 ){
   WHEN MATCHED THEN UPDATE{%br%}
   SET{{- addMergeUpdateColumns(alias = "src")}}
   WHEN NOT MATCHED THEN INSERT{%br%}
-  {{addSetInsertTargetColumns(includeIdentity = true)}}
+  {{addSetInsertTargetColumns(includeIdentity = true, includePreviousColumns = true)}}
   ){%br%}
   VALUES  
-  ({{- addSetInsertColumnsSnowflake(addArtificialKey = true, alias = "src", zeroKeyInsert = true, indent = "  ", addColumnName = false, ignoreDssColumns = true, includeIdentity = true)}} 
+  ({{- addSetInsertColumnsSnowflake(addArtificialKey = true, alias = "src", zeroKeyInsert = true, indent = "  ", addColumnName = false, ignoreDssColumns = true, includeIdentity = true, includePreviousColumns = true)}} 
   ){%br%}
   ;{%br%}
 "@
@@ -225,7 +225,7 @@ if ( $status -eq 1 ){
   {{batchIndent}}$sql = @"
   {{batchIndent}}MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
   {{batchIndent}}USING ({%br%}
-    {{batchIndent}}SELECT {{- addSetInsertColumnsSnowflake(indent = batchIndent+"         ")}}
+    {{batchIndent}}SELECT {{- addSetInsertColumnsSnowflake(indent = batchIndent+"         ", includePreviousColumns = true)}}
     {{- addLastSurrogateColumn()}}
     {%- for joinLine in (table.sourceJoinDetails.join | trim | lines)%}    {{batchIndent}}{{joinLine}}{%br%}{%- endfor%}
     {%- if table.subType == "P" %}    {{batchIndent}}LEFT OUTER JOIN [TABLEOWNER].[{{table.name}}] {{table.name}}{% br %}

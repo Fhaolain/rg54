@@ -17,12 +17,13 @@
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
 {# -- TK: Added support for type 3 dimensions 2.0.4 (2018-11-01)                                                                                            -- #}
+{# -- TK: Improved support for type 3 dimensions 2.0.5 (2018-11-06)                                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
 {# -- This macro adds the target columns and dss columns of the destination table-- #}
-{% macro addSetInsertTargetColumns(indent = "", includeIdentity = false) %}
-  {%- from table.columns as column where (includeIdentity or column.fullDataType.indexOf("integer identity") != 0) %}
+{% macro addSetInsertTargetColumns(indent = "", includeIdentity = false, includePreviousColumns = false) %}
+  {%- from table.columns as column where (includeIdentity or column.fullDataType.indexOf("integer identity") != 0) and ( includePreviousColumns or (table.subType != "P" or ((previousColumn("SF_TYPE_3_COLS",column.name)|trim) == "false"))) %}
     {%- set sTargetColumn = column.name -%}
     {%- if loop.first %}
 ( {{sTargetColumn}}
@@ -38,8 +39,8 @@
 {% endmacro %}
 
 {# -- This macro adds the source columns and dss columns -- #}
-{% macro addSetInsertColumnsSnowflake(addArtificialKey = false, alias = "", zeroKeyInsert = false, ignoreDssColumns = false, addColumnName = true, keepCreateDate = false, ignoreDssVersion = false, firstChangingVersion = true, lastChangingVersion = true, indent = "       ", includeIdentity = false) %}
-  {%- from table.columns as column where (includeIdentity or column.fullDataType.indexOf("integer identity") != 0) and ((not column.artificial) or (column.artificial and addArtificialKey) or (column.artificial and (not addArtificialKey) and column.transform | trim != ""))%}
+{% macro addSetInsertColumnsSnowflake(addArtificialKey = false, alias = "", zeroKeyInsert = false, ignoreDssColumns = false, addColumnName = true, keepCreateDate = false, ignoreDssVersion = false, firstChangingVersion = true, lastChangingVersion = true, indent = "       ", includeIdentity = false, includePreviousColumns = false)%}
+  {%- from table.columns as column where (includeIdentity or column.fullDataType.indexOf("integer identity") != 0) and ((not column.artificial) or (column.artificial and addArtificialKey) or (column.artificial and (not addArtificialKey) and column.transform | trim != "")) and ( includePreviousColumns or (table.subType != "P" or ((previousColumn("SF_TYPE_3_COLS",column.name)|trim) == "false")))%}
     {%- if not loop.first %}{{indent}}, {% else %} {% endif %}
     {%- if column.artificial and addArtificialKey -%}
       {{- addSnowflakeArtificialKey(alias = "src", zeroKeyInsert=zeroKeyInsert)}}
@@ -73,7 +74,11 @@
       {%- if alias == "" %}
         {%- fetch column.sourceColumn -%}
         {%- set prevColSrc = column.sourceColumn.name -%}
-        {{ table.name}}.{{prevColSrc}}
+           CASE {{ table.name}}.{{prevColSrc}}{% br %}
+             WHEN {{ column.source }}{% br %}
+             THEN {{ table.name }}.{{ column.name}}{% br %}
+             ELSE {{ table.name}}.{{ prevColSrc }}{% br %}
+           END
       {%- else -%}
         {{- getColumnSource(alias = alias)}}
       {%- endif -%}
