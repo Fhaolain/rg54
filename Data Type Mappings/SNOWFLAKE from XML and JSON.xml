@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<data_type_mapping_set name="SNOWFLAKE from XML and JSON" xsi:schemaLocation="http://www.wherescape.com/xml/red ./Data%20Type%20Mapping.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.wherescape.com/xml/red">
+	<mapping_set_description>SNOWFLAKE from XML and JSON
+WFS v0.9 2016-04-01</mapping_set_description>
+	<mapping_set_null_policy>AllowNulls</mapping_set_null_policy>
+	<data_type_mapping match_data_type="char" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="char" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="varchar" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="varchar" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="varchar" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="date" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="datetime" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="timestamp" output_data_type="variant" active_flag="true"></data_type_mapping>
+	<data_type_mapping match_data_type="boolean" output_data_type="variant" active_flag="true"></data_type_mapping>
+</data_type_mapping_set>

@@ -1,0 +1,16 @@
+34;wsl_snowflake_create_file_format
+35;wsl_snowflake_create_table
+36;wsl_snowflake_create_view
+37;wsl_snowflake_pscript_dv_perm
+38;wsl_snowflake_pscript_dv_stage
+39;wsl_snowflake_pscript_export
+40;wsl_snowflake_pscript_hist
+41;wsl_snowflake_pscript_load
+42;wsl_snowflake_pscript_perm
+43;wsl_snowflake_pscript_stage
+45;wsl_snowflake_utility_dml
+46;wsl_snowflake_utility_dv
+70;wsl_snowflake_alter_ddl
+199;wsl_snowflake_create_stage
+200;wsl_snowflake_utility
+1200;wsl_snowflake_pscript_load_range
