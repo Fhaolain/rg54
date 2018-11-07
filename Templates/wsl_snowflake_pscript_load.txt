@@ -23,6 +23,7 @@
 {# -- TK: Powershell release V6 (2018-05-14)  Fixed support for non CSV delimited files and removed unneccessary file copy when loading files from windows  -- #}
 {# -- TK: Powershell release V7 (2018-06-27)  Enabled file loads from external stages and stageless loads from azure blob storage                           -- #}
 {# -- JL: Powershell release V8 (2018-08-31)  Add support for delimiters, single and double quotes and back slashes in source data                          -- #}
+{# -- TK: Powershell release V9 (2018-11-08)  Removed Get-ExtendedProperty function from script as it exists in WslPowershellCommon module                  -- #}
 {# --                                                                                                                                                       -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
@@ -94,12 +95,12 @@ function Archive-Files { {%- br %}
     param ({%- br %}
         [array]$files{%- br %}
     ){%- br %}
-    $ArchivePath = @"{%- br %}
+    $ArchivePath = @'{%- br %}
 {{ table.loadInfo.archiveFile.path }}{%- br %}
-"@{%- br %}
-    $ArchiveName = @"
+'@{%- br %}
+    $ArchiveName = @'
 {{ table.loadInfo.archiveFile.name }}{%- br %}
-"@{%- br %}
+'@{%- br %}
     {%- br %}
     if(($runMode -ne "S3") -and ($runmode -ne "AZ")) { {%- br %}
         if([string]::IsNullOrWhitespace($ArchivePath)) { {%- br %}
@@ -189,43 +190,26 @@ Function Gzip-File { {%- br %}
     return (gci $outFile).FullName{%- br %}
 }{%- br %}
 {%- br %}
-# Get Extended Properties{%- br %}
-function Get-ExtendedProperty { {%- br %}
-    param({%- br %}
-        $propertyName{%- br %}
-    ){%- br %}
-    $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo."){%- br %}
-    $root = $repo.objectsByName{%- br %}
-    $value = $root[${env:WSL_LOAD_TABLE}].extendedPropertyValuesByName[$propertyName].GetValue(){%- br %}
-    if([string]::IsNullOrEmpty($value)) { {%- br %}
-        $value = $root[${env:WSL_LOAD_TABLE}].loadInfo.sourceConnection.extendedPropertyValuesByName[$propertyName].GetValue(){%- br %}
-    }{%- br %}
-    if([string]::IsNullOrEmpty($value)) { {%- br %}
-        $value = $root[${env:WSL_LOAD_TABLE}].target.connection.extendedPropertyValuesByName[$propertyName].GetValue(){%- br %}
-    }{%- br %}
-    $repo.Dispose(){%- br %}
-    return , $value{%- br %}
-}{%- br %}
 function Load-Data { {%- br %}
     # Get extended property values{%- br %}
-    ${env:DEBUG}              = Get-ExtendedProperty "SF_DEBUG_MODE"{%- br %}
-    ${env:ACCESS_KEY}         = Get-ExtendedProperty "SF_ACCESS_KEY"{%- br %}
-    ${env:SECRET_KEY}         = Get-ExtendedProperty "SF_SECRET_KEY"{%- br %}
-    ${env:SEND_FILES_ZIPPED}  = Get-ExtendedProperty "SF_SEND_FILES_ZIPPED"{%- br %}
-    ${env:FILE_FORMAT}        = Get-ExtendedProperty "SF_FILE_FORMAT"{%- br %}
-    ${env:SNOWSQL_ACCOUNT}    = Get-ExtendedProperty "SF_SNOWSQL_ACCOUNT"{%- br %}
-    ${env:SNOWSQL_DATABASE}   = Get-ExtendedProperty "SF_SNOWSQL_DATABASE"{%- br %}
-    ${env:SNOWSQL_SCHEMA}     = Get-ExtendedProperty "SF_SNOWSQL_SCHEMA"{%- br %}
-    ${env:SNOWSQL_WAREHOUSE}  = Get-ExtendedProperty "SF_SNOWSQL_WAREHOUSE"{%- br %}
-    ${env:UNICODE_SUPPORT}    = Get-ExtendedProperty "SF_UNICODE_SUPPORT"{%- br %}
-    ${env:SPLIT_THRESHOLD}    = Get-ExtendedProperty "SF_SPLIT_THRESHOLD"{%- br %}
-    ${env:FILE_COUNT}         = Get-ExtendedProperty "SF_SPLIT_COUNT"{%- br %}
-    ${env:TIMEZONE}           = Get-ExtendedProperty "SF_TIMEZONE"{%- br %}
-    ${env:FILE_TYPE}          = @($(Get-ExtendedProperty "SF_FILE_TYPE"), "CSV" -ne $null){%- br %}
-    ${env:EXTERNAL_STAGE}     = Get-ExtendedProperty "SF_EXTERNAL_STAGE"{%- br %}
-    ${env:AZ_SAS_TOKEN}       = Get-ExtendedProperty "SF_AZURE_SAS_TOKEN"{%- br %}
-    ${env:AZ_ENCRYPTION_TYPE} = Get-ExtendedProperty "SF_AZURE_ENCRYPTION_TYPE"{%- br %}
-    ${env:AZ_ENCRYPTION_KEY}  = Get-ExtendedProperty "SF_AZURE_ENCRYPTION_KEY"{%- br %}
+    ${env:DEBUG}              = Get-ExtendedProperty -PropertyName "SF_DEBUG_MODE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:ACCESS_KEY}         = Get-ExtendedProperty -PropertyName "SF_ACCESS_KEY" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:SECRET_KEY}         = Get-ExtendedProperty -PropertyName "SF_SECRET_KEY" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:SEND_FILES_ZIPPED}  = Get-ExtendedProperty -PropertyName "SF_SEND_FILES_ZIPPED" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:FILE_FORMAT}        = Get-ExtendedProperty -PropertyName "SF_FILE_FORMAT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:SNOWSQL_ACCOUNT}    = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_ACCOUNT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:SNOWSQL_DATABASE}   = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_DATABASE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:SNOWSQL_SCHEMA}     = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_SCHEMA" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:SNOWSQL_WAREHOUSE}  = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_WAREHOUSE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:UNICODE_SUPPORT}    = Get-ExtendedProperty -PropertyName "SF_UNICODE_SUPPORT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:SPLIT_THRESHOLD}    = Get-ExtendedProperty -PropertyName "SF_SPLIT_THRESHOLD" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:FILE_COUNT}         = Get-ExtendedProperty -PropertyName "SF_SPLIT_COUNT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:TIMEZONE}           = Get-ExtendedProperty -PropertyName "SF_TIMEZONE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:FILE_TYPE}          = @($(Get-ExtendedProperty -PropertyName "SF_FILE_TYPE" -TableName ${env:WSL_LOAD_TABLE}), "CSV" -ne $null){%- br %}
+    ${env:EXTERNAL_STAGE}     = Get-ExtendedProperty -PropertyName "SF_EXTERNAL_STAGE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:AZ_SAS_TOKEN}       = Get-ExtendedProperty -PropertyName "SF_AZURE_SAS_TOKEN" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:AZ_ENCRYPTION_TYPE} = Get-ExtendedProperty -PropertyName "SF_AZURE_ENCRYPTION_TYPE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:AZ_ENCRYPTION_KEY}  = Get-ExtendedProperty -PropertyName "SF_AZURE_ENCRYPTION_KEY" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     {%- br %}
     if(${env:UNICODE_SUPPORT} -ne "TRUE") { {%- br %}
         ${env:UNICODE_SUPPORT} = "FALSE"{%- br %}
@@ -348,6 +332,7 @@ function Load-Data { {%- br %}
         $filePath = "{{ table.loadInfo.sourceFile.path }}"{%- br %}
         try { {%- br %}    
             [array]$dataFiles = (Get-ChildItem (Join-Path -Path $filePath -ChildPath $fileDat) -ErrorAction Stop ).FullName{%- br %}
+            $sourceFiles = $dataFiles
             if($dataFiles.Length -eq 0) { {%- br %}
                 [Console]::WriteLine("-2"){%- br %}
                 [Console]::WriteLine("No files found matching $(Join-Path -Path $filePath -ChildPath $fileDat)"){%- br %}
