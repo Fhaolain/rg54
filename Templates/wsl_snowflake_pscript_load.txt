@@ -24,6 +24,7 @@
 {# -- TK: Powershell release V7 (2018-06-27)  Enabled file loads from external stages and stageless loads from azure blob storage                           -- #}
 {# -- JL: Powershell release V8 (2018-08-31)  Add support for delimiters, single and double quotes and back slashes in source data                          -- #}
 {# -- TK: Powershell release V9 (2018-11-08)  Removed Get-ExtendedProperty function from script as it exists in WslPowershellCommon module                  -- #}
+{# -- TK: Powershell release V10 (2018-11-09) Fixed an issue where PUT couldnt handle paths with spaces                                                     -- #}
 {# --                                                                                                                                                       -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
