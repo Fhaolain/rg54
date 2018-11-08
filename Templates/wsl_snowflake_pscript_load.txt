@@ -395,10 +395,10 @@ function Load-Data { {%- br %}
             $remSQL = "remove @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY}*;"
             $null = (New-Object System.Data.Odbc.OdbcCommand($remSQL,$sfOdbc)).ExecuteNonQuery()
             if(${env:SEND_FILES_ZIPPED} -eq "TRUE") { 
-                $putSQL = "PUT file://${filePath}${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %}.gz @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
+                $putSQL = "PUT 'file://$(${filePath}.Replace("\","/"))${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %}.gz' @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
             }
             else {
-                $putSQL = "PUT file://${filePath}${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %} @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
+                $putSQL = "PUT 'file://$(${filePath}.Replace("\","/"))${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %}' @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
             }
             $snowsqlPut = "snowsql -q ""$putsql"" -o friendly=false  -o remove_comments=true -o output_format=csv -o timing=false"{%- br %}
             if(${env:DEBUG} -eq "TRUE") { {%- br %}
