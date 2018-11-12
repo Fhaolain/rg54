@@ -46,7 +46,7 @@ if( ! (Test-Path $objectConfig) ) {
     Write-Output "wsl_%"
     Write-Output "other_*"
     Write-Output "another_template"
-    $input = Read-Host -Prompt "Template Name"
+    $input = Read-Host -Prompt "Object Name"
     $input | Set-Content $objectConfig
     
     while ( ! [string]::IsNullOrWhiteSpace($input) ) {
@@ -61,69 +61,105 @@ if( ! (Test-Path $objectConfig) ) {
     Write-Output  "Delete '$objectConfig' if you wish to be prompted for template names"
 }
 
-$sql = "SELECT th_name
-        FROM ws_tem_header"
-
 $objectsToCommit = @(Get-Content $objectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
-foreach($string in $objectsToCommit) {
-    if($string -eq $objectsToCommit[0]) {
-        $sql += "`r`nWHERE "
-    }
-    else {
-        $sql += "`r`nOR "
-    }
-    $sql += "th_name LIKE '$string'"
-}
+$folders = @("Templates","Scripts","Procedures")
 
-$conn.Open()
-$dt = New-Object System.Data.DataTable
-$null = (New-Object System.Data.Odbc.OdbcDataAdapter($sql,$conn)).Fill($dt)
-$conn.Close()
+foreach($folder in $folders) {
+    switch($folder) {
+        "Templates" {
+            $header_prefix = "th"
+            $line_prefix = "tl"
+            $ws_header_tab = "ws_tem_header"
+            $ws_line_tab = "ws_tem_line"
 
-if( ! (Test-Path "${gitProj}\Templates")) {
-    New-Item -ItemType Directory -Path "${gitProj}\Templates"
-}
+            $file_extension = "txt"
 
-foreach ($object in $dt) {
-    
-    Write-Output "Exporting template: $($object.th_name)"
-
-    try {
-
-        $sw = New-Object System.IO.StreamWriter("${gitProj}\Templates\$($object.th_name).txt",$false,(New-Object System.Text.UTF8Encoding($False)))
-        $sw.AutoFlush = $true
-
-        $query = "select replace(replace(tl_line,char(10),''),char(13),'') 
-                  from ws_tem_line 
-                  join ws_tem_header 
-                  on tl_obj_key = th_obj_key 
-                  where th_name = '$($object.th_name)'
-                  order by tl_line_no"
-
-        $conn.open()
-
-        $reader = (New-Object System.Data.Odbc.OdbcCommand($query,$conn)).ExecuteReader()
-
-        while ( $reader.Read() ) {
-            $sw.WriteLine($reader.GetValue(0))
+            $type = "Template"
         }
+
+        "Scripts" {
+            $header_prefix = "sh"
+            $line_prefix = "sl"
+            $ws_header_tab = "ws_scr_header"
+            $ws_line_tab = "ws_scr_line"
+
+            $file_extension = "txt"
+
+            $type = "Script"
+        }
+
+        "Procedures" {
+            $header_prefix = "ph"
+            $line_prefix = "pl"
+            $ws_header_tab = "ws_pro_header"
+            $ws_line_tab = "ws_pro_line"
+
+            $file_extension = "sql"
+
+            $type = "Procedure"
+        }
+    }
+    $sql = "SELECT ${header_prefix}_name as obj_name FROM $ws_header_tab"
+
+    foreach($string in $objectsToCommit) {
+        if($string -eq $objectsToCommit[0]) {
+            $sql += " WHERE "
+        }
+        else {
+            $sql += " OR "
+        }
+        $sql += "${header_prefix}_name LIKE '$string'"
+    }
+
+    $conn.Open()
+    $dt = New-Object System.Data.DataTable
+    $null = (New-Object System.Data.Odbc.OdbcDataAdapter($sql,$conn)).Fill($dt)
+    $conn.Close()
+
+    if( ! (Test-Path "${gitProj}\$folder")) {
+        New-Item -ItemType Directory -Path "${gitProj}\$folder"
+    }
+
+    foreach ($object in $dt) {
     
+        Write-Output "Exporting ${type}: $($object.obj_name)"
+
+        try {
+
+            $sw = New-Object System.IO.StreamWriter("${gitProj}\$folder\$($object.obj_name).${file_extension}",$false,(New-Object System.Text.UTF8Encoding($False)))
+            $sw.AutoFlush = $true
+
+            $query = "select replace(replace(${line_prefix}_line,char(10),''),char(13),'') 
+                      from $ws_line_tab 
+                      join $ws_header_tab 
+                      on ${line_prefix}_obj_key = ${header_prefix}_obj_key 
+                      where ${header_prefix}_name = '$($object.obj_name)'
+                      order by ${line_prefix}_line_no"
+
+            $conn.open()
+
+            $reader = (New-Object System.Data.Odbc.OdbcCommand($query,$conn)).ExecuteReader()
+
+            while ( $reader.Read() ) {
+                $sw.WriteLine($reader.GetValue(0))
+            }
+    
+        }
+        catch {
+
+            $host.ui.WriteErrorLine("Export of object '$($object.obj_name)' failed.")
+            $host.ui.WriteErrorLine($_.Exception.Message)
+
+        }
+        finally {
+
+            try { $sw.close() } catch {}
+            try { $reader.close() } catch {}
+            try { $conn.close() } catch {}
+
+        }
     }
-    catch {
-
-        $host.ui.WriteErrorLine("Export of template '$($object.th_name)' failed.")
-        $host.ui.WriteErrorLine($_.Exception.Message)
-
-    }
-    finally {
-
-        try { $sw.close() } catch {}
-        try { $reader.close() } catch {}
-        try { $conn.close() } catch {}
-
-    }
-
 }
 
 pause

@@ -18,6 +18,7 @@
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
 {# -- TK: Added support for type 3 dimensions 2.0.4 (2018-11-01)                                                                                            -- #}
 {# -- TK: Improved support for type 3 dimensions 2.0.5 (2018-11-06)                                                                                         -- #}
+{# -- TK: Added support for type 4 dimensions 2.0.6 (2018-11-09)                                                                                            -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
@@ -133,7 +134,7 @@
 
 {# -- This macro adds the update columns to a merge -- #}
 {% macro addMergeUpdateColumns(addArtificialKey = false, alias = "", indent = "    ") %}
-  {%- from table.columns as column where (not (column.artificial and addArtificialKey == false)) and (not column.createTime) and (not column.businessKey) %}
+  {%- from table.columns as column where (not (column.artificial and addArtificialKey == false)) and (not column.createTime) and (not column.businessKey) and (not column.rangeStart and table.subType == "R") %}
     {%- if not loop.first %}{{indent}}, {% else %} {% endif -%}
     {{table.name}}.{{column.name}} = {{alias}}.{{column.name}}{%br%}
   {%- endfrom %}

@@ -21,6 +21,7 @@
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
 {# -- JL: Extended logical deleting to work for tables without an artifical key 2.0.3 (2018-08-26)                                                          -- #}
 {# -- TK: Added support for type 3 dimensions 2.0.4 (2018-11-01)                                                                                            -- #}
+{# -- TK: Added support for type 4 dimensions 2.0.5 (2018-11-09)                                                                                            -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -240,6 +241,9 @@ if ( $status -eq 1 ){
     {%- for groupByLine in (table.sourceJoinDetails.groupBy | trim | lines)%}    {{batchIndent}}{{groupByLine}}{%br%}{%- endfor%}
     {{batchIndent}}) AS src{%br%}
   {{batchIndent}}{{addMergeJoinCondition(alias = "src")}}
+  {%- if table.subType == "R" -%}
+    {%- from table.columns as rangeS where rangeS.rangeStart %}{% fetch rangeS.sourceColumn %}  {{batchIndent}}AND {{table.name}}.{{rangeS.name}} = src.{{rangeS.sourceColumn.name}}{% br %}{% endfrom %}
+  {%- endif %}
   {{batchIndent}}WHEN MATCHED THEN UPDATE{%br%}
   {{batchIndent}}SET{{- addMergeUpdateColumns(alias = "src", indent = batchIndent+"    ")}}
   {{batchIndent}}WHEN NOT MATCHED THEN INSERT{%br%}
