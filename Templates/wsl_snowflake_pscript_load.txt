@@ -24,6 +24,7 @@
 {# -- TK: Powershell release V7 (2018-06-27)  Enabled file loads from external stages and stageless loads from azure blob storage                           -- #}
 {# -- JL: Powershell release V8 (2018-08-31)  Add support for delimiters, single and double quotes and back slashes in source data                          -- #}
 {# -- TK: Powershell release V9 (2018-11-08)  Removed Get-ExtendedProperty function from script as it exists in WslPowershellCommon module                  -- #}
+{# -- TK: Powershell release V10 (2018-11-09) Fixed an issue where PUT couldnt handle paths with spaces                                                     -- #}
 {# --                                                                                                                                                       -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
@@ -395,10 +396,10 @@ function Load-Data { {%- br %}
             $remSQL = "remove @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY}*;"
             $null = (New-Object System.Data.Odbc.OdbcCommand($remSQL,$sfOdbc)).ExecuteNonQuery()
             if(${env:SEND_FILES_ZIPPED} -eq "TRUE") { 
-                $putSQL = "PUT file://${filePath}${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %}.gz @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
+                $putSQL = "PUT 'file://$(${filePath}.Replace("\","/"))${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %}.gz' @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
             }
             else {
-                $putSQL = "PUT file://${filePath}${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %} @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
+                $putSQL = "PUT 'file://$(${filePath}.Replace("\","/"))${fileDat}{% if table.loadInfo.sourceConnectionType.name != "Windows" %}*{%- endif %}' @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY};"
             }
             $snowsqlPut = "snowsql -q ""$putsql"" -o friendly=false  -o remove_comments=true -o output_format=csv -o timing=false"{%- br %}
             if(${env:DEBUG} -eq "TRUE") { {%- br %}
