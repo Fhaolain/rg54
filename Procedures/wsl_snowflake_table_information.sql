@@ -1,6 +1,6 @@
--- TemplateVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:*
+-- ProcedureVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* ProcedureType:Block
 --
--- c WhereScape Ltd 2018. Wherescape Ltd permits you to copy this SQL Block solely for use with the RED software, and to modify this Template
+-- (c) WhereScape Ltd 2018. Wherescape Ltd permits you to copy this SQL Block solely for use with the RED software, and to modify this Template
 -- for the purposes of using that modified SQL Block with the RED software, but does not permit copying or modification for any other purpose.
 --
 -- =============================================================================
