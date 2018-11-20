@@ -19,8 +19,10 @@
 {# -- TK: Added support for type 3 dimensions 2.0.4 (2018-11-01)                                                                                            -- #}
 {# -- TK: Improved support for type 3 dimensions 2.0.5 (2018-11-06)                                                                                         -- #}
 {# -- TK: Added support for type 4 dimensions 2.0.6 (2018-11-09)                                                                                            -- #}
+{# -- TK: Improved handling for type 2 dimensions 2.0.6 (2018-11-20)                                                                                        -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
+
 
 {# -- This macro adds the target columns and dss columns of the destination table-- #}
 {% macro addSetInsertTargetColumns(indent = "", includeIdentity = false, includePreviousColumns = false) %}
@@ -255,12 +257,6 @@
 {%- endfrom %}
 {% endmacro %}
 
-{# -- This macro inserts the where clause -- #}
-{% macro addWhereClause(flagValue = " = 'Y'", indent = "    ") %}
-  {%- if table.sourceJoinDetails.where | trim != "" -%}{%- for whereLine in (table.sourceJoinDetails.where | trim | lines)%}{{indent}}{{whereLine | trim}}{%br%}{%- endfor%}{{indent}}AND  {% else %}{{indent}}WHERE{% endif %}
-  {%- from table.columns as column where column.currentFlag %}  {{table.name}}.{{column.name}}{{flagValue}}{%br%}{%- endfrom %}
-{% endmacro %}
-
 {# -- This macro adds the part of the where clause for detecting slowly changing changes-- #}
 {% macro addWhereClauseSCD(indent = "    ") %}
   {%- if settings.nullSupport %}
@@ -277,11 +273,11 @@
 {% endmacro %}
 
 {# -- This macro inserts the join back to the target -- #}
-{% macro addJoinToTarget(indent="    ") %}
-  {{- indent}}LEFT OUTER JOIN [TABLEOWNER].[{{table.name}}] {{table.name}}{%br%}
-  {%- from table.columns as column where column.businessKey -%} 
-    {%- if loop.first %}{{indent}}ON     {% else %}{{indent}}AND    {% endif %}{{column.source}} = {{table.name}}.{{column.name}}{%- if not loop.last %}{%br%}{%- endif %}
-  {%- endfrom -%}
+{% macro addJoinToTarget ( joinType = "LEFT OUTER", indent = "    " ) %}
+  {{- indent}}{{ joinType }} JOIN [TABLEOWNER].[{{table.name}}] {{table.name}}{%br%}
+  {%- from table.columns as column where column.businessKey %} 
+    {%- if loop.first %}{{- indent}}ON {%- else %}{{- indent}}AND {%- endif %} {{column.source}} = {{table.name}}.{{column.name}}{%br%}
+  {%- endfrom %}
 {% endmacro %}
 
 {# -- This macro inserts the join back to the target -- #}
@@ -388,3 +384,223 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- endif %}
   {%- endfrom %}
 {%- endmacro %}
+
+
+
+
+
+
+{% macro addChangedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
+  {{- indent }}-- CHANGED ROWS{%br%}
+  {{- indent }}SELECT
+  {%- from table.columns as column %}
+    {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
+    {%- if column.artificial -%}
+      CAST({{ table.name }}.{{ column.name }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteTime -%}
+      CAST({{ table.name }}.{{ column.name }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif not column.dss -%}
+      CAST({{- column.source }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- else -%}
+      {%- if column.updateTime -%}
+        CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.createTime -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssStartDate -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssEndDate -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssVersion -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.currentFlag -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- else -%}
+        CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfrom %}
+  {%- from table.columns as maxkey where maxkey.artificial -%}
+    {%- if loop.first %}{{- indent }}     , 0 AS MAXKEY{%- br %}{% endif -%}
+  {%- endfrom -%}
+{% endmacro %}
+
+{% macro addType2ExpiringRowSelect ( indent = "    " ) %}
+  {{- indent }}-- EXPIRING ROWS{%br%}
+  {{- indent }}SELECT 
+  {%- from table.columns as column %}
+    {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
+    {%- if column.currentFlag -%}
+      CAST('N' AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif not column.dss -%}
+      CAST({{ table.name }}.{{ column.name}} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- else -%}
+      {%- if column.updateTime -%}
+        CAST({{ table.name}}.{{column.name}} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.createTime -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssStartDate -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssEndDate -%}
+        CAST({{settings.changeDetectionEndExpiring}} AS {{column.fullDataType}}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssVersion -%}
+        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- else -%}
+        CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfrom %}
+  {%- from table.columns as maxkey where maxkey.artificial -%}
+    {%- if loop.first %}{{- indent }}     , 0 AS MAXKEY{%- br %}{% endif -%}
+  {%- endfrom -%}
+{% endmacro %}
+
+{% macro addNewRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
+  {{- indent }}-- NEW ROWS{%br%}
+  {{- indent }}SELECT {{ distinct() -}}
+  {%- from table.columns as column %}
+    {%- if not loop.first %}{{- indent }}     , {% endif -%}
+    {%- if column.transform | trim != "" -%}
+      {%- from column.transform | trim | lines as transLine -%}
+        {%- if not loop.first %}{{- indent }}       {% endif -%}
+        {{ transLine }}{% br %}
+      {%- endfrom -%}
+    {%- elseif column.artificial -%}
+      CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteTime -%}
+      CAST(NULL AS {{ column.fullDataType }}) AS {{column.name }}{%- br -%}
+    {%- elseif column.currentFlag -%}
+      CAST('Y' AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif not column.dss -%}
+      CAST({{ column.source }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- else -%}
+      {%- if column.updateTime -%}
+        CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.createTime -%}
+        CAST(CURRENT_TIMESTAMP AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssStartDate -%}
+        CAST({{settings.changeDetectionStartInitial}} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssEndDate -%}
+        CAST({{settings.changeDetectionEndCurrent}} AS {{column.fullDataType}}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssVersion -%}
+        CAST(1 AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- else -%}
+        CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfrom %}
+  {%- from table.columns as maxkey where maxkey.artificial -%}
+    {%- if loop.first %}{{- indent }}     , MAXKEY.MAXKEY AS MAXKEY{%- br %}{% endif -%}
+  {%- endfrom -%}
+{% endmacro %}
+
+{% macro addVersionedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
+  {{- indent }}-- VERSIONED ROWS{%br%}
+  {{- indent }}SELECT {{ distinct() -}}
+  {%- from table.columns as column %}
+    {%- if not loop.first %}{{- indent }}     , {% endif -%}
+    {%- if column.transform | trim != "" -%}
+      {%- from column.transform | trim | lines as transLine -%}
+        {%- if not loop.first %}{{- indent }}       {% endif -%}
+        {{ transLine }}{% br %}
+      {%- endfrom -%}
+    {%- elseif column.artificial -%}
+       CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteTime -%}
+      CAST(NULL AS {{ column.fullDataType }}) AS {{column.name }}{%- br -%}
+    {%- elseif column.currentFlag -%}
+      CAST('Y' AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif not column.dss -%}
+      CAST({{ column.source }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- else -%}
+      {%- if column.updateTime -%}
+        CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.createTime -%}
+        CAST(CURRENT_TIMESTAMP AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssStartDate -%}
+        CAST({{settings.changeDetectionStartNew}} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssEndDate -%}
+        CAST({{settings.changeDetectionEndCurrent}} AS {{column.fullDataType}}) AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssVersion -%}
+        CAST({{table.name}}.{{column.name}} + 1 AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- else -%}
+        CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfrom %}
+  {%- from table.columns as maxkey where maxkey.artificial -%}
+    {%- if loop.first %}{{- indent }}     , MAXKEY.MAXKEY AS MAXKEY{%- br %}{% endif -%}
+  {%- endfrom -%}
+{% endmacro %}
+
+{% macro addFromClause ( indent = "    " ) %}
+  {%- for joinLine in (table.sourceJoinDetails.join | trim | lines)%}{{ indent }}{{ joinLine | trim }}{%br%}{%- endfor %}
+{% endmacro %}
+
+{% macro addWhereClause ( indent = "    " ) %}
+  {%- for whereLine in (table.sourceJoinDetails.where | trim | lines)%}{{ indent }}{{whereLine | trim}}{%br%}{%- endfor%}
+{% endmacro %}
+
+{% macro addGroupByClause ( indent = "    " ) %}
+  {%- for groupByLine in (table.sourceJoinDetails.groupBy | trim | lines)%}{{ indent }}{{groupByLine | trim}}{%br%}{%- endfor %}
+{% endmacro %}
+
+{% macro addType2TrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
+  {{- indent }}-- tracked columns{% br %}
+  {%- from table.columns as column where column.slowlyChanging %}
+    {%- if loop.first -%}{{- indent }}{{ whereType }} (
+    {%- else %}{{- indent }}  {{ compareType }}
+    {%- endif %}
+    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif -%}
+    {{- column.source -}}
+    {%- if nullSupport -%} AS VARCHAR(8000)),'~') {% else %} {% endif -%}
+    {{- compareOperator -}}
+    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif %}
+    {{- table.name }}.{{ column.name -}}
+    {%- if nullSupport %} AS VARCHAR(8000)),'~'){% endif -%}
+    {%- br -%}
+    {%- if loop.last %}{{- indent }}){%br%}{%- endif %}
+  {%- endfrom %}
+{% endmacro %}
+
+{% macro addType2UntrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
+  {{- indent }}-- untracked columns{% br %}
+  {%- from table.columns as column where not ( column.slowlyChanging or column.businessKey or column.dss or column.artificial or ( column.name == dssDeleteTime ) ) %} 
+    {%- if loop.first -%}{{- indent }}{{ whereType }} (
+    {%- else %}{{- indent }}  {{ compareType }}
+    {%- endif %}
+    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif -%}
+    {{- column.source -}}
+    {%- if nullSupport -%} AS VARCHAR(8000)),'~') {% else %} {% endif -%}
+    {{- compareOperator -}}
+    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif %}
+    {{- table.name }}.{{ column.name -}}
+    {%- if nullSupport %} AS VARCHAR(8000)),'~'){% endif -%}
+    {%- br -%}
+    {%- if loop.last %}{{- indent }}){%br%}{%- endif %}
+  {%- endfrom %}
+{% endmacro %}
+
+{% macro addChangedWhere ( indent = "    ", compareOperator = "<>", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
+  {%- from table.columns as column where not ( column.businessKey or column.dss or column.artificial or column.name == dssDeleteTime ) %} 
+    {%- if loop.first -%}{{- indent }}{{ whereType }} (
+    {%- else %}{{- indent }}  {{ compareType }}
+    {%- endif %}
+    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif -%}
+    {{- column.source -}}
+    {%- if nullSupport -%} AS VARCHAR(8000)),'~') {% else %} {% endif -%}
+    {{- compareOperator -}}
+    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif %}
+    {{- table.name }}.{{ column.name -}}
+    {%- if nullSupport %} AS VARCHAR(8000)),'~'){% endif -%}
+    {%- br -%}
+    {%- if loop.last %}{{- indent }}){%br%}{%- endif %}
+  {%- endfrom %}
+{% endmacro %}
+
+{% macro addMaxKeyJoin ( indent = "    " ) %}
+  {%- from table.columns as artificialKey where artificialKey.artificial -%}
+    {%- if loop.first -%}
+      {{- indent }}CROSS JOIN ( SELECT MAX({{artificialKey.name}}) AS maxkey FROM [TABLEOWNER].[{{table.name}}]) AS maxkey{% br %}
+    {%- endif -%}
+  {%- endfrom %}
+{% endmacro %}
