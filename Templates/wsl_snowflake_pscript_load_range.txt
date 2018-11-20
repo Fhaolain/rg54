@@ -19,6 +19,7 @@
 {#  Notes / History                                                                                                                                         -- #}
 {# -- TK 20180424 Original migration express version                                                                                                        -- #}
 {# -- JL 20181011 Cloned for general use                                                                                                                    -- #}
+{# -- TK 20181114 Enabled configuration of extract delimiter, enclosure and escape characters                                                               -- #}
 {# --                                                                                                                                                       -- #}
 {%- import "wsl_snowflake_utility" -%}
 {%- set PilotTable = getExtendedProperty( propertyName = "RANGE_PILOT_TABLE" ) | trim %}
@@ -136,11 +137,10 @@ $jobScript = {
     $utlAud = Join-Path -Path ${env:WSL_WORKDIR} -ChildPath "wsl${env:WSL_LOAD_TABLE}${env:WSL_SEQUENCE}{%- if PilotTable != "" %}_BATCH_$($batch.batch_number){% endif %}.utlaud"
     $utlErr = Join-Path -Path ${env:WSL_WORKDIR} -ChildPath "wsl${env:WSL_LOAD_TABLE}${env:WSL_SEQUENCE}{%- if PilotTable != "" %}_BATCH_$($batch.batch_number){% endif %}.utlerr"
 
-    $UE = ${env:UNLOAD_ENCLOSED}.replace("'","''")
     $extractSQL = @"
 SELECT {%- from table.columns as column %}
                                           {%- if not loop.first %}                                      ,{% endif %}
-                                          {%- if column.datatype == "varchar" or column.datatype == "char"  %}'${UE}' ${env:CONCATWORD}{% endif %}
+                                          {%- if column.datatype == "varchar" or column.datatype == "char"  %}{% endif %}
                                           {%- if column.transform | trim == "" or column.transformType.code == "A" %}
                                             {%- if column.sourceTable.name is defined and column.sourceColumn.name is defined %} {{ column.sourceTable.name }}.{{ column.sourceColumn.name }}
                                             {%- elseif column.source is defined and column.transformType.code != "A" %} {{column.source}}
@@ -149,7 +149,7 @@ SELECT {%- from table.columns as column %}
                                           {%- elseif column.transformType.code != "A" %} {{ column.transform }}
                                           {%- else %} ' '
                                           {%- endif %}
-                                          {%- if column.datatype == "varchar" or column.datatype == "char"  %} ${env:CONCATWORD} '${UE}'{% endif %}{% br %}
+                                          {%- if column.datatype == "varchar" or column.datatype == "char"  %}{% endif %}{% br %}
                                         {%- endfrom %}
                                        {%- if table.loadInfo.sourceTables != "" %}
                                  FROM ${env:WSL_SRC_SCHEMA}.{{ table.loadInfo.sourceTables }}{%- br -%}
@@ -187,7 +187,8 @@ SELECT {%- from table.columns as column %}
     })
 
     $fileFull = Join-Path -path ${env:WSL_WORKDIR} -childPath $fileDat
-    $rowCount = $wslOdbc.GetDataToFile($extractSQL,${env:WSL_SRC_DSN},${env:WSL_SRC_USER},${env:WSL_SRC_PWD},$fileFull,"|", 0, 0, $false, $unicode)    
+    #GetDataToFile(string query, string dsn, string username, string password, string dataFile, string delimiter, int fileCount, int splitThreshold, bool addQuotes, bool unicode, string enclosedBy, string escapeChar) 
+    $rowCount = $wslOdbc.GetDataToFile($extractSQL,${env:WSL_SRC_DSN},${env:WSL_SRC_USER},${env:WSL_SRC_PWD},$fileFull,${env:UNLOAD_DELIM}, 0, 0, $true, $unicode, ${env:UNLOAD_ENCLOSED}, ${env:UNLOAD_ESCAPE})    
  
     {%- if PilotTable != "" %}{% br %}{% br %}
     $batchUpdateSql = @"
@@ -436,19 +437,19 @@ function MAIN { {%- br %}
     {%- from table.extendedPropertyValuesByName as entry where entry.key == "RANGE_BATCH_EXPRESSION" %}    ${env:BATCH_EXPRESSION}  = "{{entry.value}}" {%- br %}{%- endfrom %}
     {%- from table.extendedPropertyValuesByName as entry where entry.key == "RANGE_BATCH_INCREMENTAL_OVERRIDE" %}    ${env:BATCH_OVERRIDE}    = "{{entry.value}}" {%- br %}{%- endfrom %}
     ${env:PILOT_TABLE}       = Get-ExtendedProperty -PropertyName "RANGE_PILOT_TABLE" -TableName ${env:WSL_LOAD_TABLE}
-    ${env:UNLOAD_DELIM}      = @($(Get-ExtendedProperty -PropertyName "RANGE_UNLOAD_DELIMITER" -TableName ${env:WSL_LOAD_TABLE}), "|" -ne "")[0]{% br %}
-    ${env:UNLOAD_ENCLOSED}   = @($(Get-ExtendedProperty -PropertyName "RANGE_UNLOAD_ENCLOSED_BY" -TableName ${env:WSL_LOAD_TABLE}), "`"" -ne "")[0]{% br %}
+    ${env:UNLOAD_DELIM}      = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_DELIMITER" -TableName ${env:WSL_LOAD_TABLE}), "|" -ne "")[0]{% br %}
+    ${env:UNLOAD_ENCLOSED}   = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_ENCLOSED_BY" -TableName ${env:WSL_LOAD_TABLE}), "`"" -ne "")[0]{% br %}
+    ${env:UNLOAD_ESCAPE}     = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_ESCAPE_CHAR" -TableName ${env:WSL_LOAD_TABLE}), "#" -ne "")[0]{% br %}
     ${env:MAX_RETRIES}       = @($(Get-ExtendedProperty -PropertyName "RANGE_UPLOAD_MAX_RETRIES" -TableName ${env:WSL_LOAD_TABLE}), "2" -ne "")[0]{% br %}
     $THREAD_COUNT            = @($(Get-ExtendedProperty -PropertyName "RANGE_THREAD_COUNT" -TableName ${env:WSL_LOAD_TABLE}), "8" -ne "")[0]{% br %}
     $THREAD_ERRORS           = @($(Get-ExtendedProperty -PropertyName "RANGE_MAX_THREAD_FAILURES" -TableName ${env:WSL_LOAD_TABLE}), "0" -ne "")[0]{% br %}
     $THREAD_FAIL_ACTION      = @($(Get-ExtendedProperty -PropertyName "RANGE_FAIL_ON_THREAD_FAILURE" -TableName ${env:WSL_LOAD_TABLE}), "FALSE" -ne "")[0]{% br %}
     ${env:EXTRACT_CHAR_SET}  = @($(Get-ExtendedProperty -PropertyName "RANGE_EXTRACT_CHARSET" -TableName ${env:WSL_LOAD_TABLE}))[0]{% br %}
     ${env:MAX_ROW_LENGTH}    = @($(Get-ExtendedProperty -PropertyName "RANGE_MAX_ROW_LENGTH" -TableName ${env:WSL_LOAD_TABLE}), "10000" -ne "")[0]{% br %}
-    ${env:CONCATWORD}        = @($(Get-ExtendedProperty -PropertyName "RANGE_CONCATWORD" -TableName ${env:WSL_LOAD_TABLE}), "||" -ne "")[0]{% br %}
     $CR_LF_REPLACED          = "{{crLfReplaced}}"
     
     {%- br %}
-    if($env:DEBUG -eq "TRUE") { {%- br %}
+    if(${env:DEBUG} -eq "TRUE") { {%- br %}
         $errStream.WriteLine("=================== LOAD OPTIONS ==================="){%- br %}
         $errStream.WriteLine("Specified Load Table:             " + ${env:WSL_LOAD_TABLE}){%- br %}
         $errStream.WriteLine("Specified Work Dir:               " + ${env:WSL_WORKDIR}){%- br %}
@@ -474,8 +475,9 @@ function MAIN { {%- br %}
         $errStream.WriteLine("SF_SNOWSQL_DATABASE:              " + ${env:SNOWSQL_DATABASE}){%- br %}
         $errStream.WriteLine("SF_FILE_FORMAT:                   " + ${env:FILE_FORMAT}){%- br %}
         $errStream.WriteLine("SF_SEND_FILES_ZIPPED:             " + ${env:UNLOAD_GZIP}){%- br %}
-        $errStream.WriteLine("RANGE_UNLOAD_DELIMITER:           " + ${env:UNLOAD_DELIM}){%- br %}
-        $errStream.WriteLine("RANGE_UNLOAD_ENCLOSED_BY:         " + ${env:UNLOAD_ENCLOSED}){%- br %}
+        $errStream.WriteLine("SF_UNLOAD_DELIMITER:              " + ${env:UNLOAD_DELIM}){%- br %}
+        $errStream.WriteLine("SF_UNLOAD_ENCLOSED_BY:            " + ${env:UNLOAD_ENCLOSED}){%- br %}
+        $errStream.WriteLine("SF_UNLOAD_ESCAPE_CHAR:            " + ${env:UNLOAD_ESCAPE}){%- br %}
         $errStream.WriteLine("RANGE_BATCH_EXPRESSION:           " + ${env:BATCH_EXPRESSION}){%- br %}
         $errStream.WriteLine("RANGE_BATCH_INCREMENTAL_OVERRIDE: " + ${env:BATCH_OVERRIDE}){%- br %}
         $errStream.WriteLine("RANGE_PILOT_TABLE:                " + ${env:PILOT_TABLE}){%- br %}
@@ -484,7 +486,6 @@ function MAIN { {%- br %}
         $errStream.WriteLine("RANGE_UPLOAD_MAX_RETRIES:         " + ${env:MAX_RETRIES}){%- br %}
         $errStream.WriteLine("RANGE_EXTRACT_CHARSET:            " + ${env:EXTRACT_CHAR_SET}){%- br %}
         $errStream.WriteLine("RANGE_MAX_ROW_LENGTH:             " + ${env:MAX_ROW_LENGTH}){%- br %}
-        $errStream.WriteLine("RANGE_CONCATWORD:                 " + ${env:CONCATWORD}){%- br %}
         $errStream.WriteLine("RANGE_CR_LF_REPLACED:             " + $CR_LF_REPLACED){%- br %}
         $errStream.WriteLine(""){%- br %}
     }{%- br %}
@@ -562,7 +563,7 @@ function MAIN { {%- br %}
     $jobs = Get-Job | Wait-Job
     $retCode = 1
     foreach($j in $jobs) {
-        $jobRes = Receive-Job $j -ErrorAction SilentlyContinue
+        $jobRes = $j | Receive-Job
         $jobStatus = $jobRes[0]
         $jobAud = $jobRes[1]
         $jobErr = $jobRes[2]
