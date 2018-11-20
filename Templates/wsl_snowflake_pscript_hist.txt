@@ -20,13 +20,13 @@
 {# -- JL: Added logical deleting and batch looping 2.0.1 (2017-09-17)                                                                                       -- #}
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
 {# -- JL: Extended logical deleting to work for tables without an artifical key 2.0.3 (2018-08-26)                                                          -- #}
-{# -- JL: Untracked rows now get updated when value in target does not match source 2.0.4 (2018-11-20)                                                          -- #}
+{# -- TK: Untracked rows now get updated when value in target does not match source 2.0.4 (2018-11-20)                                                      -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
 {% set counter = 0 %}
 {% set dssDeleteTime = "DSS_DELETE_TIME" %}
-{% import "wsl_snowflake_utility_new" %}
+{% import "wsl_snowflake_utility_dml" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
 #-- DBMS Name        :    SNOWFLAKE {{table.dbType.name}}{%br%}
@@ -67,13 +67,6 @@ $step = {% counter %}00{%br%}
 {%- from table.columns as column where column.name == dssDeleteTime -%}
   {% set dssDeleteTimePresent = true %}  
 $logicalDeleteCount = 0{%br%}
-{%- endfrom -%}
-{#- Work out if there is a surrogate key -#}											  
-{%- set hasArtificial = false -%}
-{%- from table.columns as artificialKey where artificialKey.artificial -%}
-  {%- if loop.first -%}
-    {%- set hasArtificial = true -%}
-  {%- endif -%}
 {%- endfrom -%}
 {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
 $deleteCount = 0{%br%}
@@ -283,7 +276,7 @@ if ( $status -eq 1 ){
   {{- addMaxKeyJoin ( indent = "    " + batchIndent ) -}}
   {{- addWhereClause ( indent = "    " + batchIndent ) -}}
   {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
-  {% from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
+  {%- from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
