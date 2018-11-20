@@ -1,31 +1,32 @@
-{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Powershell                                             -- #}
-{#                                                                                                                                                          -- #}
-{# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
-{# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
-{# --                                                                                                                                                       -- #}
-{# -- =============================================================================                                                                         -- #}
-{# --                                                                                                                                                       -- #}
-{# -- DBMS Name          : Snowflake                                                                                                                        -- #}
-{# -- Template Name      : wsl_snowflake_pscript_load                                                                                                       -- #}
-{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
-{# -- Description        : This template creates a Snowflake script specifically                                                                            -- #}
-{# --                      specifically designed for all RED load tables                                                                                    -- #}
-{# --                                                                                                                                                       -- #}
-{# -- =============================================================================                                                                         -- #}
-{# --                                                                                                                                                       -- #}
-{# --                                                                                                                                                       -- #}
-{#  Notes / History                                                                                                                                         -- #}
-{# -- TK: Powershell release V1 (2017-05-17)                                                                                                                -- #}
-{# -- TK: Powershell release V2 (2017-08-03)  Metadata service now used for extended properties fields                                                      -- #}
-{# -- TK: Powershell release V3 (2017-08-23)  File splitting added                                                                                          -- #}
-{# -- TK: Powershell release V4 (2017-09-19)  Extended COPY statement use to automatically apply RED after load transforms during the COPY.                 -- #}
-{# -- TK: Powershell release V5 (2018-02-08)  Powershell ODBC function replaced with compiled class to drastically improve load speeds.                     -- #}
-{# -- TK: Powershell release V6 (2018-05-14)  Fixed support for non CSV delimited files and removed unneccessary file copy when loading files from windows  -- #}
-{# -- TK: Powershell release V7 (2018-06-27)  Enabled file loads from external stages and stageless loads from azure blob storage                           -- #}
-{# -- JL: Powershell release V8 (2018-08-31)  Add support for delimiters, single and double quotes and back slashes in source data                          -- #}
-{# -- TK: Powershell release V9 (2018-11-08)  Removed Get-ExtendedProperty function from script as it exists in WslPowershellCommon module                  -- #}
-{# -- TK: Powershell release V10 (2018-11-09) Fixed an issue where PUT couldnt handle paths with spaces                                                     -- #}
-{# --                                                                                                                                                       -- #}
+{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Powershell                                              -- #}
+{#                                                                                                                                                           -- #}
+{# --    (c) WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template         -- #}
+{# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.          -- #}
+{# --                                                                                                                                                        -- #}
+{# -- =============================================================================                                                                          -- #}
+{# --                                                                                                                                                        -- #}
+{# -- DBMS Name          : Snowflake                                                                                                                         -- #}
+{# -- Template Name      : wsl_snowflake_pscript_load                                                                                                        -- #}
+{# -- RED Version        : 8.2.1.0                                                                                                                           -- #}
+{# -- Description        : This template creates a Snowflake script specifically                                                                             -- #}
+{# --                      specifically designed for all RED load tables                                                                                     -- #}
+{# --                                                                                                                                                        -- #}
+{# -- =============================================================================                                                                          -- #}
+{# --                                                                                                                                                        -- #}
+{# --                                                                                                                                                        -- #}
+{#  Notes / History                                                                                                                                          -- #}
+{# -- TK: Powershell release V1  (2017-05-17)                                                                                                                -- #}
+{# -- TK: Powershell release V2  (2017-08-03)  Metadata service now used for extended properties fields                                                      -- #}
+{# -- TK: Powershell release V3  (2017-08-23)  File splitting added                                                                                          -- #}
+{# -- TK: Powershell release V4  (2017-09-19)  Extended COPY statement use to automatically apply RED after load transforms during the COPY.                 -- #}
+{# -- TK: Powershell release V5  (2018-02-08)  Powershell ODBC function replaced with compiled class to drastically improve load speeds.                     -- #}
+{# -- TK: Powershell release V6  (2018-05-14)  Fixed support for non CSV delimited files and removed unneccessary file copy when loading files from windows  -- #}
+{# -- TK: Powershell release V7  (2018-06-27)  Enabled file loads from external stages and stageless loads from azure blob storage                           -- #}
+{# -- JL: Powershell release V8  (2018-08-31)  Add support for delimiters, single and double quotes and back slashes in source data                          -- #}
+{# -- TK: Powershell release V9  (2018-11-08)  Removed Get-ExtendedProperty function from script as it exists in WslPowershellCommon module                  -- #}
+{# -- TK: Powershell release V10 (2018-11-09)  Fixed an issue where PUT couldnt handle paths with spaces                                                      -- #}
+{# -- TK: Powershell release V11 (2018-11-14)  Enabled configuration of extract delimiter, enclosure and escape characters                                   -- #}
+{# --                                                                                                                                                        -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
 # DBMS Name        :    SNOWFLAKE {{table.dbType.name}}{%- br %}
@@ -203,6 +204,9 @@ function Load-Data { {%- br %}
     ${env:SNOWSQL_SCHEMA}     = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_SCHEMA" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:SNOWSQL_WAREHOUSE}  = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_WAREHOUSE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:UNICODE_SUPPORT}    = Get-ExtendedProperty -PropertyName "SF_UNICODE_SUPPORT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+    ${env:UNLOAD_DELIM}       = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_DELIMITER" -TableName ${env:WSL_LOAD_TABLE}), "|" -ne "")[0]{% br %}
+    ${env:UNLOAD_ENC}         = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_ENCLOSED_BY" -TableName ${env:WSL_LOAD_TABLE}), "`"" -ne "")[0]{% br %}
+    ${env:UNLOAD_ESC}         = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_ESCAPE_CHAR" -TableName ${env:WSL_LOAD_TABLE}), "#" -ne "")[0]{% br %}
     ${env:SPLIT_THRESHOLD}    = Get-ExtendedProperty -PropertyName "SF_SPLIT_THRESHOLD" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:FILE_COUNT}         = Get-ExtendedProperty -PropertyName "SF_SPLIT_COUNT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:TIMEZONE}           = Get-ExtendedProperty -PropertyName "SF_TIMEZONE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
@@ -268,6 +272,25 @@ function Load-Data { {%- br %}
             $logStream.WriteLine("ODBC Source Password:        " + (New-Object string ('*', ${env:WSL_SRC_PWD}.Length))){%- br %}
             $logStream.WriteLine(""){%- br %}
         }
+        $logStream.WriteLine("=================== EXTENDED PROPERTIES ==================="){%- br %}
+        $logStream.WriteLine("SF_SNOWSQL_ACCOUNT:       " + ${env:SNOWSQL_ACCOUNT}){%- br %}
+        $logStream.WriteLine("SF_SNOWSQL_WAREHOUSE:     " + ${env:SNOWSQL_WAREHOUSE}){%- br %}
+        $logStream.WriteLine("SF_SNOWSQL_DATABASE:      " + ${env:SNOWSQL_DATABASE}){%- br %}
+        $logStream.WriteLine("SF_SNOWSQL_SCHEMA:        " + ${env:SNOWSQL_SCHEMA}){%- br %}
+        $logStream.WriteLine("SF_FILE_FORMAT:           " + ${env:FILE_FORMAT}){%- br %}
+        $logStream.WriteLine("SF_SEND_FILES_ZIPPED:     " + ${env:SEND_FILES_ZIPPED}){%- br %}
+        $logStream.WriteLine("SF_UNLOAD_DELIMITER:      " + ${env:UNLOAD_DELIM}){%- br %}
+        $logStream.WriteLine("SF_UNLOAD_ENCLOSED_BY:    " + ${env:UNLOAD_ENC}){%- br %}
+        $logStream.WriteLine("SF_UNLOAD_ESCAPE_CHAR:    " + ${env:UNLOAD_ESC}){%- br %}
+        $logStream.WriteLine("SF_SPLIT_THRESHOLD:       " + ${env:SPLIT_THRESHOLD}){%- br %}
+        $logStream.WriteLine("SF_SPLIT_COUNT:           " + ${env:FILE_COUNT}){%- br %}
+        $logStream.WriteLine("SF_TIMEZONE:              " + ${env:TIMEZONE}){%- br %}
+        $logStream.WriteLine("SF_FILE_TYPE:             " + ${env:FILE_TYPE}){%- br %}
+        $logStream.WriteLine("SF_EXTERNAL_STAGE:        " + ${env:EXTERNAL_STAGE}){%- br %}
+        $logStream.WriteLine("SF_AZURE_SAS_TOKEN:       " + ${env:AZ_SAS_TOKEN}){%- br %}
+        $logStream.WriteLine("SF_AZURE_ENCRYPTION_TYPE: " + ${env:AZ_ENCRYPTION_TYPE}){%- br %}
+        $logStream.WriteLine("SF_AZURE_ENCRYPTION_KEY:  " + ${env:AZ_ENCRYPTION_KEY}){%- br %}
+        $logStream.WriteLine(""){%- br %}
     }{%- br %}
     {%- br %}
     {% if (table.loadInfo.sourceConnectionType.name == "ODBC") or (table.loadInfo.sourceConnectionType.name == "Database") -%}
@@ -312,8 +335,8 @@ function Load-Data { {%- br %}
     $OdbcDump = Get-OdbcDumpSource
     Add-Type -TypeDefinition $OdbcDump -Language CSharp -ReferencedAssemblies "System.Data"
     $wslOdbc = New-Object WhereScape.OdbcDump
-    #GetDataToFile(string query, string dsn, string username, string password, string dataFile, string delimiter, int fileCount, int splitThreshold, bool addQuotes, bool unicode)
-    $rowCount = $wslOdbc.GetDataToFile($extractSql,${env:WSL_SRC_DSN},${env:WSL_SRC_USER},${env:WSL_SRC_PWD},"${filePath}${fileDat}","|", ${env:FILE_COUNT}, ${env:SPLIT_THRESHOLD}, $true, $unicode){%- br %}
+    #GetDataToFile(string query, string dsn, string username, string password, string dataFile, string delimiter, int fileCount, int splitThreshold, bool addQuotes, bool unicode, string enclosedBy, string escapeChar) 
+    $rowCount = $wslOdbc.GetDataToFile($extractSQL,${env:WSL_SRC_DSN},${env:WSL_SRC_USER},${env:WSL_SRC_PWD},"${filePath}${fileDat}",${env:UNLOAD_DELIM}, ${env:FILE_COUNT}, ${env:SPLIT_THRESHOLD}, $true, $unicode, ${env:UNLOAD_ENC}, ${env:UNLOAD_ESC})    
     if(${env:DEBUG} -eq "TRUE") { {%- br %}
         $logStream.WriteLine("END create of data file from source system: $(Get-Date)"){%- br %}
     }{%- br %}
@@ -380,8 +403,10 @@ function Load-Data { {%- br %}
                 $dataFiles[$x] = Gzip-File -inFile $originalName{% if table.loadInfo.sourceConnectionType.name != "Windows" %} -RemoveOriginal{% else %} -OutFile $newName{% endif %}{% br %}
                 {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}
                 $filePath = ${env:WSL_WORKDIR}{% br %}
-                {%- endif %}
                 $logStream.WriteLine("File '$originalName' GZipped to '$newName' prior to upload")
+                {%- else %}
+                $logStream.WriteLine("File '$originalName' GZipped to '$($dataFiles[$x])' prior to upload")
+                {%- endif %}
             }
         }
     }{%- br %}
