@@ -425,7 +425,7 @@ function GET-SRCPWD {
     $MyForm.Text = "Enter Source System Password"
     $MyIcon = [System.Drawing.Icon]::ExtractAssociatedIcon("${env:WSL_BINDIR}med.exe")
     $MyForm.Icon = $MyIcon
-
+    
     $Location = New-Object System.Drawing.Point
     $Location.X = 20
     $Location.Y = 15
@@ -1568,7 +1568,7 @@ try {
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourcePwd is: " + (New-Object string ('*', $sourcePwd.Length))) }
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourceColumn is: $sourceColumn") }
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourceConnection is: $sourceConnection") }
-
+        
         # Define source connection
         #
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Defining source connection") }
@@ -1656,7 +1656,7 @@ try {
 
         $logStream.WriteLine("Range Table: $rangeTable has been defined")
         $logStream.WriteLine("==> Please create $rangeTable then regenerate scripts for: $loadTable and $rangeTable")
-
+        
         $prevSourceConnection = $sourceConnection
         $prevSourcePwd = $sourcePwd
 
