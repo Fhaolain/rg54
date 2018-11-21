@@ -247,9 +247,9 @@ if ( $status -eq 1 ){
     {{- table.name}}.{{bk.name}} IS NULL{% br %}
   {%- endfrom %}
     {{batchIndent}}UNION ALL{% br %}
-  {#-                                -#}
-  {#- N E W   R O W  V E R S I O N S -#}
-  {#-                                -#}
+  {#-                                 -#}
+  {#- N E W   R O W   V E R S I O N S -#}
+  {#-                                 -#}
   {{- addVersionedRowSelect ( indent = "    " + batchIndent ) -}}
   {{- addFromClause ( indent = "    " + batchIndent ) -}}
   {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
