@@ -226,9 +226,6 @@ if ( $status -eq 1 ){
   {{batchIndent}}$sql = @"
   {{batchIndent}}MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
   {{batchIndent}}USING ({%br%}
-  {#-                         -#}
-  {#- C H A N G E D   R O W S -#}
-  {#-                         -#}
   {#- ARE THERE ANY UNTRACKED COLUMNS? -#}
   {%- set untracked = false -%}
   {%- from table.columns as untrackedCol where not ( untrackedCol.slowlyChanging or untrackedCol.businessKey or untrackedCol.dss or untrackedCol.artificial or untrackedCol.name == dssDeleteTime ) -%}
@@ -236,7 +233,52 @@ if ( $status -eq 1 ){
       {%- set untracked = true -%}
     {%- endif -%}
   {%- endfrom -%}
+  {#-                             -#}
+  {#- V E R S I O N   1   R O W S -#}
+  {#-                             -#}
+  {{- addNewRowSelect ( indent = "    " + batchIndent ) -}}
+  {{- addFromClause ( indent = "    " + batchIndent ) -}}
+  {{- addJoinToTarget ( joinType = "LEFT OUTER", indent = "    " + batchIndent ) -}}
+  {{- addMaxKeyJoin ( indent = "    " + batchIndent ) -}}
+  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
+  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
+  {%- from table.columns as bk where bk.businessKey -%}
+    {%- if not loop.first -%}{{batchIndent}}    AND {% endif -%}
+    {{- table.name}}.{{bk.name}} IS NULL{% br %}
+  {%- endfrom %}
+    {{batchIndent}}UNION ALL{% br %}
+  {#-                                -#}
+  {#- N E W   R O W  V E R S I O N S -#}
+  {#-                                -#}
+  {{- addVersionedRowSelect ( indent = "    " + batchIndent ) -}}
+  {{- addFromClause ( indent = "    " + batchIndent ) -}}
+  {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
+  {{- addMaxKeyJoin ( indent = "    " + batchIndent ) -}}
+  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
+  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
+  {%- from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
+  {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
+  {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
+  {{- addGroupByClause ( indent = "    " + batchIndent ) }}
+    {{batchIndent}}UNION ALL{% br %}
+  {#-                           -#}
+  {#- E X P I R I N G   R O W S -#}
+  {#-                            #}
+  {{- addType2ExpiringRowSelect ( indent = "    " + batchIndent ) -}}
+  {{- addFromClause ( indent = "    " + batchIndent ) -}}
+  {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
+  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
+  {#- WHERE CURRENT FLAG -#}
+  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif -%}
+  {%- from table.columns as column where column.currentFlag %}{{ table.name }}.{{ column.name }} = 'Y'{% br %}{% endfrom %}
+  {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
+  {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
+  {{- addGroupByClause ( indent = "    " + batchIndent ) }}
+  {#-                         -#}
+  {#- C H A N G E D   R O W S -#}
+  {#-                         -#}
   {%- if untracked %}
+    {{batchIndent}}UNION ALL{% br %}
     {{- addChangedRowSelect ( indent = "    " + batchIndent ) -}}
     {{- addFromClause ( indent = "    " + batchIndent ) -}}
     {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
@@ -251,49 +293,7 @@ if ( $status -eq 1 ){
     {#- WHERE UNTRACKED COLUMNS HAVE CHANGED #}
     {{- addType2UntrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
     {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
-  {#-                           -#}
-  {#- E X P I R I N G   R O W S -#}
-  {#-                            #}
-    {{batchIndent}}UNION ALL{% br %}
   {%- endif %}
-  {{- addType2ExpiringRowSelect ( indent = "    " + batchIndent ) -}}
-  {{- addFromClause ( indent = "    " + batchIndent ) -}}
-  {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
-  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
-  {#- WHERE CURRENT FLAG -#}
-  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif -%}
-  {%- from table.columns as column where column.currentFlag %}{{ table.name }}.{{ column.name }} = 'Y'{% br %}{% endfrom %}
-  {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
-  {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
-  {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
-  {#-                             -#}
-  {#- V E R S I O N E D   R O W S -#}
-  {#-                              #}
-    {{batchIndent}}UNION ALL{% br %}
-  {{- addVersionedRowSelect ( indent = "    " + batchIndent ) -}}
-  {{- addFromClause ( indent = "    " + batchIndent ) -}}
-  {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
-  {{- addMaxKeyJoin ( indent = "    " + batchIndent ) -}}
-  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
-  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
-  {%- from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
-  {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
-  {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
-  {{- addGroupByClause ( indent = "    " + batchIndent ) }}
-  {#-                 -#}
-  {#- N E W   R O W S -#}
-  {#-                  #}
-    {{batchIndent}}UNION ALL{% br %}
-  {{- addNewRowSelect ( indent = "    " + batchIndent ) -}}
-  {{- addFromClause ( indent = "    " + batchIndent ) -}}
-  {{- addJoinToTarget ( joinType = "LEFT OUTER", indent = "    " + batchIndent ) -}}
-  {{- addMaxKeyJoin ( indent = "    " + batchIndent ) -}}
-  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
-  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
-  {%- from table.columns as bk where bk.businessKey -%}
-    {%- if not loop.first -%}{{batchIndent}}    AND {% endif -%}
-    {{- table.name}}.{{bk.name}} IS NULL{% br %}
-  {%- endfrom %}
   {{batchIndent}}) AS src{%br%}
   {{batchIndent}}{{addMergeJoinCondition(alias = "src", indent = batchIndent+"  ")}}
   {{batchIndent}}WHEN MATCHED THEN UPDATE{%br%}
@@ -313,7 +313,6 @@ if ( $status -eq 1 ){
 {%- if settings.batchProcessingField != "" %}
 } {%br%}
 {%- endif %}
-
 
 #--====================================================={%br%}
 #-- All Done report the results{%br%}

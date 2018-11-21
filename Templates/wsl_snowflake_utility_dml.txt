@@ -391,29 +391,29 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 
 
 {% macro addChangedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
-  {{- indent }}-- CHANGED ROWS{%br%}
+  {{- indent }}-- ROWS WHERE ONLY NON_TRACKED FIELDS HAVE CHANGED{%br%}
   {{- indent }}SELECT
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
     {%- if column.artificial -%}
       0 AS MAXKEY{%- br -%}
     {%- elseif column.name == dssDeleteTime -%}
-      CAST({{ table.name }}.{{ column.name }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
-      CAST({{- column.source }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {{- column.source }} AS {{ column.name }}{%- br -%}
     {%- else -%}
       {%- if column.updateTime -%}
         CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- elseif column.createTime -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssStartDate -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssEndDate -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.currentFlag -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -422,27 +422,27 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% endmacro %}
 
 {% macro addType2ExpiringRowSelect ( indent = "    " ) %}
-  {{- indent }}-- EXPIRING ROWS{%br%}
+  {{- indent }}-- CURRENT ROWS THAT NEED TO BE EXPIRED{%br%}
   {{- indent }}SELECT 
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
     {%- if column.artificial -%}
       0 AS MAXKEY{%- br -%}
     {%- elseif column.currentFlag -%}
-      CAST('N' AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      'N' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
-      CAST({{ table.name }}.{{ column.name}} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {{ table.name }}.{{ column.name}} AS {{ column.name }}{%- br -%}
     {%- else -%}
       {%- if column.updateTime -%}
-        CAST({{ table.name}}.{{column.name}} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- elseif column.createTime -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssStartDate -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssEndDate -%}
-        CAST({{settings.changeDetectionEndExpiring}} AS {{column.fullDataType}}) AS {{ column.name }}{%- br -%}
+        {{settings.changeDetectionEndExpiring}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
-        CAST({{ table.name }}.{{ column.name }} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -451,7 +451,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% endmacro %}
 
 {% macro addNewRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
-  {{- indent }}-- NEW ROWS{%br%}
+  {{- indent }}-- NEW BUSINESS KEY VALUES THAT WILL EACH CREATE A VERSION 1 ROW{%br%}
   {{- indent }}SELECT {{ distinct() -}}
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}
@@ -465,20 +465,20 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- elseif column.name == dssDeleteTime -%}
       CAST(NULL AS {{ column.fullDataType }}) AS {{column.name }}{%- br -%}
     {%- elseif column.currentFlag -%}
-      CAST('Y' AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      'Y' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
-      CAST({{ column.source }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {{ column.source }} AS {{ column.name }}{%- br -%}
     {%- else -%}
       {%- if column.updateTime -%}
         CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- elseif column.createTime -%}
         CAST(CURRENT_TIMESTAMP AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- elseif column.dssStartDate -%}
-        CAST({{settings.changeDetectionStartInitial}} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{settings.changeDetectionStartInitial}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssEndDate -%}
-        CAST({{settings.changeDetectionEndCurrent}} AS {{column.fullDataType}}) AS {{ column.name }}{%- br -%}
+        {{settings.changeDetectionEndCurrent}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
-        CAST(1 AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        1 AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -487,7 +487,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% endmacro %}
 
 {% macro addVersionedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
-  {{- indent }}-- VERSIONED ROWS{%br%}
+  {{- indent }}-- NEW VERSIONS OF EXISTING BUSINESS KEY ROWS{%br%}
   {{- indent }}SELECT {{ distinct() -}}
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}
@@ -501,20 +501,20 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- elseif column.name == dssDeleteTime -%}
       CAST(NULL AS {{ column.fullDataType }}) AS {{column.name }}{%- br -%}
     {%- elseif column.currentFlag -%}
-      CAST('Y' AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      'Y' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
-      CAST({{ column.source }} AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+      {{ column.source }} AS {{ column.name }}{%- br -%}
     {%- else -%}
       {%- if column.updateTime -%}
         CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- elseif column.createTime -%}
         CAST(CURRENT_TIMESTAMP AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- elseif column.dssStartDate -%}
-        CAST({{settings.changeDetectionStartNew}} AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{settings.changeDetectionStartNew}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssEndDate -%}
-        CAST({{settings.changeDetectionEndCurrent}} AS {{column.fullDataType}}) AS {{ column.name }}{%- br -%}
+        {{settings.changeDetectionEndCurrent}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
-        CAST({{table.name}}.{{column.name}} + 1 AS {{column.fullDataType }}) AS {{ column.name }}{%- br -%}
+        {{table.name}}.{{column.name}} + 1 AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -537,12 +537,12 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% macro addType2TrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
   {{- indent }}-- tracked columns{% br %}
   {%- from table.columns as column where column.slowlyChanging %}
-    {%- if loop.first -%}{{- indent }}{{ whereType }} (
-    {%- else %}{{- indent }}  {{ compareType }}
+    {%- if loop.first -%}{{- indent }}{{ whereType }}   (
+    {%- else %}{{- indent }}{{ compareType }}
     {%- endif %}
-    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif -%}
+    {%- if nullSupport %}{% if not loop.first %}    {% endif %}COALESCE(CAST({% else %} {% endif -%}
     {{- column.source -}}
-    {%- if nullSupport -%} AS VARCHAR(8000)),'~') {% else %} {% endif -%}
+    {%- if nullSupport %} AS VARCHAR(8000)),'~') {% else %} {% endif -%}
     {{- compareOperator -}}
     {%- if nullSupport %} COALESCE(CAST({% else %} {% endif %}
     {{- table.name }}.{{ column.name -}}
@@ -555,12 +555,12 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% macro addType2UntrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
   {{- indent }}-- untracked columns{% br %}
   {%- from table.columns as column where not ( column.slowlyChanging or column.businessKey or column.dss or column.artificial or ( column.name == dssDeleteTime ) ) %} 
-    {%- if loop.first -%}{{- indent }}{{ whereType }} (
-    {%- else %}{{- indent }}  {{ compareType }}
+    {%- if loop.first -%}{{- indent }}{{ whereType }}   (
+    {%- else %}{{- indent }}{{ compareType }}
     {%- endif %}
-    {%- if nullSupport %} COALESCE(CAST({% else %} {% endif -%}
+    {%- if nullSupport %}{% if not loop.first %}    {% endif %}COALESCE(CAST({% else %} {% endif -%}
     {{- column.source -}}
-    {%- if nullSupport -%} AS VARCHAR(8000)),'~') {% else %} {% endif -%}
+    {%- if nullSupport %} AS VARCHAR(8000)),'~') {% else %} {% endif -%}
     {{- compareOperator -}}
     {%- if nullSupport %} COALESCE(CAST({% else %} {% endif %}
     {{- table.name }}.{{ column.name -}}
