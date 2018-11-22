@@ -391,7 +391,6 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 
 
 {% macro addChangedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
-  {{- indent }}-- ROWS WHERE ONLY NON_TRACKED FIELDS HAVE CHANGED{%br%}
   {{- indent }}SELECT
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
@@ -400,7 +399,17 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- elseif column.name == dssDeleteTime -%}
       {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
-      {{- column.source }} AS {{ column.name }}{%- br -%}
+      {%- if table.subType == "P" and ((previousColumn("SF_TYPE_3_COLS",column.name)|trim) == "true") -%}
+        {%- fetch column.sourceColumn -%}
+        {%- set prevColSrc = column.sourceColumn.name -%}
+           CASE {{ table.name}}.{{prevColSrc}}{% br %}
+           {{- indent}}         WHEN {{ column.source }}{% br %}
+           {{- indent}}         THEN {{ table.name }}.{{ column.name}}{% br %}
+           {{- indent}}         ELSE {{ table.name}}.{{ prevColSrc }}{% br %}
+           {{- indent}}       END AS {{ column.name }}{%- br -%}
+      {%- else -%}
+        {{- column.source }} AS {{ column.name }}{%- br -%}
+      {%- endif -%}
     {%- else -%}
       {%- if column.updateTime -%}
         CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
@@ -422,7 +431,6 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% endmacro %}
 
 {% macro addType2ExpiringRowSelect ( indent = "    " ) %}
-  {{- indent }}-- CURRENT ROWS THAT NEED TO BE EXPIRED{%br%}
   {{- indent }}SELECT 
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
@@ -451,7 +459,6 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% endmacro %}
 
 {% macro addNewRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
-  {{- indent }}-- NEW BUSINESS KEY VALUES THAT WILL EACH CREATE A VERSION 1 ROW{%br%}
   {{- indent }}SELECT {{ distinct() -}}
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}
@@ -467,7 +474,11 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- elseif column.currentFlag -%}
       'Y' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
-      {{ column.source }} AS {{ column.name }}{%- br -%}
+      {%- if table.subType == "P" and ((previousColumn("SF_TYPE_3_COLS",column.name)|trim) == "true") -%}
+        CAST(NULL AS {{ column.fullDataType }}) AS {{column.name }}{%- br -%}
+      {%- else -%}
+        {{- column.source }} AS {{ column.name }}{%- br -%}
+      {%- endif -%}
     {%- else -%}
       {%- if column.updateTime -%}
         CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
@@ -487,7 +498,6 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
 {% endmacro %}
 
 {% macro addVersionedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
-  {{- indent }}-- NEW VERSIONS OF EXISTING BUSINESS KEY ROWS{%br%}
   {{- indent }}SELECT {{ distinct() -}}
   {%- from table.columns as column %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}

@@ -226,16 +226,10 @@ if ( $status -eq 1 ){
   {{batchIndent}}$sql = @"
   {{batchIndent}}MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
   {{batchIndent}}USING ({%br%}
-  {#- ARE THERE ANY UNTRACKED COLUMNS? -#}
-  {%- set untracked = false -%}
-  {%- from table.columns as untrackedCol where not ( untrackedCol.slowlyChanging or untrackedCol.businessKey or untrackedCol.dss or untrackedCol.artificial or untrackedCol.name == dssDeleteTime ) -%}
-    {%- if loop.first -%}
-      {%- set untracked = true -%}
-    {%- endif -%}
-  {%- endfrom -%}
   {#-                             -#}
   {#- V E R S I O N   1   R O W S -#}
-  {#-                             -#}
+  {#-                              #}
+    {{batchIndent}}-- NEW BUSINESS KEY VALUES THAT WILL EACH CREATE A VERSION 1 ROW{%br%}
   {{- addNewRowSelect ( indent = "    " + batchIndent ) -}}
   {{- addFromClause ( indent = "    " + batchIndent ) -}}
   {{- addJoinToTarget ( joinType = "LEFT OUTER", indent = "    " + batchIndent ) -}}
@@ -246,10 +240,12 @@ if ( $status -eq 1 ){
     {%- if not loop.first -%}{{batchIndent}}    AND {% endif -%}
     {{- table.name}}.{{bk.name}} IS NULL{% br %}
   {%- endfrom %}
-    {{batchIndent}}UNION ALL{% br %}
+  {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
   {#-                                 -#}
   {#- N E W   R O W   V E R S I O N S -#}
-  {#-                                 -#}
+  {#-                                  #}
+    {{batchIndent}}UNION ALL{% br %}
+    {{batchIndent}}-- NEW VERSIONS OF EXISTING BUSINESS KEY ROWS{%br%}
   {{- addVersionedRowSelect ( indent = "    " + batchIndent ) -}}
   {{- addFromClause ( indent = "    " + batchIndent ) -}}
   {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
@@ -260,10 +256,11 @@ if ( $status -eq 1 ){
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
-    {{batchIndent}}UNION ALL{% br %}
   {#-                           -#}
   {#- E X P I R I N G   R O W S -#}
   {#-                            #}
+    {{batchIndent}}UNION ALL{% br %}
+    {{batchIndent}}-- CURRENT ROWS THAT NEED TO BE EXPIRED{%br%}
   {{- addType2ExpiringRowSelect ( indent = "    " + batchIndent ) -}}
   {{- addFromClause ( indent = "    " + batchIndent ) -}}
   {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
@@ -277,8 +274,16 @@ if ( $status -eq 1 ){
   {#-                         -#}
   {#- C H A N G E D   R O W S -#}
   {#-                         -#}
+  {#- ARE THERE ANY UNTRACKED COLUMNS? -#}
+  {%- set untracked = false -%}
+  {%- from table.columns as untrackedCol where not ( untrackedCol.slowlyChanging or untrackedCol.businessKey or untrackedCol.dss or untrackedCol.artificial or untrackedCol.name == dssDeleteTime ) -%}
+    {%- if loop.first -%}
+      {%- set untracked = true -%}
+    {%- endif -%}
+  {%- endfrom -%}
   {%- if untracked %}
     {{batchIndent}}UNION ALL{% br %}
+    {{batchIndent}}-- ROWS WHERE ONLY NON_TRACKED FIELDS HAVE CHANGED{%br%}
     {{- addChangedRowSelect ( indent = "    " + batchIndent ) -}}
     {{- addFromClause ( indent = "    " + batchIndent ) -}}
     {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}

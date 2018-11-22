@@ -22,6 +22,7 @@
 {# -- JL: Extended logical deleting to work for tables without an artifical key 2.0.3 (2018-08-26)                                                          -- #}
 {# -- TK: Added support for type 3 dimensions 2.0.4 (2018-11-01)                                                                                            -- #}
 {# -- TK: Added support for type 4 dimensions 2.0.5 (2018-11-09)                                                                                            -- #}
+{# -- TK: Seperated new and changed rows select statements to improve SQL readability 2.0.6 (2018-11-22)                                                    -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -226,20 +227,33 @@ if ( $status -eq 1 ){
   {{batchIndent}}$sql = @"
   {{batchIndent}}MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
   {{batchIndent}}USING ({%br%}
-    {{batchIndent}}SELECT {{- addSetInsertColumnsSnowflake(indent = batchIndent+"         ", includePreviousColumns = true)}}
-    {{- addLastSurrogateColumn()}}
-    {%- for joinLine in (table.sourceJoinDetails.join | trim | lines)%}    {{batchIndent}}{{joinLine}}{%br%}{%- endfor%}
-    {%- if table.subType == "P" %}    {{batchIndent}}LEFT OUTER JOIN [TABLEOWNER].[{{table.name}}] {{table.name}}{% br %}
-      {%- from table.columns as bkCol where bkCol.businessKey %}
-        {{- batchIndent}}    {% if loop.first %}ON {% else %}AND {% endif -%}
-        {{- bkCol.source }} = {{table.name}}.{{bkCol.name}}{% br %}
-      {%- endfrom %}
-    {%- endif %}
-    {{- addLastSurrogateCrossJoin() }}
-    {%- for whereLine in (table.sourceJoinDetails.where | trim | lines)%}    {{batchIndent}}{{whereLine}}{%br%}{%- endfor%}
-    {{- addBatchLoopWhereClause()}}
-    {%- for groupByLine in (table.sourceJoinDetails.groupBy | trim | lines)%}    {{batchIndent}}{{groupByLine}}{%br%}{%- endfor%}
-    {{batchIndent}}) AS src{%br%}
+  {#-                 -#}
+  {#- N E W   R O W S -#}
+  {#-                 -#}
+    {{batchIndent}}-- NEW ROWS{% br %}
+  {{- addNewRowSelect ( indent = "    " + batchIndent ) -}}
+  {{- addFromClause ( indent = "    " + batchIndent ) -}}
+  {{- addJoinToTarget ( joinType = "LEFT OUTER", indent = "    " + batchIndent ) -}}
+  {{- addMaxKeyJoin ( indent = "    " + batchIndent ) -}}
+  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
+  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
+  {%- from table.columns as bk where bk.businessKey -%}
+    {%- if not loop.first -%}{{batchIndent}}    AND {% endif -%}
+    {{- table.name}}.{{bk.name}} IS NULL{% br %}
+  {%- endfrom %}
+  {{- addBatchLoopWhereClause()}}
+  {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
+  {#-                         -#}
+  {#- C H A N G E D   R O W S -#}
+  {#-                          #}
+    {{batchIndent}}UNION ALL{% br %}
+    {{batchIndent}}-- CHANGED ROWS{% br %}
+  {{- addChangedRowSelect ( indent = "    " + batchIndent ) -}}
+  {{- addFromClause ( indent = "    " + batchIndent ) -}}
+  {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
+  {{- addWhereClause ( indent = "    " + batchIndent ) -}}
+  {{- addGroupByClause ( indent = "    " + batchIndent ) }}
+  {{batchIndent}}) AS src{%br%}
   {{batchIndent}}{{addMergeJoinCondition(alias = "src")}}
   {%- if table.subType == "R" -%}
     {%- from table.columns as rangeS where rangeS.rangeStart %}{% fetch rangeS.sourceColumn %}  {{batchIndent}}AND {{table.name}}.{{rangeS.name}} = src.{{rangeS.sourceColumn.name}}{% br %}{% endfrom %}
