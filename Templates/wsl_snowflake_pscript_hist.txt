@@ -240,6 +240,7 @@ if ( $status -eq 1 ){
     {%- if not loop.first -%}{{batchIndent}}    AND {% endif -%}
     {{- table.name}}.{{bk.name}} IS NULL{% br %}
   {%- endfrom %}
+  {{- addBatchLoopWhereClause()}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
   {#-                                 -#}
   {#- N E W   R O W   V E R S I O N S -#}
@@ -255,6 +256,7 @@ if ( $status -eq 1 ){
   {%- from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
+  {{- addBatchLoopWhereClause()}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
   {#-                           -#}
   {#- E X P I R I N G   R O W S -#}
@@ -270,6 +272,7 @@ if ( $status -eq 1 ){
   {%- from table.columns as column where column.currentFlag %}{{ table.name }}.{{ column.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
+  {{- addBatchLoopWhereClause()}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
   {#-                         -#}
   {#- C H A N G E D   R O W S -#}
@@ -297,6 +300,7 @@ if ( $status -eq 1 ){
     {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "=", compareType = "AND", nullSupport = settings.nullSupport ) -}}
     {#- WHERE UNTRACKED COLUMNS HAVE CHANGED #}
     {{- addType2UntrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
+    {{- addBatchLoopWhereClause()}}
     {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
   {%- endif %}
   {{batchIndent}}) AS src{%br%}
