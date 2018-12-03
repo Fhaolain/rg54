@@ -1501,7 +1501,7 @@ try {
     $debugConnectionString = $metaOdbc.ConnectionString
     if( ! [string]::IsNullOrEmpty(${env:WSL_META_PWD})) {
         $metaOdbc.ConnectionString += ";PWD=${env:WSL_META_PWD}"
-        $debugConnectionString += ";PWD=" + (New-Object string ('*', ${env:WSL_META_PWD}))
+        $debugConnectionString += ";PWD=" + (New-Object string ('*', ${env:WSL_META_PWD}.Length))
     }
     if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Metadata connection defined") }
     if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Metadata connection string is: $debugConnectionString") }
