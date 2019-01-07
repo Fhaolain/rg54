@@ -47,8 +47,8 @@
       {%- error "Unhandled change type: " + change.data.changedKey -%}
     {%- endif -%}
   {%- elseif change.changeType == Types.ChangeType.ColumnOrderChange -%}
-    {# {{- recreate() }} Disabled as RED currently ignores this change type #}
-    {% error "This change type is not supported in this version of the template. Contact support for an updated template." %}
+    {#- {{- recreate() }} Disabled as RED currently ignores this change type -#}
+    {#- {% error "This change type is not supported in this version of the template. Contact support for an updated template." %} -#}
   {%- elseif change.changeType == Types.ChangeType.ColumnAddition -%}
     ALTER TABLE {{table.schema}}.{{table.name}} ADD COLUMN {{change.data.columnName}} {{table.columnsByName[change.data.columnName].fullDataType}}{{- options.endOfStatement}}{%br%}
   {%- elseif change.changeType == Types.ChangeType.ColumnDeletion -%}
