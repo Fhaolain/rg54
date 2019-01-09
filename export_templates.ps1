@@ -73,7 +73,7 @@ foreach($folder in $folders) {
             $ws_header_tab = "ws_tem_header"
             $ws_line_tab = "ws_tem_line"
 
-            $file_extension = "txt"
+            $file_extension = "peb"
 
             $type = "Template"
         }
@@ -84,7 +84,7 @@ foreach($folder in $folders) {
             $ws_header_tab = "ws_scr_header"
             $ws_line_tab = "ws_scr_line"
 
-            $file_extension = "txt"
+            $file_extension = "ps1"
 
             $type = "Script"
         }
