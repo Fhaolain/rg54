@@ -6,7 +6,7 @@
 {# -- =============================================================================                                                                           -- #}
 {# --                                                                                                                                                         -- #}
 {# -- DBMS Name          : Snowflake                                                                                                                          -- #}
-{# -- Template Name      : wsl_snowflake_pscript_load                                                                                                         -- #}
+{# -- Template Name      : wsl_snowflake_pscript_load_staticprops                                                                                             -- #}
 {# -- RED Version        : 8.2.1.0                                                                                                                            -- #}
 {# -- Description        : This template creates a Snowflake script specifically                                                                              -- #}
 {# --                      specifically designed for all RED load tables                                                                                      -- #}
