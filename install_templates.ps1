@@ -278,6 +278,9 @@ foreach($folder in $folders) {
                             elseif($templateType -eq "Powershell") {
                                 $th_type = "5"
                             }
+                            elseif($templateType -eq "Powershell32") {
+                                $th_type = "5"
+                            }
                             elseif($templateType -eq "Utility") {
                                 $th_type = "7"
                             }
@@ -310,6 +313,9 @@ foreach($folder in $folders) {
                             try { $templateType = $headConf | Where { $_.IndexOf("ScriptType:") -ne -1 } | ForEach-Object { $_.Replace("ScriptType:","") } } catch {}
 
                             if($templateType -eq "Powershell") {
+                                $th_type = "P" 
+                            }
+                            if($templateType -eq "Powershell32") {
                                 $th_type = "P" 
                             }
                             elseif($templateType -eq "Windows") {
