@@ -1,3 +1,4 @@
+# ScriptVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* ScriptType:Powershell (32-bit)
 #--==============================================================================
 #-- Script Name      :    snowflake_create_range_table
 #-- Description      :    Pick a load table and create a range table for it
