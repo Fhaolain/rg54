@@ -466,7 +466,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
       {%- from column.transform | trim | lines as transLine -%}
         {%- if not loop.first %}{{- indent }}       {% endif -%}
         {{- transLine -}}
-        {%- is not loop.last }}{% br %}{% endif -%}
+        {%- if not loop.last }}{% br %}{% endif -%}
       {%- endfrom %} AS {{ column.name -}}
     {%- elseif column.artificial -%}
       MAXKEY.MAXKEY AS MAXKEY{%- br -%}
