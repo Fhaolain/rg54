@@ -1,4 +1,4 @@
-{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Powershell                                             -- #}
+{# -- TemplateVersion:002 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Powershell32                                           -- #}
 {#                                                                                                                                                          -- #}
 {# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
@@ -16,6 +16,7 @@
 {# --                                                                                                                                                       -- #}
 {#  Notes / History                                                                                                                                         -- #}
 {# -- TK: Powershell release V1 (2017-05-17)                                                                                                                -- #}
+{# -- TK: Updated to use extended properties (201-03-05)                                                                                                    -- #}
 {# --                                                                                                                                                       -- #}
 #=============================================================================={%- br %}
 # DBMS Name        :    {{table.dbType.name}}{%- br %}
@@ -38,115 +39,6 @@ function Print-Log { {%- br %}
     }{%- br %}
     {%- br %}
     $logReader.Dispose(){%- br %}
-}{%- br %}
-{%- br %}
-# Define ODBC Read function{%- br %}
-function Get-ODBC-Data{ {%- br %}
-    param({%- br %}
-        [string]$query = "",{%- br %}
-        [string]$dsn = "",{%- br %}
-        [string]$username = "",{%- br %}
-        [string]$password = "",{%- br %}
-        [string]$fileDat  = ""{%- br %}
-    ){%- br %}
-    {%- br %}
-    $odbcConn = New-Object Data.Odbc.OdbcConnection{%- br %}
-    $odbcConn.ConnectionString = "DSN=$dsn"{%- br %}
-    {%- br %}
-    if(![string]::IsNullOrEmpty($username)){ {%- br %}
-        {%- br %}
-        $odbcConn.ConnectionString += ";UID=$username"{%- br %}
-        {%- br %}
-    }{%- br %}
-    {%- br %}
-    if(![string]::IsNullOrEmpty($password)){ {%- br %}
-        {%- br %}
-        $odbcConn.ConnectionString += ";PWD=$password"{%- br %}
-        {%- br %}
-    }{%- br %}
-    try { {%- br %}
-        {%- br %}
-        $odbcConn.open(){%- br %}
-        $odbcCommand = New-object Data.Odbc.OdbcCommand($query,$odbcConn){%- br %}
-        {%- br %}
-        if( ! [string]::IsNullOrWhiteSpace($fileDat)) { {%- br %}
-            {%- br %}
-            if(${env:UNICODE_SUPPORT} -eq "TRUE") { {%- br %}
-                {%- br %}
-                $format  = New-Object Text.UTF8Encoding
-                {%- br %}
-            }{%- br %}
-            else { {%- br %}
-                {%- br %}
-                $format  = New-Object Text.ASCIIEncoding{%- br %}
-                {%- br %}
-            } {%- br %}
-            {%- br %}
-            $odbcReader = $odbcCommand.ExecuteReader(){%- br %}
-            $columnCount = $odbcReader.FieldCount{%- br %}
-            $dataFile = "${env:WSL_WORKDIR}\${fileDat}"{%- br %}
-            $sb  = New-Object Text.StringBuilder{%- br %}
-            $fileStream = New-Object IO.StreamWriter($DataFile,$false,$Format){%- br %}
-            $fileStream.AutoFlush = $true{%- br %}
-            $rowCount = 0{%- br %}
-            $fileDelim = '|'{%- br %}
-            {%- br %}
-            while($odbcReader.Read()) { {%- br %}
-                {%- br %}
-                [System.Collections.ArrayList]$data = @(){%- br %}
-                {%- br %}
-                for($x = 0; $x -lt $columnCount; $x++){ {%- br %}
-                    {%- br %}
-                    if($odbcReader.IsDBNull($x)) { {%- br %}
-                        {%- br %}
-                        [void]$data.Add(""){%- br %}
-                        {%- br %}
-                    } {%- br %}
-                    else { {%- br %}
-                        {%- br %}
-                        [void]$data.Add($odbcReader.GetValue($x).ToString().Replace([regex]::Escape($fileDelim),'')){%- br %}
-                        {%- br %}
-                    }{%- br %}
-                }{%- br %}
-                {%- br %}
-                [void]$sb.clear(){%- br %}
-                {%- br %}
-                $row = $data.ToArray(){%- br %}
-                $work = [string]::Join($fileDelim,$row){%- br %}
-                $work = [regex]::Replace($work,[regex]::Escape($fileDelim),$fileDelim){%- br %}
-                $work = $work.Replace("`n"," "){%- br %}
-                $work = $work.Replace("`r",""){%- br %}
-                [void]$sb.Append($work){%- br %}
-                {%- br %}
-                $fileStream.WriteLine($sb.ToString()){%- br %}
-                $rowCount++{%- br %}
-                {%- br %}
-            }{%- br %}
-            {%- br %}
-            $fileStream.Dispose(){%- br %}
-            $odbcConn.Dispose(){%- br %}
-            return $rowCount{%- br %}
-            {%- br %}
-        }{%- br %}
-        else { {%- br %}
-            {%- br %}
-            $dataTable = New-Object Data.DataTable{%- br %}
-            $null = (New-Object Data.odbc.odbcDataAdapter($odbcCommand)).fill($dataTable){%- br %}
-            $odbcConn.Dispose(){%- br %}
-            return , $dataTable{%- br %}
-            {%- br %}
-        }{%- br %}
-    } {%- br %}
-    catch { {%- br %}
-        {%- br %}
-        [Console]::WriteLine("-2"){%- br %}
-        [Console]::WriteLine("Export failed"){%- br %}
-        $logStream.WriteLine($_.Exception.Message){%- br %}
-        $logStream.WriteLine($_.InvocationInfo.PositionMessage){%- br %}
-        Print-Log{%- br %}
-        exit{%- br %}
-        {%- br %}
-    }{%- br %}
 }{%- br %}
 {%- br %}
 Function Replace-WslTags($stuff) { {%- br %}
@@ -185,30 +77,6 @@ Function Replace-WslTags($stuff) { {%- br %}
     }{%- br %}
     return $stuff.Trim(){%- br %}
 }{%- br %}
-# Parse Notes to get AWS settings{%- br %}
-function ParseNote { {%- br %}
-    param ({%- br %}
-        $noteName,{%- br %}
-        $notes{%- br %}
-    ){%- br %}
-    $startPos = $notes.IndexOf($noteName){%- br %}
-    {%- br %}
-    if($startPos -eq -1){ {%- br %}
-        return ""{%- br %}
-    }{%- br %}
-    {%- br %}
-    $work = $notes.Substring($startPos){%- br %}
-    $endPos = $work.IndexOf("`r`n"){%- br %}
-    {%- br %}
-    if($endPos -eq -1){ {%- br %}
-        {%- br %}
-        return ""{%- br %}
-    }{%- br %}
-    {%- br %}
-    $work = $work.Substring(0,$endPos){%- br %}
-    $work = $work.Replace(${noteName} + "=",""){%- br %}
-    return $work.Trim(){%- br %}
-}{%- br %}
 # Gzip function{%- br %}
 function Gzip-File { {%- br %}
     param({%- br %}
@@ -236,46 +104,20 @@ function Gzip-File { {%- br %}
 {%- br %}
 # Main export function{%- br %}
 function Export-Data { {%- br %}
-    # Get the debug mode{%- br %}
-    $mDebugSQL = "SELECT CASE LTRIM(RTRIM(ISNULL(NULLIF((SELECT UPPER(dss_parameter_value) {%- br %}
-                                                         FROM dss_parameter{%- br %}
-                                                         WHERE dss_parameter_name = 'SNOWFLAKE_RUN_DEBUG_MODE'),''),'FALSE'))) {%- br %}
-                         WHEN 'TRUE' THEN 'TRUE'{%- br %}
-                         ELSE 'FALSE'{%- br %}
-                         END Debug"{%- br %}
-    $mDebugResult = Get-ODBC-Data $mDebugSQL ${env:WSL_META_DSN} ${env:WSL_META_USER} ${env:WSL_META_PWD}{%- br %}
-    ${env:DEBUG} = $mDebugResult.Debug{%- br %}
+    # Get extended properties{%- br %}
+    ${env:DEBUG} = Get-ExtendedProperty -PropertyName "SF_DEBUG" -TableName ${env:WSL_EXP_NAME}{%- br %}
+    ${env:ACCESS_KEY}        = Get-ExtendedProperty -PropertyName "SF_ACCESS_KEY" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:SECRET_KEY}        = Get-ExtendedProperty -PropertyName "SF_SECRET_KEY" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:SEND_FILES_ZIPPED} = Get-ExtendedProperty -PropertyName "SF_SEND_FILES_ZIPPED" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:SNOWSQL_ACCOUNT}   = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_ACCOUNT" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:SNOWSQL_DATABASE}  = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_DATABASE" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:SNOWSQL_SCHEMA}    = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_SCHEMA" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:SNOWSQL_WAREHOUSE} = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_WAREHOUSE" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:UNICODE_SUPPORT}   = Get-ExtendedProperty -PropertyName "SF_UNICODE_SUPPORT" -TableName ${env:WSL_EXP_TABLE}{%- br %}
+    ${env:SEND_FILES_ZIPPED} = Get-ExtendedProperty -PropertyName "SF_SEND_FILES_ZIPPED" -TableName ${env:WSL_EXP_TABLE}{%- br %}
     {%- br %}
-    # Get the target database credentials and the connection attributes from the metadata{%- br %}
-    $mNotesSQL = "SELECT SUBSTRING(dc_attributes,CAST(CHARINDEX('Notes~',dc_attributes)+12 AS INTEGER),CAST(SUBSTRING(dc_attributes,CHARINDEX('Notes~',dc_attributes)+7,4) AS INTEGER)) AS Notes{%- br %}
-                  FROM ws_dbc_connect{%- br %}
-                  JOIN ws_dbc_target ON dc_obj_key = dt_connect_key{%- br %}
-                  JOIN ws_obj_object ON oo_target_key = dt_target_key{%- br %}
-                  WHERE oo_name = '${env:WSL_EXP_TABLE}'"{%- br %}
-    $mNotesResult = Get-ODBC-Data $mNotesSQL ${env:WSL_META_DSN} ${env:WSL_META_USER} ${env:WSL_META_PWD}{%- br %}
-    {%- br %}
-    $notes = $mNotesResult.Notes{%- br %}
-    $notes += "`r`n"{%- br %}
-    {%- br %}
-    ${env:ACCESS_KEY}        = ParseNote -noteName "ACCESS_KEY" -notes $notes{%- br %}
-    ${env:SECRET_KEY}        = ParseNote -noteName "SECRET_KEY" -notes $notes{%- br %}
-    ${env:SEND_FILES_ZIPPED} = ParseNote -noteName "SEND_FILES_ZIPPED" -notes $notes{%- br %}
-    ${env:SNOWSQL_ACCOUNT}   = ParseNote -noteName "SNOWSQL_ACCOUNT" -notes $notes{%- br %}
-    ${env:SNOWSQL_DATABASE}  = ParseNote -noteName "SNOWSQL_DATABASE" -notes $notes{%- br %}
-    ${env:SNOWSQL_SCHEMA}    = ParseNote -noteName "SNOWSQL_SCHEMA" -notes $notes{%- br %}
-    ${env:SNOWSQL_WAREHOUSE} = ParseNote -noteName "SNOWSQL_WAREHOUSE" -notes $notes{%- br %}
-    ${env:UNICODE_SUPPORT}   = ParseNote -noteName "UNICODE_SUPPORT" -notes $notes{%- br %}
-    ${env:SEND_FILES_ZIPPED} = ParseNote -noteName "SEND_FILES_ZIPPED" -notes $notes{%- br %}
-    {%- br %}
-    $snowsqlCredentialsSql = "SELECT dc_extract_userid usr, dc_extract_pwd pwd{%- br %}
-                              FROM ws_dbc_connect{%- br %}
-                              JOIN ws_dbc_target ON dc_obj_key = dt_connect_key{%- br %}
-                              JOIN ws_obj_object ON oo_target_key = dt_target_key{%- br %}
-                              WHERE oo_name = '${env:WSL_EXP_TABLE}'"{%- br %}
-    $snowsqlCredentials = Get-ODBC-Data $snowsqlCredentialsSql ${env:WSL_META_DSN} ${env:WSL_META_USER} ${env:WSL_META_PWD}{%- br %}
-    {%- br %}
-    ${env:SNOWSQL_USER} = $snowsqlCredentials.usr{%- br %}
-    ${env:SNOWSQL_PWD}  = $snowsqlCredentials.pwd{%- br %}
+    ${env:SNOWSQL_USER} = ${env:WSL_SRC_USER}{%- br %}
+    ${env:SNOWSQL_PWD}  = ${env:WSL_SRC_PWD}{%- br %}
     {%- br %}
     if(${env:DEBUG} -eq "TRUE") { {%- br %}
         $logStream.WriteLine("=================== EXPORT OPTIONS ==================="){%- br %}
@@ -308,28 +150,42 @@ function Export-Data { {%- br %}
             $logStream.WriteLine(""){%- br %}
         }
     }{%- br %}
+    {%- br %}   
+    $logStream.WriteLine("================= EXTRACT SQL ====================="){%- br %}
+    {% set empty = "" %}
+    $extractSql = @"
+    SELECT
+      {%- from table.columns as column where (column.sourceColumn is defined or column.transform | trim != "") %}
+        {%- if not loop.first %}    , {% else %} {% endif %}
+        {%- if column.transform | trim != "" %}
+          {{- column.source }}
+        {%- else %}
+          {%- if column.sourceTable is defined %}
+            {%- fetch column.sourceTable %}
+            {{- column.sourceTable.name }}.
+          {%- endif %}
+          {%- if column.sourceColumn is defined %}
+            {{- column.sourceColumn.name }}
+          {%- endif %}
+        {%- endif %}
+        {%- br %}
+      {%- endfrom %}
+    FROM ${env:WSL_EXP_FULLNAME} ${env:WSL_EXP_TABLE}{%- br %}
+    {%- from table.exportInfo.whereClause | lines as whereLine %}
+    {{ whereLine }}{% br %}
+    {%- endfrom %}
+"@{%- br %}
     {%- br %}
-    $colSql = "SELECT ISNULL(NULLIF(CAST(ec_transform_code AS VARCHAR(4000)),''), ec_src_table + '.' + ec_src_column + ' ' + ec_col_name) COLS{%- br %}
-               FROM ws_export_col{%- br %}
-               JOIN ws_export_tab{%- br %}
-               ON ec_obj_key = et_obj_key{%- br %}
-               WHERE et_table_name = '${env:WSL_EXP_NAME}'{%- br %}
-               ORDER BY ec_order"{%- br %}
+    $logStream.WriteLine($extractSql){%- br %}
+    $logStream.WriteLine(""){%- br %}
     {%- br %}
-    $colRes = Get-ODBC-Data $colSql ${env:WSL_META_DSN} ${env:WSL_META_USER} ${env:WSL_META_PWD}{%- br %}
-    {%- br %}
-    $columns = $colRes.COLS{%- br %}
-    {%- br %}
-    $extractSql = "SELECT "{%- br %}
-    $extractSql += [string]::Join(",`r`n       ",$columns){% br %}
-    $extractSql += "`r`nFROM " + ${env:WSL_EXP_FULLNAME} + " " + ${env:WSL_EXP_TABLE}{%- br %}
-    {%- if table.exportInfo.whereClause != "" %}
-    $extractSql += "`r`n" + '{{ table.exportInfo.whereClause }}'{%- br %}    
-    {%- endif %}
-    {%- br %}
-    if( ! ${env:WSL_WORKDIR}.endsWith('\')) { {%- br %}
-        ${env:WSL_WORKDIR} += '\'{%- br %}
+    if(${env:DEBUG} -eq "TRUE") { {%- br %}
+        $logStream.WriteLine("BEGIN create of data file from source system: $(Get-Date)"){%- br %}
     }{%- br %}
+    $unicode = $false
+    if( ${env:UNICODE_SUPPORT} -eq "TRUE") {
+        $unicode = $true
+    }
     if($runMode -eq "Windows") { {%- br %}
         $path = '{{ table.exportInfo.file.path }}'{%- br %}
         if( ! $path.endsWith('\')) { {%- br %}
