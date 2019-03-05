@@ -499,6 +499,8 @@ function MAIN { {%- br %}
     ${env:EXTRACT_CHAR_SET}  = @($(Get-ExtendedProperty -PropertyName "RANGE_EXTRACT_CHARSET" -TableName ${env:WSL_LOAD_TABLE}))[0]{% br %}
     ${env:MAX_ROW_LENGTH}    = @($(Get-ExtendedProperty -PropertyName "RANGE_MAX_ROW_LENGTH" -TableName ${env:WSL_LOAD_TABLE}), "10000" -ne "")[0]{% br %}
     $CR_LF_REPLACED          = "{{crLfReplaced}}"
+    $env:RANGE_LOCATION      = @($(Get-ExtendedProperty -PropertyName "RANGE_WORK_TABLE_LOCATION" -TableName ${env:WSL_LOAD_TABLE}))[0]{% br %}
+    $RANGE_WORK_CONNECTION   = @($(Get-ExtendedProperty -PropertyName "RANGE_WORK_CONNECTION" -TableName ${env:WSL_LOAD_TABLE}))[0]{% br %}
     
     {%- br %}
     if(${env:DEBUG} -eq "TRUE") { {%- br %}
@@ -539,12 +541,11 @@ function MAIN { {%- br %}
         $errStream.WriteLine("RANGE_EXTRACT_CHARSET:            " + ${env:EXTRACT_CHAR_SET}){%- br %}
         $errStream.WriteLine("RANGE_MAX_ROW_LENGTH:             " + ${env:MAX_ROW_LENGTH}){%- br %}
         $errStream.WriteLine("RANGE_CR_LF_REPLACED:             " + $CR_LF_REPLACED){%- br %}
+        $errStream.WriteLine("RANGE_WORK_TABLE_LOCATION:        " + $env:RANGE_LOCATION){%- br %}
+        $errStream.WriteLine("RANGE_WORK_CONNECTION:            " + $RANGE_WORK_CONNECTION){%- br %}
         $errStream.WriteLine(""){%- br %}
     }{%- br %}
     {%- br %}
-    
-    $env:RANGE_LOCATION = (WsParameterRead "RANGE_WORK_TABLE_LOCATION")[0]
-    $RANGE_WORK_CONNECTION = (WsParameterRead "RANGE_WORK_CONNECTION")[0]
     
     if($env:RANGE_LOCATION -eq "SNOWFLAKE") {
         $env:RANGE_SCHEMA = ${env:WSL_LOAD_SCHEMA}

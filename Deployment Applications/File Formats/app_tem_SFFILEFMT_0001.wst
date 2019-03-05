@@ -13,4 +13,4 @@
 70;wsl_snowflake_alter_ddl
 199;wsl_snowflake_create_stage
 200;wsl_snowflake_utility
-1200;wsl_snowflake_pscript_load_range
+2235;wsl_snowflake_pscript_load_range

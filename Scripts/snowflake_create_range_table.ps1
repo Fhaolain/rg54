@@ -1746,6 +1746,12 @@ try {
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting extended property RANGE_BATCH_EXPRESSION on load table") }
         ADD-EXT-PROP-VAL -tabName $loadTable -extPropName "RANGE_BATCH_EXPRESSION" -extPropValue $rangeColumn
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting preload action on load table to N") }
+        if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting extended property RANGE_WORK_TABLE_LOCATION on load table") }
+        ADD-EXT-PROP-VAL -tabName $loadTable -extPropName "RANGE_WORK_TABLE_LOCATION" -extPropValue ${env:rangeLocation}
+        if(${env:rangeLocation} -ne "SNOWFLAKE") {
+            if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting extended property RANGE_WORK_CONNECTION on load table") }
+            ADD-EXT-PROP-VAL -tabName $loadTable -extPropName "RANGE_WORK_CONNECTION" -extPropValue $rangeConnection
+        }
         SET-TABLE-PRE-ACTION -tabName $loadTable -preAction "N"
 
         $srcOdbc.Dispose()
