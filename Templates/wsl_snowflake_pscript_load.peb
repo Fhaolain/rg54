@@ -24,8 +24,9 @@
 {# -- TK: Powershell release V7  (2018-06-27)  Enabled file loads from external stages and stageless loads from azure blob storage                           -- #}
 {# -- JL: Powershell release V8  (2018-08-31)  Add support for delimiters, single and double quotes and back slashes in source data                          -- #}
 {# -- TK: Powershell release V9  (2018-11-08)  Removed Get-ExtendedProperty function from script as it exists in WslPowershellCommon module                  -- #}
-{# -- TK: Powershell release V10 (2018-11-09)  Fixed an issue where PUT couldnt handle paths with spaces                                                      -- #}
+{# -- TK: Powershell release V10 (2018-11-09)  Fixed an issue where PUT couldnt handle paths with spaces                                                     -- #}
 {# -- TK: Powershell release V11 (2018-11-14)  Enabled configuration of extract delimiter, enclosure and escape characters                                   -- #}
+{# -- JL: Powershell release V12 (2019-03-01)  Fixed a bug that caused ranges to fail on some databases due to double FROM clause                            -- #}
 {# --                                                                                                                                                        -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
@@ -316,7 +317,7 @@ function Load-Data { {%- br %}
         {%- endif %}
         {%- br %}
       {%- endfrom %}
-    FROM ${env:WSL_SRC_SCHEMA}.{{ table.loadInfo.sourceTables }} {{table.loadInfo.sourceTables }}{%- br %}
+    {%- if table.loadInfo.sourceTables != "" -%}FROM ${env:WSL_SRC_SCHEMA}.{{ table.loadInfo.sourceTables }} {{table.loadInfo.sourceTables }}{%- br %}{% endif %}
     {%- from table.loadInfo.whereAndGroupByClauses | lines as whereLine %}
     {{ whereLine }}{% br %}
     {%- endfrom %}

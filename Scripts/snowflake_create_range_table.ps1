@@ -8,6 +8,7 @@
 #-- JML v 1.0.0 2018-10-16 First Version
 #-- JML v 1.0.1 2018-10-26 Improved debug logging and encrypted password handling
 #-- JML v 1.0.2 2018-10-29 Adding handling for ODBC timeouts
+#-- JML v 1.0.3 2019-03-01 Added optional support for SQL Server range tables
 #--
 
 Import-module -Name WslPowershellCommon -DisableNameChecking
@@ -426,7 +427,7 @@ function GET-SRCPWD {
     $MyForm.Text = "Enter Source System Password"
     $MyIcon = [System.Drawing.Icon]::ExtractAssociatedIcon("${env:WSL_BINDIR}med.exe")
     $MyForm.Icon = $MyIcon
-    
+
     $Location = New-Object System.Drawing.Point
     $Location.X = 20
     $Location.Y = 15
@@ -721,6 +722,78 @@ function GET-COMPRESSION-RATE {
     return $compressionRate
 }
 
+function GET-RANGE-CONNECTION {
+    $metaOdbc.Open()
+    $rangeWorkConnection = (((WsParameterRead "RANGE_WORK_CONNECTION")[0]) | out-string).Trim()
+    $logStream.WriteLine("${debugWord}Range Table Connection is:  $rangeWorkConnection")
+    $metaOdbc.Close()
+    return $rangeWorkConnection
+}
+
+function GET-RANGE-TARGET {
+    $metaOdbc.Open()
+    $rangeWorkTarget = (((WsParameterRead "RANGE_WORK_TARGET")[0]) | out-string).Trim()
+    $logStream.WriteLine("${debugWord}Range Table Connection is:  $rangeWorkTarget")
+    $metaOdbc.Close()
+    return $rangeWorkTarget
+}
+
+function GET-RANGE-TABLE-LOCATION {
+    $metaOdbc.Open()
+    $rangeLocation = (((WsParameterRead "RANGE_WORK_TABLE_LOCATION")[0]) | out-string).Trim()
+    $logStream.WriteLine("${debugWord}Range Table Location is:  $rangeLocation")
+    $metaOdbc.Close()
+    return $rangeLocation
+}
+
+function GET-TARGET-KEY
+{
+
+    # Generate Metadata select to get various connectivity information
+    #
+    $sMetaSql = @"
+      SELECT dt_target_key
+      FROM ws_dbc_target
+      JOIN ws_dbc_connect
+      ON dt_connect_key = dc_obj_key
+      WHERE dc_name = '$rangeConnection'
+      AND dt_name = '$rangeTarget'
+"@
+
+    try {
+        $metaOdbc.Open()
+        $command = New-Object System.Data.Odbc.OdbcCommand($sMetaSql,$metaOdbc)
+        $command.CommandTimeout = 0
+        $adapter = New-Object System.Data.Odbc.OdbcDataAdapter($command)
+        $mdt = New-Object System.Data.DataTable
+        $null = $adapter.fill($mdt)
+        $metaOdbc.Close()
+    }
+    catch {
+        $errStream.WriteLine($_.Exception.Message)
+        $errStream.WriteLine($_.InvocationInfo.PositionMessage)
+        $errStream.WriteLine("Script failed. Target key query failed")
+        $host.ui.WriteLine("-2")
+        $host.ui.WriteLine("Script failed. Target key query failed")
+        Print-Log -exitStatus -2
+        exit
+    }
+
+    if($mdt.Rows.Count -eq 0) {
+        $logStream.WriteLine("${debugWord}Connection and Target do not exist")
+        $host.ui.WriteLine("-1")
+        $host.ui.WriteLine("Connection and Target do not exist")
+        Print-Log -exitStatus -1
+        exit
+    }
+
+    $targetKey = $mdt.Rows[0].dt_target_key
+
+    $logStream.WriteLine("${debugWord}Target key is: $targetKey")
+
+    return $targetKey
+}
+
 function GET-SOURCE-DATATYPE {
 
     # Generate source database SELECT to get data type of incremental looping column
@@ -962,8 +1035,9 @@ function GET-TRANSFORMS
 function GET-TAB-WHERE
 {
 
+    if(${env:rangeLocation} -eq "SNOWFLAKE") { $fromStart = "FROM (" } else { $fromStart = "(" }
     $tabWhere = @"
-FROM (
+$fromStart
   SELECT FLOOR((ROW_NUMBER() OVER(ORDER BY sourceColumn))/$batchSize)+1 AS batch_number
   , sourceColumn
   , row_counter
@@ -1010,6 +1084,7 @@ function GET-COL-INSERT-SQL
     $col2 = New-Object system.Data.DataColumn ColInsert,([String])
     $colSql.columns.add($col1)
     $colSql.columns.add($col2)
+    if(${env:rangeLocation} -eq "SNOWFLAKE") { $TSDATATYPE = "timestamp" } else { $TSDATATYPE = "datetime" }
 
     $sqlHeader = @"
       INSERT INTO ws_load_col
@@ -1069,28 +1144,28 @@ function GET-COL-INSERT-SQL
     $row = $colSql.NewRow()
     $row.ColName = "START_EXTRACT_TIMESTAMP"
     $row.ColInsert = $sqlHeader + @"
-      ( $objKey, 'START_EXTRACT_TIMESTAMP', 'START EXTRACT TIMESTAMP', 'timestamp', 'Y', 'N', 'N', 'Y', 'Source system data extract start timestamp', 80, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
+      ( $objKey, 'START_EXTRACT_TIMESTAMP', 'START EXTRACT TIMESTAMP', '$TSDATATYPE', 'Y', 'N', 'N', 'Y', 'Source system data extract start timestamp', 80, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
 "@
     $colSql.Rows.Add($row)
 
     $row = $colSql.NewRow()
     $row.ColName = "START_PUT_TIMESTAMP"
     $row.ColInsert = $sqlHeader + @"
-      ( $objKey, 'START_PUT_TIMESTAMP', 'START PUT TIMESTAMP', 'timestamp', 'Y', 'N', 'N', 'Y', 'File put to the cloud start timestamp', 90, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
+      ( $objKey, 'START_PUT_TIMESTAMP', 'START PUT TIMESTAMP', '$TSDATATYPE', 'Y', 'N', 'N', 'Y', 'File put to the cloud start timestamp', 90, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
 "@
     $colSql.Rows.Add($row)
 
     $row = $colSql.NewRow()
     $row.ColName = "START_LOAD_TIMESTAMP"
     $row.ColInsert = $sqlHeader + @"
-      ( $objKey, 'START_LOAD_TIMESTAMP', 'START LOAD TIMESTAMP', 'timestamp', 'Y', 'N', 'N', 'Y', 'File load to snowflake start timestamp', 100, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
+      ( $objKey, 'START_LOAD_TIMESTAMP', 'START LOAD TIMESTAMP', '$TSDATATYPE', 'Y', 'N', 'N', 'Y', 'File load to snowflake start timestamp', 100, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
 "@
     $colSql.Rows.Add($row)
 
     $row = $colSql.NewRow()
     $row.ColName = "END_TIMESTAMP"
     $row.ColInsert = $sqlHeader + @"
-      ( $objKey, 'END_TIMESTAMP', 'END TIMESTAMP', 'timestamp', 'Y', 'N', 'N', 'Y', 'File load to snowflake end timestamp', 110, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
+      ( $objKey, 'END_TIMESTAMP', 'END TIMESTAMP', '$TSDATATYPE', 'Y', 'N', 'N', 'Y', 'File load to snowflake end timestamp', 110, '$sourceTable', '$sourceColumn', 'D', '''1900-01-01 00:00:00''', '''1900-01-01 00:00:00''' )
 "@
     $colSql.Rows.Add($row)
 
@@ -1143,6 +1218,7 @@ function INSERT-OBJ-ROW
 
     # Add new range table object to metadata
     #
+    if(${env:rangeLocation} -eq "SNOWFLAKE") { $target = "oo_target_key" } else { $target = $targetKey }
     $sql = @"
       INSERT INTO ws_obj_object
       ( oo_name
@@ -1150,7 +1226,7 @@ function INSERT-OBJ-ROW
       , oo_target_key)
       SELECT '$rangeTable'
       , oo_type_key
-      , oo_target_key
+      , $target
       FROM ws_obj_object
       WHERE oo_name = '$loadTable'
 "@
@@ -1202,6 +1278,8 @@ function INSERT-TAB-ROW
 
     # Add new range table row to metadata
     #
+    if(${env:rangeLocation} -eq "SNOWFLAKE") { $type = "lt_type" } else { $type = "'O'" }
+    if(${env:rangeLocation} -eq "SNOWFLAKE") { $scriptKey = "lt_script_connect_key" } else { $scriptKey = "NULL" }
     $sql = @"
       INSERT INTO ws_load_tab
       ( lt_obj_key
@@ -1221,14 +1299,14 @@ function INSERT-TAB-ROW
       , '$rangeTable'
       , SUBSTRING('$rangeTable',1,16) + RIGHT('$objKey',6)
       , lt_active
-      , lt_type
+      , $type
       , lt_connect_key
       , 'N'
       , lt_file_wait
       , lt_wait_action
       , lt_procedure_key
       , lt_transform_ind
-      , lt_script_connect_key
+      , $scriptKey
       , '$tabWhere' AS lt_where_clause
       FROM ws_load_tab
       JOIN ws_load_col
@@ -1569,7 +1647,7 @@ try {
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourcePwd is: " + (New-Object string ('*', $sourcePwd.Length))) }
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourceColumn is: $sourceColumn") }
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourceConnection is: $sourceConnection") }
-        
+
         # Define source connection
         #
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Defining source connection") }
@@ -1603,6 +1681,20 @@ try {
         $optimalFileSize = GET-OPTIMAL-FILESIZE
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Fetching Compression Rate") }
         $compressionRate = GET-COMPRESSION-RATE
+        if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Fetching Range Table Connection") }
+        $rangeConnection = GET-RANGE-CONNECTION
+        if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Fetching Range Table Location Database Type") }
+        $env:rangeLocation = GET-RANGE-TABLE-LOCATION
+        if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Fetching Range Table Target") }
+        $rangeTarget = GET-RANGE-TARGET
+
+        # Get target key
+        #
+        if(${env:rangeLocation} -ne "SNOWFLAKE") {
+            if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Fetching Target Key") }
+            $targetKey = GET-TARGET-KEY
+            if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Target Key Fetched") }
+        }
 
         # Calculate batch size magic number
         #
@@ -1635,10 +1727,13 @@ try {
         GET-COL-INSERT-SQL
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Inserting new column rows") }
         INSERT-COL-ROW
-        if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting ddl template on range table") }
-        ADD-TEMPLATE-DEF -tabName $rangeTable -templateType 3 -templateName "wsl_snowflake_create_table"
-        if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting load template on range table") }
-        ADD-TEMPLATE-DEF -tabName $rangeTable -templateType 4 -templateName "wsl_snowflake_pscript_load_range"
+
+        if(${env:rangeLocation} -eq "SNOWFLAKE") {
+            if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting ddl template on range table") }
+            ADD-TEMPLATE-DEF -tabName $rangeTable -templateType 3 -templateName "wsl_snowflake_create_table"
+            if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting load template on range table") }
+            ADD-TEMPLATE-DEF -tabName $rangeTable -templateType 4 -templateName "wsl_snowflake_pscript_load"
+        }
 
         # Make changes to the original load table
         #
@@ -1656,8 +1751,13 @@ try {
         $srcOdbc.Dispose()
 
         $logStream.WriteLine("Range Table: $rangeTable has been defined")
-        $logStream.WriteLine("==> Please create $rangeTable then regenerate scripts for: $loadTable and $rangeTable")
-        
+        if(${env:rangeLocation} -eq "SNOWFLAKE") {
+            $logStream.WriteLine("==> Please create $rangeTable then regenerate scripts for: $loadTable and $rangeTable")
+        }
+        else {
+            $logStream.WriteLine("==> Please create $rangeTable then regenerate scripts for: $loadTable")
+        }
+
         $prevSourceConnection = $sourceConnection
         $prevSourcePwd = $sourcePwd
 

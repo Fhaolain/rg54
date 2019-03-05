@@ -1,6 +1,6 @@
 {# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Powershell32                                           -- #}
 {# --                                                                                                                                                       -- #}
-{# --    c Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    (c) Wherescape Ltd 2019. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -11,7 +11,7 @@
 {# -- Template Name      : wsl_snowflake_pscript_load_range                                                                                                 -- #}
 {# -- Template Version   : 8.2.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake script specifically                                                                            -- #}
-{# --                      designed for migration express SQL Server loads                                                                                  -- #}
+{# --                      designed for range table loads                                                                                                   -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
@@ -20,6 +20,7 @@
 {# -- TK 20180424 Original migration express version                                                                                                        -- #}
 {# -- JL 20181011 Cloned for general use                                                                                                                    -- #}
 {# -- TK 20181114 Enabled configuration of extract delimiter, enclosure and escape characters                                                               -- #}
+{# -- JL 20190301 Added optional support for SQL Server range tables                                                                                        -- #}
 {# --                                                                                                                                                       -- #}
 {%- import "wsl_snowflake_utility" -%}
 {%- set PilotTable = getExtendedProperty( propertyName = "RANGE_PILOT_TABLE" ) | trim %}
@@ -86,23 +87,23 @@ $jobScript = {
     $errStream = New-Object System.IO.StreamWriter($threadErr,$false)
     $errStream.AutoFlush = $true{% br %}
     {%- if PilotTable != "" %}
-    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
-    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
+    $rtOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $rtOdbc.ConnectionString = "DSN=$env:rangeTableDsn"
+    if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
+    if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
     
     $batchStatusSql = @"
     SELECT STATUS
-    FROM ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
+    FROM ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
     WHERE BATCH_NUMBER = $($batch.batch_number)
 "@
     
-    $sfOdbc.Open()
-    $command = New-Object System.Data.Odbc.OdbcCommand($batchStatusSql,$sfOdbc)
+    $rtOdbc.Open()
+    $command = New-Object System.Data.Odbc.OdbcCommand($batchStatusSql,$rtOdbc)
     $adapter = New-Object System.Data.Odbc.OdbcDataAdapter($command)
     $bst = New-Object System.Data.DataTable
     $null = $adapter.fill($bst)
-    $sfOdbc.Close()
+    $rtOdbc.Close()
     
     if($bst.status -eq "P") {
         $audStream.WriteLine("Batch $($batch.batch_number) is in a paused state. Skipping"){% br %}
@@ -118,16 +119,16 @@ $jobScript = {
     $audStream.WriteLine("Now loading batch: $($batch.batch_number)"){% br %}
     $errStream.WriteLine("Now loading batch: $($batch.batch_number)"){% br %}
     $batchUpdateSql = @"
-      UPDATE ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
+      UPDATE ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
       SET STATUS = 'R'
         , THREAD_NUMBER = ${id}
-        , START_EXTRACT_TIMESTAMP = CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
+        , START_EXTRACT_TIMESTAMP = ${env:RANGE_CURR_DATE}
       WHERE BATCH_NUMBER = $($batch.batch_number)
 "@
-    $sfOdbc.Open()
-    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$sfOdbc)
+    $rtOdbc.Open()
+    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$rtOdbc)
     $null = $command.ExecuteNonQuery()
-    $sfOdbc.Close()
+    $rtOdbc.Close()
         
     {%- endif %}
 
@@ -188,24 +189,24 @@ SELECT {%- from table.columns as column %}
 
     $fileFull = Join-Path -path ${env:WSL_WORKDIR} -childPath $fileDat
     #GetDataToFile(string query, string dsn, string username, string password, string dataFile, string delimiter, int fileCount, int splitThreshold, bool addQuotes, bool unicode, string enclosedBy, string escapeChar) 
-    $rowCount = $wslOdbc.GetDataToFile($extractSQL,${env:WSL_SRC_DSN},${env:WSL_SRC_USER},${env:WSL_SRC_PWD},$fileFull,${env:UNLOAD_DELIM}, 0, 0, $true, $unicode, ${env:UNLOAD_ENCLOSED}, ${env:UNLOAD_ESCAPE})    
+    $rowCount = $wslOdbc.GetDataToFile($extractSQL,${env:WSL_SRC_DSN},${env:WSL_SRC_USER},${env:WSL_SRC_PWD},$fileFull,${env:UNLOAD_DELIM}, 0, 0, $true, $unicode, ${env:UNLOAD_ENCLOSED}, ${env:UNLOAD_ESCAPE})      
  
     {%- if PilotTable != "" %}{% br %}{% br %}
     $batchUpdateSql = @"
-      UPDATE ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
-      SET START_PUT_TIMESTAMP = CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
-        , EXTRACT_DURATION_SECONDS = TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))
+      UPDATE ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
+      SET START_PUT_TIMESTAMP = ${env:RANGE_CURR_DATE}
+        , EXTRACT_DURATION_SECONDS = ${env:EXTRACT_SECS}
       WHERE BATCH_NUMBER = $($batch.batch_number)
 "@
-    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
-    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
-    $sfOdbc.Open()
+    $rtOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $rtOdbc.ConnectionString = "DSN=$env:rangeTableDsn"
+    if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
+    if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
+    $rtOdbc.Open()
     $udt = New-Object System.Data.DataTable
-    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$sfOdbc)
+    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$rtOdbc)
     $null = $command.ExecuteNonQuery()
-    $sfOdbc.Close(){% br %}
+    $rtOdbc.Close(){% br %}
     {%- endif %}
     
     if(${env:UNLOAD_GZIP} -eq "TRUE") {
@@ -243,10 +244,10 @@ SELECT {%- from table.columns as column %}
     }
     
     
-    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
-    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
+    $rtOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $rtOdbc.ConnectionString = "DSN=$env:rangeTableDsn"
+    if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
+    if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
     
     $putSQL = "PUT file://$(Join-Path -Path ${env:WSL_WORKDIR} -ChildPath $fileDat)* @~;"
     $snowsqlPut = "snowsql -q ""$putsql"" -o friendly=false -o exit_on_error=true -o remove_comments=true -o output_format=csv -o timing=false"{%- br %}
@@ -265,15 +266,15 @@ SELECT {%- from table.columns as column %}
         $errStream.WriteLine("Data file upload failed, retrying. Current retries: $currentRetry. Max retries: ${env:MAX_RETRIES}"){% br %}
         {%- if PilotTable != "" %}
         $batchUpdateSql = @"
-          UPDATE ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
+          UPDATE ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
           SET RETRY_COUNT = $currentRetry
           WHERE BATCH_NUMBER = $($batch.batch_number)
 "@
 
-        $sfOdbc.Open()
-        $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$sfOdbc)
+        $rtOdbc.Open()
+        $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$rtOdbc)
         $null = $command.ExecuteNonQuery()
-        $sfOdbc.Close(){% br %}
+        $rtOdbc.Close(){% br %}
         {%- endif %}
         
         $putRes = & $([ScriptBlock]::Create($snowsqlPut)){%- br %}
@@ -298,20 +299,20 @@ SELECT {%- from table.columns as column %}
     
     {%- if PilotTable != "" %}{% br %}{% br %}
     $batchUpdateSql = @"
-      UPDATE ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
-      SET START_LOAD_TIMESTAMP = CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
-        , PUT_DURATION_SECONDS = TIMESTAMPDIFF('SECOND',START_PUT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))
+      UPDATE ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
+      SET START_LOAD_TIMESTAMP = ${env:RANGE_CURR_DATE}
+        , PUT_DURATION_SECONDS = ${env:PUT_SECS}
       WHERE BATCH_NUMBER = $($batch.batch_number)
 "@
-    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
-    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
-    $sfOdbc.Open()
+    $rtOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $rtOdbc.ConnectionString = "DSN=$env:rangeTableDsn"
+    if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
+    if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
+    $rtOdbc.Open()
     $udt = New-Object System.Data.DataTable
-    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$sfOdbc)
+    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$rtOdbc)
     $null = $command.ExecuteNonQuery()
-    $sfOdbc.Close(){% br %}
+    $rtOdbc.Close(){% br %}
     {%- endif %}
     
     $PURGE = "TRUE"
@@ -342,6 +343,11 @@ SELECT {%- from table.columns as column %}
     {%- if table.loadInfo.fileLoaderOptions != "" %}    {{ table.loadInfo.fileLoaderOptions }}{%- br %}
     {%- endif %}
 "@{%- br %}
+
+    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
+    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
+    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
 
     if(${env:DEBUG} -eq "TRUE") {
         $errStream.WriteLine("=================== IMPORT SQL ===================")
@@ -394,24 +400,24 @@ SELECT {%- from table.columns as column %}
     }{%- br %}
     {%- if PilotTable != "" %}
     $batchUpdateSql = @"
-      UPDATE ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
+      UPDATE ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
       SET STATUS = 'C'
-        , END_TIMESTAMP = CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
+        , END_TIMESTAMP = ${env:RANGE_CURR_DATE}
         , LOADED_ROWS = $RowsLoaded
-        , LOAD_DURATION_SECONDS = TIMESTAMPDIFF('SECOND',START_LOAD_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))
-        , TOTAL_DURATION_SECONDS = TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))
+        , LOAD_DURATION_SECONDS = ${env:LOAD_SECS}
+        , TOTAL_DURATION_SECONDS = ${env:TOTAL_SECS}
         , ROWS_VALIDATED = CASE WHEN ROW_COUNTER = -1 THEN 'X' WHEN ROW_COUNTER = $RowsLoaded THEN 'Y' ELSE 'N' END
       WHERE BATCH_NUMBER = $($batch.batch_number)
 "@
-    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
-    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
-    $sfOdbc.Open()
+    $rtOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $rtOdbc.ConnectionString = "DSN=$env:rangeTableDsn"
+    if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
+    if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
+    $rtOdbc.Open()
     $udt = New-Object System.Data.DataTable
-    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$sfOdbc)
+    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$rtOdbc)
     $null = $command.ExecuteNonQuery()
-    $sfOdbc.Close(){% br %}
+    $rtOdbc.Close(){% br %}
     {%- endif %}
     if(${env:DEBUG} -ne "TRUE") {
         try { $null = Remove-Item $(Join-Path -Path ${env:WSL_WORKDIR} -ChildPath $fileDat) } catch {}
@@ -422,6 +428,52 @@ SELECT {%- from table.columns as column %}
     Write-Output $threadAud
     Write-Output $threadErr
     Write-Output $RowsLoaded
+}
+
+function GET-RANGE-CONN-DET {
+
+    # Generate Metadata select to get various connectivity information
+    #
+    $sMetaSql = @"
+      SELECT dc_odbc_source
+           , dc_extract_userid
+           , dc_extract_pwd
+      FROM   ws_dbc_connect
+      WHERE  dc_name = '$RANGE_WORK_CONNECTION'
+"@
+    $metaOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $metaOdbc.ConnectionString = "DSN=${env:WSL_META_DSN}"{% br %}
+    if( ! [string]::IsNullOrEmpty(${env:WSL_META_USER})) { $metaOdbc.ConnectionString += ";UID=${env:WSL_META_USER}" }{% br %}
+    if( ! [string]::IsNullOrEmpty(${env:WSL_META_PWD})) { $metaOdbc.ConnectionString += ";PWD=${env:WSL_META_PWD}" }{% br %}
+    try {
+        $metaOdbc.Open()
+        $command = New-Object System.Data.Odbc.OdbcCommand($sMetaSql,$metaOdbc)
+        $command.CommandTimeout = 0
+        $adapter = New-Object System.Data.Odbc.OdbcDataAdapter($command)
+        $mdt = New-Object System.Data.DataTable
+        $null = $adapter.fill($mdt)
+        $metaOdbc.Close()
+    }
+    catch {
+        $logStream.WriteLine("Get range table connection query failed")
+        [Console]::WriteLine("-2"){%- br %}
+        [Console]::WriteLine("Get range table connection query failed"){%- br %}
+        Print-Log
+        exit
+    }
+    if($mdt.Rows.Count -eq 0) {
+        $logStream.WriteLine("${debugWord}No range table connection defined")
+        $host.ui.WriteLine("-2")
+        $host.ui.WriteLine("No range table connection defined")
+        Print-Log -exitStatus -2
+        exit
+    }
+
+    $rangeTableDsn = $mdt.Rows[0].dc_odbc_source
+    $rangeTableUser = $mdt.Rows[0].dc_extract_userid
+    $rangeTablePwd = $mdt.Rows[0].dc_extract_pwd
+
+    return $rangeTableDsn, $rangeTableUser, $rangeTablePwd
 }
 
 function MAIN { {%- br %}
@@ -490,26 +542,54 @@ function MAIN { {%- br %}
         $errStream.WriteLine(""){%- br %}
     }{%- br %}
     {%- br %}
-    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
-    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
+    
+    $env:RANGE_LOCATION = (WsParameterRead "RANGE_WORK_TABLE_LOCATION")[0]
+    $RANGE_WORK_CONNECTION = (WsParameterRead "RANGE_WORK_CONNECTION")[0]
+    
+    if($env:RANGE_LOCATION -eq "SNOWFLAKE") {
+        $env:RANGE_SCHEMA = ${env:WSL_LOAD_SCHEMA}
+        $env:RANGE_CURR_DATE = "CAST(CURRENT_TIMESTAMP AS TIMESTAMP)"
+        $env:EXTRACT_SECS = "TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
+        $env:PUT_SECS = "TIMESTAMPDIFF('SECOND',START_PUT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
+        $env:LOAD_SECS = "TIMESTAMPDIFF('SECOND',START_LOAD_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
+        $env:TOTAL_SECS = "TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
+        $env:rangeTableDsn = ${env:WSL_TGT_DSN}
+        $env:rangeTableUser = ${env:WSL_TGT_USER}
+        $env:rangeTablePwd = ${env:WSL_TGT_PWD}
+    }
+    else {
+        $env:RANGE_SCHEMA = "dbo"
+        $env:RANGE_CURR_DATE = "GETDATE()"
+        $env:EXTRACT_SECS = "DATEDIFF(SECOND,START_EXTRACT_TIMESTAMP,GETDATE())"
+        $env:PUT_SECS = "DATEDIFF(SECOND,START_PUT_TIMESTAMP,GETDATE())"
+        $env:LOAD_SECS = "DATEDIFF(SECOND,START_LOAD_TIMESTAMP,GETDATE())"
+        $env:TOTAL_SECS = "DATEDIFF(SECOND,START_EXTRACT_TIMESTAMP,GETDATE())"
+        $rangeConn = GET-RANGE-CONN-DET
+        $env:rangeTableDsn = $rangeConn[0]
+        $env:rangeTableUser = $rangeConn[1]
+        $env:rangeTablePwd = $rangeConn[2]
+    }
+        
+    $rtOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $rtOdbc.ConnectionString = "DSN=$env:rangeTableDsn"
+    if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
+    if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
     {%- if PilotTable != "" %}
     $batchListSql = @"
       SELECT batch_number
            , min_value
            , max_value
-      FROM ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
+      FROM ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
       WHERE status IN ('N','R')
       ORDER BY batch_number
 "@
     try {
-        $sfOdbc.Open()
-        $command = New-Object System.Data.Odbc.OdbcCommand($batchListSql,$sfOdbc)
+        $rtOdbc.Open()
+        $command = New-Object System.Data.Odbc.OdbcCommand($batchListSql,$rtOdbc)
         $adapter = New-Object System.Data.Odbc.OdbcDataAdapter($command)
         $bdt = New-Object System.Data.DataTable
         $null = $adapter.fill($bdt)
-        $sfOdbc.Close()
+        $rtOdbc.Close()
     }
     catch {
         $logStream.WriteLine($_.Exception.Message)
@@ -535,7 +615,7 @@ function MAIN { {%- br %}
         Print-Log
         exit
     }
-    
+        
     $id = 0
     foreach($batch in $bdt) { {% br %}
         $id++
@@ -604,19 +684,19 @@ function MAIN { {%- br %}
     }{% br %}
     {%- if PilotTable != "" %}
     $batchUpdateSql = @"
-      UPDATE ${env:WSL_LOAD_SCHEMA}.${env:PILOT_TABLE}
+      UPDATE ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
       SET STATUS = 'N'
       WHERE STATUS = 'R'
 "@
-    $sfOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
-    $sfOdbc.ConnectionString = "DSN=${env:WSL_TGT_DSN}"
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_USER})) { $sfOdbc.ConnectionString += ";UID=${env:WSL_TGT_USER}" }
-    if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }{% br %}
-    $sfOdbc.Open()
+    $rtOdbc = New-Object System.Data.Odbc.OdbcConnection{% br %}
+    $rtOdbc.ConnectionString = "DSN=$env:rangeTableDsn"
+    if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
+    if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
+    $rtOdbc.Open()
     $udt = New-Object System.Data.DataTable
-    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$sfOdbc)
+    $command = New-Object System.Data.Odbc.OdbcCommand($batchUpdateSql,$rtOdbc)
     $null = $command.ExecuteNonQuery()
-    $sfOdbc.Close(){% br %}
+    $rtOdbc.Close(){% br %}
     {%- endif %}
     # Update metadata row counts
     try {
