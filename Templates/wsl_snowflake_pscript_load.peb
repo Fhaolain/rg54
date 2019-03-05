@@ -347,16 +347,23 @@ function Load-Data { {%- br %}
         Print-Log{%- br %}
         exit{%- br %}
     }{%- br %}
-    [array]$dataFiles = (Get-ChildItem "${filePath}${fileDat}*").FullName{%- br %}
+    $dataFiles = New-Object System.Collections.Generic.List[string]
+    foreach($df in $((Get-ChildItem "${filePath}${fileDat}*").FullName)){
+        $null = $dataFiles.Add($df)
+    }
     {%- else %}
     $fileDat = @"
 {{ table.loadInfo.sourceFile.name }}{%- br %}
 "@
+    $fileHeader = "{{ table.loadInfo.sourceFile.headerLine }}"
     if($runMode -eq "Windows") { {%- br %}
         $filePath = "{{ table.loadInfo.sourceFile.path }}"{%- br %}
         try { {%- br %}    
-            [array]$dataFiles = (Get-ChildItem (Join-Path -Path $filePath -ChildPath $fileDat) -ErrorAction Stop ).FullName{%- br %}
-            $sourceFiles = $dataFiles
+            $dataFiles = New-Object System.Collections.Generic.List[string]
+            foreach($df in $((Get-ChildItem (Join-Path -Path $filePath -ChildPath $fileDat) -ErrorAction Stop ).FullName)){
+                $null = $dataFiles.Add($df)
+            }
+            $sourceFiles = $dataFiles.Clone()
             if($dataFiles.Length -eq 0) { {%- br %}
                 [Console]::WriteLine("-2"){%- br %}
                 [Console]::WriteLine("No files found matching $(Join-Path -Path $filePath -ChildPath $fileDat)"){%- br %}
@@ -373,15 +380,61 @@ function Load-Data { {%- br %}
             exit{%- br %}
         }{%- br %}
         $rowCount = 0 {%- br %}
-        foreach ($sourceFile in $dataFiles) { {%- br %}
+        $dfc = $dataFiles.Clone()
+        $dataFiles = New-Object System.Collections.Generic.List[string]
+        foreach ($sourceFile in $dfc) { {%- br %}
             $lineCounter = [IO.File]::OpenText($sourceFile){%- br %}
-            while ($lineCounter.ReadLine() -ne $null) { {%- br %}
+            while (! $lineCounter.EndOfStream) { {%- br %}
+                $null = $lineCounter.ReadLine()
                 $rowCount ++{%- br %}
             }{%- br %}
             if($fileHeader -eq "true") { {%- br %}
                 $rowCount --{%- br %}
             }{%- br %}
             $lineCounter.Dispose()
+            if($rowCount -ge ${env:SPLIT_THRESHOLD}) {
+                if(${env:FILE_COUNT} -gt 1) {
+                    $filePath = ${env:WSL_WORKDIR}
+                    $cleanedDat = $fileDat.Replace("*","")
+                    $fileToSplit = New-Object System.IO.StreamReader($sourceFile)
+                    $swl = New-Object System.Collections.Generic.List[System.IO.StreamWriter]
+                    for($i = 0; $i -lt ${env:FILE_COUNT}; $i++) {
+                        $threeDigits = $i.ToString("000")
+                        $newName = $(Get-Item $sourceFile).Name.Replace($cleanedDat,$cleanedDat + "_" + ${env:WSL_SEQUENCE}) + "_p" + $threeDigits
+                        $splitPath = Join-Path ${env:WSL_WORKDIR} $newName
+                        $null = $dataFiles.Add($splitPath)
+                        $sw = New-Object System.IO.StreamWriter($splitPath,$false)
+                        $sw.AutoFlush = $true
+                        $swl.Add($sw)
+                    } 
+                    
+                    $fileDat = $cleanedDat + "_" + ${env:WSL_SEQUENCE} + "*"
+                    
+                    $swNum = 0
+                    if($fileHeader -eq "true") {
+                        $headerLine = $fileToSplit.ReadLine()
+                        foreach($sw in $swl) {
+                            $sw.WriteLine($headerLine)
+                        }
+                    }
+                    while(! $fileToSplit.EndOfStream){
+                        $line = $fileToSplit.ReadLine()
+                    
+                        if($swNum -ge ${env:FILE_COUNT}) 
+                        {
+                            $swNum = 0
+                        }
+                        $swl[$swNum].WriteLine($line);
+                        $swNum++
+                    }
+                }
+                else {
+                    $null = $dataFiles.Add($sourceFile)
+                }
+            }
+            else {
+                $null = $dataFiles.Add($sourceFile)
+            }
         }{%- br %}
     }{%- br %}
     else { {%- br %}
