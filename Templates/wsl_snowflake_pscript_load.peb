@@ -28,6 +28,7 @@
 {# -- TK: Powershell release V11 (2018-11-14)  Enabled configuration of extract delimiter, enclosure and escape characters                                   -- #}
 {# -- JL: Powershell release V12 (2019-03-01)  Fixed a bug that caused ranges to fail on some databases due to double FROM clause                            -- #}
 {# -- TK: Powershell release V13 (2019-03-01)  Enabled file splitting for windows file loads                                                                 -- #}
+{# -- TK: Powershell release V14 (2019-03-02)  Enabled trigger files for windows file loads                                                                  -- #}
 {# --                                                                                                                                                        -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
@@ -206,13 +207,13 @@ function Load-Data { {%- br %}
     ${env:SNOWSQL_SCHEMA}     = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_SCHEMA" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:SNOWSQL_WAREHOUSE}  = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_WAREHOUSE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:UNICODE_SUPPORT}    = Get-ExtendedProperty -PropertyName "SF_UNICODE_SUPPORT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
-    ${env:UNLOAD_DELIM}       = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_DELIMITER" -TableName ${env:WSL_LOAD_TABLE}), "|" -ne "")[0]{% br %}
-    ${env:UNLOAD_ENC}         = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_ENCLOSED_BY" -TableName ${env:WSL_LOAD_TABLE}), "`"" -ne "")[0]{% br %}
-    ${env:UNLOAD_ESC}         = @($(Get-ExtendedProperty -PropertyName "SF_UNLOAD_ESCAPE_CHAR" -TableName ${env:WSL_LOAD_TABLE}), "#" -ne "")[0]{% br %}
+    ${env:UNLOAD_DELIM}       = Get-ExtendedProperty -PropertyName "SF_UNLOAD_DELIMITER" -TableName ${env:WSL_LOAD_TABLE}{% br %}
+    ${env:UNLOAD_ENC}         = Get-ExtendedProperty -PropertyName "SF_UNLOAD_ENCLOSED_BY" -TableName ${env:WSL_LOAD_TABLE}{% br %}
+    ${env:UNLOAD_ESC}         = Get-ExtendedProperty -PropertyName "SF_UNLOAD_ESCAPE_CHAR" -TableName ${env:WSL_LOAD_TABLE}{% br %}
     ${env:SPLIT_THRESHOLD}    = Get-ExtendedProperty -PropertyName "SF_SPLIT_THRESHOLD" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:FILE_COUNT}         = Get-ExtendedProperty -PropertyName "SF_SPLIT_COUNT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:TIMEZONE}           = Get-ExtendedProperty -PropertyName "SF_TIMEZONE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
-    ${env:FILE_TYPE}          = @($(Get-ExtendedProperty -PropertyName "SF_FILE_TYPE" -TableName ${env:WSL_LOAD_TABLE}), "CSV" -ne $null){%- br %}
+    ${env:FILE_TYPE}          = Get-ExtendedProperty -PropertyName "SF_FILE_TYPE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:EXTERNAL_STAGE}     = Get-ExtendedProperty -PropertyName "SF_EXTERNAL_STAGE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:AZ_SAS_TOKEN}       = Get-ExtendedProperty -PropertyName "SF_AZURE_SAS_TOKEN" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:AZ_ENCRYPTION_TYPE} = Get-ExtendedProperty -PropertyName "SF_AZURE_ENCRYPTION_TYPE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
@@ -226,6 +227,18 @@ function Load-Data { {%- br %}
     }{%- br %}
     if(${env:FILE_COUNT} -lt 1) { {%- br %}
         ${env:FILE_COUNT} = 1{%- br %}
+    }{%- br %}
+    if([string]::IsNullOrEmpty(${env:UNLOAD_DELIM})) { {%- br %}
+        ${env:UNLOAD_DELIM} = "|"{%- br %}
+    }{%- br %}
+    if([string]::IsNullOrEmpty(${env:UNLOAD_ENC})) { {%- br %}
+        ${env:UNLOAD_ENC} = '"'{%- br %}
+    }{%- br %}
+    if([string]::IsNullOrEmpty(${env:UNLOAD_ESC})) { {%- br %}
+        ${env:UNLOAD_ESC} = "#"{%- br %}
+    }{%- br %}
+    if([string]::IsNullOrEmpty(${env:FILE_TYPE})) { {%- br %}
+        ${env:FILE_TYPE} = "CSV"{%- br %}
     }{%- br %}
     {%- br %}
     ${env:SNOWSQL_USER} = ${env:WSL_TGT_USER}{%- br %}
@@ -360,58 +373,105 @@ function Load-Data { {%- br %}
     $fileHeader = "{{ table.loadInfo.sourceFile.headerLine }}"
     if($runMode -eq "Windows") { {%- br %}
         $filePath = "{{ table.loadInfo.sourceFile.path }}"{%- br %}
-        try { {%- br %}    
-            $dataFiles = New-Object System.Collections.Generic.List[string]
-            foreach($df in $((Get-ChildItem (Join-Path -Path $filePath -ChildPath $fileDat) -ErrorAction Stop ).FullName)){
-                $null = $dataFiles.Add($df)
+    
+        $LOAD_FILE = Join-Path -Path $filePath -ChildPath $fileDat{%- br %}
+        {%- if table.loadInfo.triggerFile.name|trim != "" %}
+        $TRGFILE = Join-Path -Path '{{ table.loadInfo.triggerFile.path }}' -ChildPath '{{ table.loadInfo.triggerFile.name }}'{% br %} 
+        {%- endif %}
+        {% br %}
+        {%- if table.loadInfo.wait %}
+        # **********************************************************
+        # ************* W A I T     T I M E R **********************
+        # **********************************************************
+        # If a wait time specified then loop looking for the file
+        # or trigger file to arrive until the wait time expires.{% br %}
+        {%- if table.loadInfo.triggerFile.name|trim != "" %}
+        $WAITFILE = $TRGFILE{% br %}
+        {%- else %}
+        $WAITFILE = $LOAD_FILE{% br %}
+        {%- endif %}
+        $WAITSECS = {{ table.loadInfo.waitSeconds }}{% br %}
+        :waitloop while($WAITSECS -gt 0) {
+            # see if the file exists and if so skip the wait check
+            if(Test-Path $WAITFILE) {
+                break waitloop
             }
-            $sourceFiles = $dataFiles.Clone()
-            if($dataFiles.Length -eq 0) { {%- br %}
-                [Console]::WriteLine("-2"){%- br %}
-                [Console]::WriteLine("No files found matching $(Join-Path -Path $filePath -ChildPath $fileDat)"){%- br %}
-                $logStream.WriteLine("No files found matching $(Join-Path -Path $filePath -ChildPath $fileDat)"){%- br %}
-                Print-Log{%- br %}
-                exit{%- br %}
-            }{%- br %}
-        }{%- br %}
-        catch { {%- br %}
+            Start-Sleep 5
+            $WAITSECS = $WAITSECS - 5
+        }
+        # Finished our wait loop. See if we have the file
+        {% br %}
+        {%- endif %}
+        # **********************************************************
+        # ************* F I L E    C H E C K ***********************
+        # **********************************************************{% br %}
+        {%- if table.loadInfo.triggerFile.name|trim != "" %}
+        $CHKFILE = $TRGFILE{% br %}
+        {%- else -%}
+        $CHKFILE = $LOAD_FILE{% br %}
+        {%- endif -%}
+        if( ! (Test-Path $CHKFILE) ) { {%- br %}
+            {%- if table.loadInfo.waitAction is defined %}
+              {%- if table.loadInfo.waitAction.name == "Warning" %}
+            [Console]::WriteLine("-1"){%- br %}
+              {%- elseif table.loadInfo.waitAction.name == "Error" %}
             [Console]::WriteLine("-2"){%- br %}
-            [Console]::WriteLine("No files found matching $(Join-Path -Path $filePath -ChildPath $fileDat)"){%- br %}
-            $logStream.WriteLine("No files found matching $(Join-Path -Path $filePath -ChildPath $fileDat)"){%- br %}
-            Print-Log{%- br %}
-            exit{%- br %}
-        }{%- br %}
+              {%- elseif table.loadInfo.waitAction.name == "Fatal Error" %}
+            [Console]::WriteLine("-3"){%- br %}
+              {%- elseif table.loadInfo.waitAction.name == "Success" %}
+            [Console]::WriteLine("1"){%- br %}
+              {%- endif %}
+            {%- else %}
+            [Console]::WriteLine("-1")
+            {%- endif %}
+            [Console]::WriteLine("File $CHKFILE was not found. ")
+            Print-Log
+            exit
+        }
+        {%- br %}
+        $dataFiles = New-Object System.Collections.Generic.List[string]
+        foreach($df in $((Get-ChildItem (Join-Path -Path $filePath -ChildPath $fileDat) -ErrorAction Stop ).FullName)){
+            $null = $dataFiles.Add($df)
+        }
+        $sourceFiles = $dataFiles.Clone()
         $rowCount = 0 {%- br %}
         $dfc = $dataFiles.Clone()
+        $dataFiles.Clear()
         $dataFiles = New-Object System.Collections.Generic.List[string]
-        foreach ($sourceFile in $dfc) { {%- br %}
-            $lineCounter = [IO.File]::OpenText($sourceFile){%- br %}
-            while (! $lineCounter.EndOfStream) { {%- br %}
+        $originalDat = $fileDat
+        foreach ($sourceFile in $dfc) {
+
+            $lineCounter = [IO.File]::OpenText($sourceFile)
+            while (! $lineCounter.EndOfStream) {
                 $null = $lineCounter.ReadLine()
-                $rowCount ++{%- br %}
-            }{%- br %}
-            if($fileHeader -eq "true") { {%- br %}
-                $rowCount --{%- br %}
-            }{%- br %}
+                $rowCount ++
+            }
+            if($fileHeader -eq "true") {
+                $rowCount --
+            }
             $lineCounter.Dispose()
-            if($rowCount -ge ${env:SPLIT_THRESHOLD}) {
-                if(${env:FILE_COUNT} -gt 1) {
-                    $filePath = ${env:WSL_WORKDIR}
-                    $cleanedDat = $fileDat.Replace("*","")
+            
+            $cleanedDat = $originalDat.Replace("*","")
+            if(${env:FILE_COUNT} -gt 1) {
+            
+                $filePath = ${env:WSL_WORKDIR}
+                
+                if($rowCount -ge ${env:SPLIT_THRESHOLD}) {
                     $fileToSplit = New-Object System.IO.StreamReader($sourceFile)
                     $swl = New-Object System.Collections.Generic.List[System.IO.StreamWriter]
                     for($i = 0; $i -lt ${env:FILE_COUNT}; $i++) {
                         $threeDigits = $i.ToString("000")
-                        $newName = $(Get-Item $sourceFile).Name.Replace($cleanedDat,$cleanedDat + "_" + ${env:WSL_SEQUENCE}) + "_p" + $threeDigits
+                        $newName = $(Get-Item $sourceFile).Name.Replace($cleanedDat,$cleanedDat + "_" + ${env:WSL_SEQUENCE} + "-" + ${env:WSL_TASK_KEY}) + "_p" + $threeDigits
                         $splitPath = Join-Path ${env:WSL_WORKDIR} $newName
                         $null = $dataFiles.Add($splitPath)
                         $sw = New-Object System.IO.StreamWriter($splitPath,$false)
                         $sw.AutoFlush = $true
                         $swl.Add($sw)
-                    } 
-                    
-                    $fileDat = $cleanedDat + "_" + ${env:WSL_SEQUENCE} + "*"
-                    
+                        if(${env:DEBUG} -eq "TRUE") {
+                            $logStream.WriteLine("Source file '$(Get-Item $sourceFile).Name' Part ${threeDigits}: $splitPath")
+                        }
+                    }
+
                     $swNum = 0
                     if($fileHeader -eq "true") {
                         $headerLine = $fileToSplit.ReadLine()
@@ -421,23 +481,36 @@ function Load-Data { {%- br %}
                     }
                     while(! $fileToSplit.EndOfStream){
                         $line = $fileToSplit.ReadLine()
-                    
-                        if($swNum -ge ${env:FILE_COUNT}) 
+
+                        if($swNum -ge ${env:FILE_COUNT})
                         {
                             $swNum = 0
                         }
                         $swl[$swNum].WriteLine($line);
                         $swNum++
                     }
+                    $fileToSplit.Dispose()
                 }
                 else {
-                    $null = $dataFiles.Add($sourceFile)
+                    $newName = $(Get-Item $sourceFile).Name.Replace($cleanedDat,$cleanedDat + "_" + ${env:WSL_SEQUENCE} + "-" + ${env:WSL_TASK_KEY}) + "_p000"
+                    $notSplitPath = Join-Path ${env:WSL_WORKDIR} $newName
+                    $null = Copy-Item $sourceFile $notSplitPath
+                    
+                    $null = $dataFiles.Add($notSplitPath)
+                    if(${env:DEBUG} -eq "TRUE") {
+                        $logStream.WriteLine("Source file '$(Get-Item $sourceFile).Name' Part 000: $notSplitPath")
+                    }
                 }
+                $fileDat = $cleanedDat + "_" + ${env:WSL_SEQUENCE} + "-" + ${env:WSL_TASK_KEY} + "*"
             }
             else {
                 $null = $dataFiles.Add($sourceFile)
             }
-        }{%- br %}
+        }
+        foreach($sw in $swl) {
+            $sw.Dispose()
+        }
+        $logStream.WriteLine("")
     }{%- br %}
     else { {%- br %}
         $filePath = $s3Prefix{%- br %}
@@ -452,7 +525,10 @@ function Load-Data { {%- br %}
             $originalName = $dataFiles[$x]
             if(${env:SEND_FILES_ZIPPED} -eq "TRUE") { {% br %}
                 {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}
-                $noPath = ($dataFiles[$x]).Replace($sourcePath, "")
+                $noPath = (Get-Item $dataFiles[$x]).Name
+                if($env:FILE_COUNT -lt 2) {
+                    $noPath = $noPath.Replace($cleanedDat,$cleanedDat + "_" + ${env:WSL_SEQUENCE} + "-" + ${env:WSL_TASK_KEY})
+                }
                 $newName = Join-Path -Path ${env:WSL_WORKDIR} -ChildPath $($noPath + ".gz"){% br %}
                 {%- endif %}
                 $dataFiles[$x] = Gzip-File -inFile $originalName{% if table.loadInfo.sourceConnectionType.name != "Windows" %} -RemoveOriginal{% else %} -OutFile $newName{% endif %}{% br %}
@@ -463,7 +539,14 @@ function Load-Data { {%- br %}
                 $logStream.WriteLine("File '$originalName' GZipped to '$($dataFiles[$x])' prior to upload")
                 {%- endif %}
             }
-        }
+        }{%- br %}
+        {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}
+        if($env:FILE_COUNT -lt 2) {
+            if(${env:SEND_FILES_ZIPPED} -eq "TRUE") { {% br %}
+                $fileDat = $cleanedDat + "_" + ${env:WSL_SEQUENCE} + "-" + ${env:WSL_TASK_KEY} + "*"
+            }
+        }{%- br %}
+        {%- endif %}
     }{%- br %}
     $logStream.WriteLine("================= LOAD ================="){%- br %}
     $sfOdbc = New-Object System.Data.Odbc.OdbcConnection
@@ -483,14 +566,14 @@ function Load-Data { {%- br %}
             }
             $snowsqlPut = "snowsql -q ""$putsql"" -o friendly=false  -o remove_comments=true -o output_format=csv -o timing=false"{%- br %}
             if(${env:DEBUG} -eq "TRUE") { {%- br %}
-                $logStream.WriteLine("BEGIN PUT of files matching ${env:WSL_WORKDIR}${fileDat} : $(Get-Date)"){%- br %}
+                $logStream.WriteLine("BEGIN PUT of files matching ${filePath}${fileDat} : $(Get-Date)"){%- br %}
             }{%- br %}
             $logStream.WriteLine("PUT:"){%- br %}
             $logStream.WriteLine($putSQL)
             $logStream.WriteLine("")
             $putRes = & $([ScriptBlock]::Create($snowsqlPut)){%- br %}
             if(${env:DEBUG} -eq "TRUE") { {%- br %}
-                $logStream.WriteLine("END PUT of files matching ${env:WSL_WORKDIR}${fileDat} : $(Get-Date)"){%- br %}
+                $logStream.WriteLine("END PUT of files matching ${env:filePath}${fileDat} : $(Get-Date)"){%- br %}
             }{%- br %}
         }{% br %}
         {%- set noindent = "" %}
@@ -571,10 +654,8 @@ function Load-Data { {%- br %}
                     Remove-Item $file{%- br %}
                 }{%- br %}
                 {%- else %}
-                if(${env:SEND_FILES_ZIPPED} -eq "TRUE") {
-                    foreach($file in $dataFiles) { {%- br %}
-                        Remove-Item $file{%- br %}
-                    }{%- br %}
+                if((${env:SEND_FILES_ZIPPED} -eq "TRUE") -or (${env:FILE_COUNT} -gt 1)) {
+                    Get-ChildItem $(Join-Path -Path $filePath -ChildPath $fileDat) | Remove-Item{%- br %}
                 }{% br %}
                 {%- endif %}
                 $null = (New-Object System.Data.Odbc.OdbcCommand($remSQL,$sfOdbc)).ExecuteNonQuery()
