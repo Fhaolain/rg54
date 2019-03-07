@@ -171,6 +171,83 @@ function Archive-Files { {%- br %}
 }{%- br %}
 {%- br %}
 {%- endif %}
+{% if (table.loadInfo.triggerArchiveFile.path != "") or (table.loadInfo.triggerArchiveFile.name != "") and (table.loadInfo.sourceConnectionType.name == "Windows") %}
+# File archiving function for windows file loads
+function Archive-Trigger { {%- br %}
+    param ({%- br %}
+        [array]$files{%- br %}
+    ){%- br %}
+    $ArchivePath = @'{%- br %}
+{{ table.loadInfo.triggerArchiveFile.path }}{%- br %}
+'@{%- br %}
+    $ArchiveName = @'
+{{ table.loadInfo.triggerArchiveFile.name }}{%- br %}
+'@{%- br %}
+    {%- br %}
+    if(($runMode -ne "S3") -and ($runmode -ne "AZ")) { {%- br %}
+        if([string]::IsNullOrWhitespace($ArchivePath)) { {%- br %}
+            $ArchivePath = (gci $files[0]).Directory.FullName{%- br %}
+        }{%- br %}
+        {%- br %}
+        if( ! $ArchivePath.EndsWith('\')) { {%- br %}
+            $ArchivePath += "\"{%- br %}
+        }{%- br %}
+        {%- br %}
+        if ($files.Count -gt 1) { {%- br %}
+            if(! [string]::IsNullOrWhitespace($ArchivePath)) { {%- br %}
+                if( ! [string]::IsNullOrWhitespace($ArchiveName)) { {%- br %}
+                    ${env:warn} = $true{%- br %}
+                    $logStream.WriteLine("Files will be moved but not renamed"){%- br %}
+                    $logStream.WriteLine("Renaming is not supported for multi file loads"){%- br %}
+                }{%- br %}
+                {%- br %}
+                $dir = Replace-WslTags(${ArchivePath}){%- br %}
+                foreach($file in $files) { {%- br %}
+                    try { {%- br %}
+                        if( ! (Test-Path -Path $dir)) { {%- br %}
+                            $null = New-Item -ItemType Directory -Path $dir{%- br %}
+                        }{%- br %}
+                        Move-Item $file $dir -ErrorAction Stop{%- br %}
+                        $logStream.WriteLine("$file moved to $dir"){%- br %}
+                    }{%- br %}
+                    catch { {%- br %}
+                        ${env:warn} = $true
+                        $logStream.WriteLine("Failed to move " + $file + " to " + $dir){%- br %}
+                        $logStream.WriteLine($_.Exception.Message){%- br %}
+                        $logStream.WriteLine($_.InvocationInfo.PositionMessage){%- br %}
+                    }{%- br %}
+                }{%- br %}
+            }{%- br %}
+            else { {%- br %}
+                if( ! [string]::IsNullOrWhitespace($ArchiveName)) { {%- br %}
+                    ${env:warn} = $true{%- br %}
+                    $logStream.WriteLine("Only moving (not renaming) is supported for multi file loads"){%- br %}
+                }{%- br %}
+            }{%- br %}
+        }{%- br %}
+        else { {%- br %}
+            try { {%- br %}
+                $dir = Replace-WslTags(${ArchivePath}){%- br %}
+                $fil = Replace-WslTags(${ArchiveName}){%- br %}
+                $path = $dir + $fil
+                if( ! (Test-Path -Path $dir)) {
+                    $null = New-Item -ItemType Directory -Path $dir
+                }
+                Move-Item $files[0] $path -ErrorAction Stop{%- br %}
+                $logStream.WriteLine("Trigger file moved to " + $path){%- br %}
+            }{%- br %}
+            catch { {%- br %}
+                ${env:warn} = $true{%- br %}
+                $logStream.WriteLine("Failed to move " + $files[0] + " to " + ${path}){%- br %}
+                $logStream.WriteLine($_.Exception.Message){%- br %}
+                $logStream.WriteLine($_.InvocationInfo.PositionMessage){%- br %}
+                {%- br %}
+            }{%- br %}
+        }{%- br %}
+    }{%- br %}
+}{%- br %}
+{%- br %}
+{%- endif %}
 Function Gzip-File { {%- br %}
     param({%- br %}
         [string]$inFile = $(throw "No input file specified"),{%- br %}
@@ -405,7 +482,7 @@ function Load-Data { {%- br %}
         # **********************************************************
         # ************* F I L E    C H E C K ***********************
         # **********************************************************{% br %}
-        {%- if table.loadInfo.triggerFile.name|trim != "" %}
+        {% if table.loadInfo.triggerFile.name|trim != "" %}
         $CHKFILE = $TRGFILE{% br %}
         {%- else -%}
         $CHKFILE = $LOAD_FILE{% br %}
@@ -674,6 +751,9 @@ function Load-Data { {%- br %}
         $sfOdbc.Close(){%- br %}
         {%- if (table.loadInfo.archiveFile.path != "") or (table.loadInfo.archiveFile.name != "") and (table.loadInfo.sourceConnectionType.name == "Windows") %}
         Archive-Files $sourceFiles{%- br %}
+        {%- endif %}
+        {%- if (table.loadInfo.triggerArchiveFile.path != "") or (table.loadInfo.triggerArchiveFile.name != "") and (table.loadInfo.sourceConnectionType.name == "Windows") %}
+        Archive-Trigger $(Join-Path -Path '{{ table.loadInfo.triggerFile.path }}' -ChildPath '{{ table.loadInfo.triggerFile.name }}' ){%- br %}
         {%- endif %}
     }{%- br %}
     elseif($runmode -eq "S3") { {%- br %}
