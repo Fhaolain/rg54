@@ -9,7 +9,7 @@
 #-- JML v 1.0.1 2018-10-26 Improved debug logging and encrypted password handling
 #-- JML v 1.0.2 2018-10-29 Adding handling for ODBC timeouts
 #-- JML v 1.0.3 2019-03-01 Added optional support for SQL Server range tables
-#--
+#-- 
 
 Import-module -Name WslPowershellCommon -DisableNameChecking
 
@@ -427,7 +427,7 @@ function GET-SRCPWD {
     $MyForm.Text = "Enter Source System Password"
     $MyIcon = [System.Drawing.Icon]::ExtractAssociatedIcon("${env:WSL_BINDIR}med.exe")
     $MyForm.Icon = $MyIcon
-
+    
     $Location = New-Object System.Drawing.Point
     $Location.X = 20
     $Location.Y = 15
@@ -1647,7 +1647,7 @@ try {
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourcePwd is: " + (New-Object string ('*', $sourcePwd.Length))) }
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourceColumn is: $sourceColumn") }
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: sourceConnection is: $sourceConnection") }
-
+        
         # Define source connection
         #
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Defining source connection") }
@@ -1687,7 +1687,7 @@ try {
         $env:rangeLocation = GET-RANGE-TABLE-LOCATION
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Fetching Range Table Target") }
         $rangeTarget = GET-RANGE-TARGET
-
+        
         # Get target key
         #
         if(${env:rangeLocation} -ne "SNOWFLAKE") {
@@ -1695,7 +1695,7 @@ try {
             $targetKey = GET-TARGET-KEY
             if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Target Key Fetched") }
         }
-
+        
         # Calculate batch size magic number
         #
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Calculating Batch Size Magic Number") }
@@ -1727,7 +1727,7 @@ try {
         GET-COL-INSERT-SQL
         if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Inserting new column rows") }
         INSERT-COL-ROW
-
+        
         if(${env:rangeLocation} -eq "SNOWFLAKE") {
             if(${env:DEBUG} -eq "TRUE") { $logStream.WriteLine("DEBUG: Setting ddl template on range table") }
             ADD-TEMPLATE-DEF -tabName $rangeTable -templateType 3 -templateName "wsl_snowflake_create_table"
@@ -1763,7 +1763,7 @@ try {
         else {
             $logStream.WriteLine("==> Please create $rangeTable then regenerate scripts for: $loadTable")
         }
-
+            
         $prevSourceConnection = $sourceConnection
         $prevSourcePwd = $sourcePwd
 

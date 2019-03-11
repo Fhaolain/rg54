@@ -1,13 +1,3 @@
-# ScriptVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* ScriptType:Powershell (32-bit)
-#--==============================================================================
-#-- DBMS Name        :    SNOWFLAKE Custom*
-#-- Block Name       :    snowflake_set_timezone_parameter
-#-- Description      :    Set the timezone to be used when interacting with timestamps
-#-- Author           :    Tom Kelly
-#--==============================================================================
-#-- Notes / History
-#-- TK v 1.0.0 2018-09-20 First Version
-#--
 Import-Module WslPowershellCommon -DisableNameChecking
 
 try {
