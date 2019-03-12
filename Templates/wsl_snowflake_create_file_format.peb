@@ -1,13 +1,13 @@
-{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:CUSTOM1 TemplateType:DDL                                              -- #}
+{# -- TemplateVersion:003 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:CUSTOM1 TemplateType:DDL                                              -- #}
 {# --                                                                                                                                                       -- #}
-{# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_create_file_format                                                                                                 -- #}
-{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake file format object                                                                             -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}

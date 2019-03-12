@@ -1,13 +1,13 @@
-{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:DATAVAULT TemplateType:Utility                                        -- #}
+{# -- TemplateVersion:003 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:DATAVAULT TemplateType:Utility                                        -- #}
 {# --                                                                                                                                                       -- #}
-{# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_utility_dv                                                                                                         -- #}
-{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
 {# -- Description        : Generic macros that can be used to define specific templates for Snowflake data vaults                                           -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -84,8 +84,8 @@
 {# -- This macro adds the target columns and dss columns of the destination table-- #}
 {% macro addSetInsertTargetColumns(indentString = "  ") %}
   {%- for column in table.columns %}
-    {%- set sTargetColumn = column.name -%} 
-    {%- if loop.first -%} 
+    {%- set sTargetColumn = column.name -%}
+    {%- if loop.first -%}
       {{indentString}}( {{sTargetColumn}}
     {%- else -%}
       {{indentString}}, {{sTargetColumn}}
@@ -110,12 +110,12 @@
     {%- if column.transform | trim != "" -%}
       {{column.transform | trim }}
     {%- elseif column.hubHashKey -%}
-      {{- addHubHashKey(hashColumn = column) -}} 
+      {{- addHubHashKey(hashColumn = column) -}}
     {%- elseif column.linkHashKey -%}
-      {{- addLinkHashKey(hashColumn = column) -}} 
+      {{- addLinkHashKey(hashColumn = column) -}}
     {%- elseif column.changeHashKey -%}
       {{- addChangeHashKey(hashColumn = column) -}}
-    {%- elseif column.updateTime or column.createTime -%} 
+    {%- elseif column.updateTime or column.createTime -%}
       CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
     {%- else -%}
       {{- column.source -}}
@@ -150,7 +150,7 @@ WHERE NOT EXISTS ({%br%}
 {%- endif %}
 {{indent}}SELECT 1{%br%}
 {{indent}}FROM   [TABLEOWNER].[{{table.name}}] {{table.name}}{%br%}
-{%- from table.columns as column where column.hubHashKey and column.artificial %} 
+{%- from table.columns as column where column.hubHashKey and column.artificial %}
   {%- set outerLoop = loop %}
   {%- for businessKeyColumn in column.hashKeyImmediateSources %}
     {%- if outerLoop.first and loop.first %}{{indent}}WHERE  {% else %}{{indent}}AND    {% endif %}
@@ -188,7 +188,7 @@ WHERE NOT EXISTS ({%br%}
 {%- endif %}
 {{indent}}SELECT 1{%br%}
 {{indent}}FROM   [TABLEOWNER].[{{table.name}}] {{table.name}}{%br%}
-{%- from table.columns as column where column.linkHashKey or column.hubHashKey or column.changeHashKey or column.dssStartDate -%} 
+{%- from table.columns as column where column.linkHashKey or column.hubHashKey or column.changeHashKey or column.dssStartDate -%}
   {%- if loop.first %}{{indent}}WHERE  {% else %}{{indent}}AND    {% endif -%}
   {%- if column.dssStartDate %}current_rows.{{column.name}}
   {%- else -%}{{column.source}}{%- endif %} = {{table.name}}.{{column.name}}{%br%}
@@ -200,18 +200,18 @@ WHERE NOT EXISTS ({%br%}
 {% macro addSatCurrentVersion(indent="        ") %}
 LEFT OUTER JOIN ({%br%}
 {{indent}}SELECT
-{%- from table.columns as column where column.hubHashKey or column.linkHashKey %} 
+{%- from table.columns as column where column.hubHashKey or column.linkHashKey %}
   {%- if loop.first %} {% else %}{{indent}}, {% endif %}{{table.name}}.{{column.name}}{%br%}
 {%- endfrom %}
-{%- from table.columns as column where column.dssStartDate or column.dssVersion %} 
+{%- from table.columns as column where column.dssStartDate or column.dssVersion %}
   {{indent}}   , MAX({{table.name}}.{{column.name}}) AS {{column.name}}{%br%}
 {%- endfrom %}
 {{indent}}FROM   [TABLEOWNER].[{{table.name}}] {{table.name}}{%br%}
-{%- from table.columns as column where column.hubHashKey or column.linkHashKey %} 
+{%- from table.columns as column where column.hubHashKey or column.linkHashKey %}
   {%- if loop.first %}{{indent}}GROUP BY {% else %}{{indent}}, {% endif %}{{table.name}}.{{column.name}}{%br%}
 {%- endfrom %}
 {{indent}}) AS current_rows{%br%}
-{%- from table.columns as column where column.hubHashKey or column.linkHashKey %} 
+{%- from table.columns as column where column.hubHashKey or column.linkHashKey %}
   {%- if loop.first %}      ON  {% else %}      AND {% endif %}{{column.source}} = current_rows.{{column.name}}{%br%}
 {%- endfrom %}
 {% endmacro %}

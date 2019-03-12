@@ -167,33 +167,67 @@ foreach($folder in $folders) {
 
                     $versionKey = $ws_header_tab_v_sr1
 
-                    $ws_header_tab_v_is1 = @"
-                      INSERT INTO $ws_header_tab_v (
-                          ${header_prefix}_version_no
-                        , ${header_prefix}_obj_key
-                        , ${header_prefix}_name
-                        , ${header_prefix}_purpose
-                        , ${header_prefix}_type
-                        , ${header_prefix}_created
-                        , ${header_prefix}_updated
-                        , ${header_prefix}_author
-                        , ${header_prefix}_user_key
-                        , ${header_prefix}_status
-                      )
-                      SELECT
-                          $versionKey
-                        , ${header_prefix}_obj_key
-                        , ${header_prefix}_name
-                        , ${header_prefix}_purpose
-                        , ${header_prefix}_type
-                        , ${header_prefix}_created
-                        , ${header_prefix}_updated
-                        , ${header_prefix}_author
-                        , ${header_prefix}_user_key
-                        , ${header_prefix}_status
-                      FROM $ws_header_tab
-                      WHERE ${header_prefix}_name = '$objectName'
+                    if (( $ws_header_tab -eq "ws_tem_header" ) -or ( $ws_header_tab -eq "ws_scr_header" )) {
+                        $ws_header_tab_v_is1 = @"
+                          INSERT INTO $ws_header_tab_v (
+                              ${header_prefix}_version_no
+                            , ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_purpose
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_status
+                            , ${header_prefix}_script_language_key
+                          )
+                          SELECT
+                              $versionKey
+                            , ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_purpose
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_status
+                            , ${header_prefix}_script_language_key
+                          FROM $ws_header_tab
+                          WHERE ${header_prefix}_name = '$objectName'
 "@
+                    }
+                    else {
+                        $ws_header_tab_v_is1 = @"
+                          INSERT INTO $ws_header_tab_v (
+                              ${header_prefix}_version_no
+                            , ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_purpose
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_status
+                          )
+                          SELECT
+                              $versionKey
+                            , ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_purpose
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_status
+                          FROM $ws_header_tab
+                          WHERE ${header_prefix}_name = '$objectName'
+"@
+                    }
+
                     $command.CommandText = $ws_header_tab_v_is1
                     $ws_header_tab_v_ir1 = $command.ExecuteNonQuery()
 
@@ -271,40 +305,52 @@ foreach($folder in $folders) {
 
                             if($templateType -eq "Alter") {
                                 $th_type = "a"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "DDL") {
                                 $th_type = "6"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Powershell") {
                                 $th_type = "5"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Powershell32") {
                                 $th_type = "5"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Utility") {
                                 $th_type = "7"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Unix") {
                                 $th_type = "1"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Linux") {
                                 $th_type = "1"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Windows") {
                                 $th_type = "3"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "OLAP") {
                                 $th_type = "2"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Block") {
                                 $th_type = "8"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Procedure") {
                                 $th_type = "9"
+                                $th_lang = ""
                             }
                             else {
                                 Write-Warning "Failed to extract template type from template header. Falling back to Powershell"
                                 $th_type = "5"
+                                $th_lang = ""
                             }
                         }
 
@@ -313,23 +359,33 @@ foreach($folder in $folders) {
                             try { $templateType = $headConf | Where { $_.IndexOf("ScriptType:") -ne -1 } | ForEach-Object { $_.Replace("ScriptType:","") } } catch {}
 
                             if($templateType -eq "Powershell") {
-                                $th_type = "P" 
+                                $th_type = "P"
+                                $th_lang = ""
                             }
-                            if($templateType -eq "Powershell32") {
+                            elseif($templateType -eq "Powershell32") {
                                 $th_type = "P" 
+                                $th_lang = ""
+                            }
+                            elseif($templateType -eq "Powershell64") {
+                                $th_type = "X"
+                                $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'PowerShell (64-bit)')" 
                             }
                             elseif($templateType -eq "Windows") {
                                 $th_type = "W"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Unix") {
                                 $th_type = "U"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Linix") {
                                 $th_type = "U"
+                                $th_lang = ""
                             }
                             else {
                                 Write-Warning "Failed to extract script type from header. Falling back to Powershell"
                                 $th_type = "P"
+                                $th_lang = ""
                             }
                          }
 
@@ -338,17 +394,21 @@ foreach($folder in $folders) {
                             try { $templateType = $headConf | Where { $_.IndexOf("ProcedureType:") -ne -1 } | ForEach-Object { $_.Replace("ProcedureType:","") } } catch {}
 
                             if( $templateType -eq "Procedure" ) {
-                                $th_type = "P" 
+                                $th_type = "P"
+                                $th_lang = ""
                             }
                             if( $templateType -eq "Trigger" ) {
-                                $th_type = "P" 
+                                $th_type = "P"
+                                $th_lang = ""
                             }
                             elseif($templateType -eq "Block") {
                                 $th_type = "B"
+                                $th_lang = ""
                             }
                             else {
                                 Write-Warning "Failed to extract procedure type from header. Falling back to Block"
                                 $th_type = "P"
+                                $th_lang = ""
                             }
                         }
                     }
@@ -380,26 +440,53 @@ foreach($folder in $folders) {
                     $ws_obj_object_sr3 = $command.ExecuteScalar()
                     $objectKey = $ws_obj_object_sr3
 
-                    $ws_header_tab_is1 = @"
-                      INSERT INTO $ws_header_tab (
-                          ${header_prefix}_obj_key
-                        , ${header_prefix}_name
-                        , ${header_prefix}_type
-                        , ${header_prefix}_created
-                        , ${header_prefix}_updated
-                        , ${header_prefix}_author
-                        , ${header_prefix}_user_key
-                      )
-                      VALUES (
-                          $objectKey
-                        , '$objectName'
-                        , '$th_type'
-                        , CURRENT_TIMESTAMP
-                        , CURRENT_TIMESTAMP
-                        , 'WhereScape Ltd'
-                        , 0
-                      )
+                    if ( [string]::IsNullOrWhiteSpace($th_lang) ) {
+                        $ws_header_tab_is1 = @"
+                          INSERT INTO $ws_header_tab (
+                              ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                          )
+                          VALUES (
+                              $objectKey
+                            , '$objectName'
+                            , '$th_type'
+                            , CURRENT_TIMESTAMP
+                            , CURRENT_TIMESTAMP
+                            , 'WhereScape Ltd'
+                            , 0
+                          )
 "@
+                    }
+                    else {
+                        $ws_header_tab_is1 = @"
+                          INSERT INTO $ws_header_tab (
+                              ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_script_language_key
+                          )
+                          VALUES (
+                              $objectKey
+                            , '$objectName'
+                            , '$th_type'
+                            , CURRENT_TIMESTAMP
+                            , CURRENT_TIMESTAMP
+                            , 'WhereScape Ltd'
+                            , 0
+                            , $th_lang
+                          )
+"@
+                    }
+
                     $command.CommandText = $ws_header_tab_is1
                     $ws_header_tab_ir1 = $command.ExecuteNonQuery()
 

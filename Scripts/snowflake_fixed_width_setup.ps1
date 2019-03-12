@@ -1,3 +1,4 @@
+# ScriptVersion:005 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* ScriptType:Powershell64
 #--==============================================================================
 #-- DBMS Name        :    SNOWFLAKE Custom*
 #-- Block Name       :    snowflake_fixed_width_setup

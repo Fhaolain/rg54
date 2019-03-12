@@ -1,13 +1,13 @@
-{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:DDL                                                    -- #}
+{# -- TemplateVersion:003 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:DDL                                                    -- #}
 {# --                                                                                                                                                       -- #}
-{# --    c WhereScape Ltd 2018. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_create_view                                                                                                        -- #}
-{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake database view                                                                                  -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -23,23 +23,23 @@
 CREATE OR REPLACE VIEW [TABLEOWNER].[{{table.name}}] ({% br %}
 {%- fetch table -%}
 {%- for column in table.columns %}
-  {%- set sTargetColumn = column.name %} 
-  {%- if loop.last %} 
+  {%- set sTargetColumn = column.name %}
+  {%- if loop.last %}
     {{sTargetColumn }}{%- br %}
   {%- else -%}
     {{sTargetColumn }},{%- br %}
-  {%- endif -%} 
+  {%- endif -%}
 {%- endfor -%}
 ){%- br %}
 AS{%- br %}
 SELECT {% if table.viewInfo.distinct %} DISTINCT{% endif %}{%- br %}
 {%- for column in table.columns %}
   {%- set sSourceColumn = column.source %}
-  {%- if loop.last %} 
+  {%- if loop.last %}
     {{sSourceColumn }}{%- br %}
   {%- else -%}
     {{sSourceColumn }},{%- br %}
-  {%- endif -%} 
+  {%- endif -%}
 {%- endfor -%}
 {%- fetch table.columns[0].sourceTable -%}
 {%- set sSource = table.columns[0].sourceTable.name -%}

@@ -1,13 +1,13 @@
-{# -- TemplateVersion:002 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Utility                                                -- #}
+{# -- TemplateVersion:003 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Utility                                                -- #}
 {# --                                                                                                                                                       -- #}
-{# --    © Wherescape Ltd 2018. Wherescape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template          -- #}
+{# --    (c) Wherescape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_utility                                                                                                            -- #}
-{# -- RED Version        : 8.0.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
 {# -- Description        : Macros designed to be used in templates                                                                                          -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -48,7 +48,7 @@
     {%- endif -%}
   {%- endif -%}
   {%- if checkTarget -%}
-    {%- if EXTENDED_PROPERTY == "" and table.target is defined -%}    
+    {%- if EXTENDED_PROPERTY == "" and table.target is defined -%}
       {%- fetch table.target -%}
       {%- if table.target.connection.extendedPropertyValuesByName[propertyName] is defined -%}
         {%- if table.target.connection.extendedPropertyValuesByName[propertyName] is iterable -%}

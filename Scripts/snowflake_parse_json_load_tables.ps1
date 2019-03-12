@@ -1,3 +1,4 @@
+# ScriptVersion:005 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* ScriptType:Powershell64
 #--==============================================================================
 #-- Script Name      :    snowflake_parse_json_load_tables
 #-- Description      :    Parse a JSON load table into one or more stage tables

@@ -1,3 +1,4 @@
+# ScriptVersion:005 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* ScriptType:Powershell64
 #--==============================================================================
 #-- Script Name      :    snowflake_retrofit_fivetran_tables
 #-- Description      :    Retrofit in any number of fivetran tables

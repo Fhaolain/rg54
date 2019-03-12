@@ -1,3 +1,4 @@
+# ScriptVersion:005 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* ScriptType:Powershell64
 Import-Module WslPowershellCommon -DisableNameChecking
 
 try {
