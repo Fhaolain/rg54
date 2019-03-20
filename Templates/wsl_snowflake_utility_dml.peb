@@ -20,6 +20,7 @@
 {# -- TK: Improved support for type 3 dimensions 2.0.5 (2018-11-06)                                                                                         -- #}
 {# -- TK: Added support for type 4 dimensions 2.0.6 (2018-11-09)                                                                                            -- #}
 {# -- TK: Improved handling for type 2 dimensions 2.0.6 (2018-11-20)                                                                                        -- #}
+{# -- TK: Improved handling of soft deleted records 2.0.7 (2019-03-20)                                                                                        -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
@@ -438,7 +439,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
       0 AS MAXKEY{%- br -%}
     {%- elseif column.currentFlag -%}
       'N' AS {{ column.name }}{%- br -%}
-		{%- elseif column.name == dssDeleteTime -%}
+    {%- elseif column.name == dssDeleteTime -%}
       CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
       {{ table.name }}.{{ column.name}} AS {{ column.name }}{%- br -%}
