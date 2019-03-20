@@ -65,9 +65,9 @@ $status = 1{%br%}
 #-- Main{%br%}
 #--============================================================================{%br%}{%br%}
 $step = {% counter %}00{%br%}
-{%- set dssDeleteTimePresent = "FALSE" -%}
+{%- set dssDeleteTimePresent = false -%}
 {%- from table.columns as column where column.name == dssDeleteTime -%}
-  {% set dssDeleteTimePresent = "TRUE" %}
+  {% set dssDeleteTimePresent = true %}
 $logicalDeleteCount = 0{%br%}
 {%- endfrom -%}
 {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
@@ -168,7 +168,7 @@ if ( $status -eq 1 ){
   {%- endfrom -%}
 {%- endif %}
 
-{%- if dssDeleteTimePresent == "TRUE" -%}
+{%- if dssDeleteTimePresent -%}
 if ( $status -eq 1 ){ {%br%}{%br%}
   #--============================================================================{%br%}
   #-- Ensure there is Source Data before performing a logical delete {%br%}
@@ -300,7 +300,7 @@ if ( $status -eq 1 ) {
 {%br%}
   $return_Msg = "{{table.name}} updated.  "{%br%}
   $return_Msg += "$mergeCount records merged.  "{%br%}
-  {%- if dssDeleteTimePresent == "TRUE" %}
+  {%- if dssDeleteTimePresent %}
   $return_Msg += "$logicalDeleteCount records logically deleted.  "{%br%}
   {%- endif %}
   {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}

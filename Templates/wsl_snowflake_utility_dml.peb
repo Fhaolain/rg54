@@ -393,7 +393,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- if column.artificial -%}
       0 AS MAXKEY{%- br -%}
     {%- elseif column.name == dssDeleteTime -%}
-      {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+      CAST(NULL AS {{ column.fullDataType}}) AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
       {%- if table.subType == "P" and ((previousColumn("SF_TYPE_3_COLS",column.name)|trim) == "true") -%}
         {%- fetch column.sourceColumn -%}
@@ -430,7 +430,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- endfrom %}
 {% endmacro %}
 
-{% macro addType2ExpiringRowSelect ( indent = "    " ) %}
+{% macro addType2ExpiringRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
   {{- indent }}SELECT
   {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
@@ -438,6 +438,8 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
       0 AS MAXKEY{%- br -%}
     {%- elseif column.currentFlag -%}
       'N' AS {{ column.name }}{%- br -%}
+		{%- elseif column.name == dssDeleteTime -%}
+      CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
       {{ table.name }}.{{ column.name}} AS {{ column.name }}{%- br -%}
     {%- else -%}
@@ -574,6 +576,9 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- br -%}
     {%- if loop.last %}{{- indent }}){%br%}{%- endif %}
   {%- endfrom %}
+  {%- from table.columns as delTime where delTime.name == dssDeleteTime -%}
+    {{ indent }}OR {{table.name}}.{{delTime.name}} IS NOT NULL{% br %}
+  {%- endfrom -%}
 {% endmacro %}
 
 {% macro addType2UntrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
