@@ -15,3 +15,4 @@
 200;wsl_snowflake_utility
 1200;wsl_snowflake_pscript_load_range
 2279;wsl_snowflake_pscript_load_staticprops
+2297;wsl_snowflake_pscript_set_inc_param

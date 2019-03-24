@@ -1,4 +1,4 @@
--- ProcedureVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* ProcedureType:Trigger
+-- ProcedureVersion:003 MinVersion:8210 MaxVersion:* TargetType:Snowflake ModelType:* ProcedureType:Procedure
 
 CREATE TRIGGER snowflake_trg_dim_col
 ON ws_dim_col

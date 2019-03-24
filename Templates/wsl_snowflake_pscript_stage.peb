@@ -20,11 +20,13 @@
 {# -- JL: Dim mismatch reporting added 2.0.1 (2017-09-25)                                                                                                   -- #}
 {# -- JL: Improved dim mismatch reporting 2.0.2 (2018-08-27)                                                                                                -- #}
 {# -- JL: Improved dim mismatch reporting for type 3 dimensions 2.0.3 (2018-12-10)                                                                          -- #}
+{# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.4 (2019-03-25)                                                    -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
 {% set counter = 0 %}
 {% import "wsl_snowflake_utility_dml" %}
+{% import "wsl_snowflake_utility" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
 #-- DBMS Name        :    SNOWFLAKE {{table.dbType.name}}{%br%}
@@ -76,6 +78,8 @@ $step = {% counter %}00{%br%}{%br%}
 ${{par}} = (WsParameterRead "{{par}}")[0]{%br%}
 {%- endfor %}
 
+{% set timezoneParam = getExtendedProperty( propertyName = "SF_TIMEZONE" ) | trim -%}
+{%- if timezoneParam != "" -%}
 #--============================================================================{%br%}
 #-- Set Timezone{%br%}
 #--============================================================================{%br%}{%br%}
@@ -86,6 +90,7 @@ if( ! [string]::IsNullOrEmpty($timeZone)) {
     $SnowflakeResult = Run-Snowflake-RedSQL -sql $tzSql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed to alter session timezone to '$timeZone'" -odbcConn $tgtConn
 }{% br %}
 {% br %}
+{%- endif %}
 
 {# --                                             -- #}
 {# -- =========================================== -- #}

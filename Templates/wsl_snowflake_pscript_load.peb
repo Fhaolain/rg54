@@ -29,6 +29,7 @@
 {# -- JL: Powershell release V12 (2019-03-01)  Fixed a bug that caused ranges to fail on some databases due to double FROM clause                            -- #}
 {# -- TK: Powershell release V13 (2019-03-01)  Enabled file splitting for windows file loads                                                                 -- #}
 {# -- TK: Powershell release V14 (2019-03-02)  Enabled trigger files for windows file loads                                                                  -- #}
+{# -- TK: Powershell release V14 (2019-03-20)  Corrected issue introduced with trigger loads relating to fixed external stage loads                          -- #}
 {# --                                                                                                                                                        -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
@@ -390,7 +391,7 @@ function Load-Data { {%- br %}
     $fileDat = "wsl${env:WSL_LOAD_TABLE}${env:WSL_SEQUENCE}"
     {%- br %}
     $logStream.WriteLine("================= EXTRACT SQL ====================="){%- br %}
-    {% set empty = "" %}
+    {%- set empty = "" %}
     $extractSql = @"
     SELECT
       {%- from table.columns as column where (column.sourceColumn is defined or column.transformType.code == "D") %}
@@ -448,7 +449,7 @@ function Load-Data { {%- br %}
 {{ table.loadInfo.sourceFile.name }}{%- br %}
 "@
     $fileHeader = "{{ table.loadInfo.sourceFile.headerLine }}"
-    if($runMode -eq "Windows") { {%- br %}
+    if($runMode -eq "Windows" -and [string]::IsNullOrWhiteSpace(${env:EXTERNAL_STAGE})) { {%- br %}
         $filePath = "{{ table.loadInfo.sourceFile.path }}"{%- br %}
 
         $LOAD_FILE = Join-Path -Path $filePath -ChildPath $fileDat{%- br %}
@@ -596,7 +597,7 @@ function Load-Data { {%- br %}
         }{%- br %}
     }{%- br %}
     {%- endif %}
-    if(($runMode -ne "S3") -and ($runmode -ne "AZ")) {
+    if(($runMode -ne "S3") -and ($runmode -ne "AZ") -and [string]::IsNullOrWhiteSpace(${env:EXTERNAL_STAGE})) {
         $sourcePath = $filePath
         for($x = 0; $x -lt $dataFiles.Count; $x++) {
             $originalName = $dataFiles[$x]
@@ -632,7 +633,7 @@ function Load-Data { {%- br %}
     if( ! [string]::IsNullOrEmpty(${env:WSL_TGT_PWD})) { $sfOdbc.ConnectionString += ";PWD=${env:WSL_TGT_PWD}" }
     $sfOdbc.Open()
     if((($runMode -ne "S3") -and ($runmode -ne "AZ")) -or ( ! [string]::IsNullOrEmpty(${env:EXTERNAL_STAGE}))) { {%- br %}
-        if(($runMode -ne "S3") -and ($runmode -ne "AZ")) {
+        if(($runMode -ne "S3") -and ($runmode -ne "AZ") -and [string]::IsNullOrEmpty(${env:EXTERNAL_STAGE})) {
             $remSQL = "remove @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY}*;"
             $null = (New-Object System.Data.Odbc.OdbcCommand($remSQL,$sfOdbc)).ExecuteNonQuery()
             if(${env:SEND_FILES_ZIPPED} -eq "TRUE") {
@@ -730,12 +731,15 @@ function Load-Data { {%- br %}
                 foreach($file in $dataFiles) { {%- br %}
                     Remove-Item $file{%- br %}
                 }{%- br %}
+    						$null = (New-Object System.Data.Odbc.OdbcCommand($remSQL,$sfOdbc)).ExecuteNonQuery(){% br %}
                 {%- else %}
+                if([string]::IsNullOrWhiteSpace(${env:EXTERNAL_STAGE})) {
                 if((${env:SEND_FILES_ZIPPED} -eq "TRUE") -or (${env:FILE_COUNT} -gt 1)) {
                     Get-ChildItem $(Join-Path -Path $filePath -ChildPath $fileDat) | Remove-Item{%- br %}
                 }{% br %}
+										$null = (New-Object System.Data.Odbc.OdbcCommand($remSQL,$sfOdbc)).ExecuteNonQuery(){% br %}
+                }{% br %}
                 {%- endif %}
-                $null = (New-Object System.Data.Odbc.OdbcCommand($remSQL,$sfOdbc)).ExecuteNonQuery()
             }{%- br %}
             else { {%- br %}
                 $logStream.WriteLine("Temporary data files not removed as debug mode is enabled"){%- br %}
@@ -888,8 +892,15 @@ try { {%- br %}
     {% if (table.loadInfo.sourceConnectionType.name == "ODBC") or (table.loadInfo.sourceConnectionType.name == "Database") -%}
     $runMode = "Database"{%- br %}
     {%- else -%}
-    # Metadata DSN, Meta DB Type enum, Metadata User, Metadata Password, Metadata schema{%- br %}
-    $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo."){%- br %}
+		if ([System.Environment]::Is64BitProcess) {
+        $metaArch = [WslMetadataServiceClient.Architecture]::_64bit
+				# Metadata DSN, Meta DB Type enum, Metadata User, Metadata Password, Metadata schema
+        $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo.",$metaArch)
+    }
+    else {
+        # Metadata DSN, Meta DB Type enum, Metadata User, Metadata Password, Metadata schema{%- br %}
+        $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo."){%- br %}
+    }
     $root = $repo.objectsByName{%- br %}
     $s3Prefix = $root[${env:WSL_LOAD_TABLE}].loadInfo.sourceConnection.extendedPropertyValuesByName["SF_S3_BUCKET_PREFIX"].GetValue(){%- br %}
     $repo.Dispose(){%- br %}

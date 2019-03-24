@@ -2,13 +2,14 @@
 #--==============================================================================
 #-- Script Name      :    snowflake_create_range_table
 #-- Description      :    Pick a load table and create a range table for it
-#-- Author           :    Jason Laws
+#-- Author           :    WhereScape
 #--==============================================================================
 #-- Notes / History
 #-- JML v 1.0.0 2018-10-16 First Version
 #-- JML v 1.0.1 2018-10-26 Improved debug logging and encrypted password handling
 #-- JML v 1.0.2 2018-10-29 Adding handling for ODBC timeouts
 #-- JML v 1.0.3 2019-03-01 Added optional support for SQL Server range tables
+#-- JML v 1.0.4 2019-03-13 Made parameter names consistent
 #-- 
 
 Import-module -Name WslPowershellCommon -DisableNameChecking
@@ -696,7 +697,7 @@ function GET-CARDINALITY {
 
 function GET-OPTIMAL-FILESIZE {
     $metaOdbc.Open()
-    $optimalFileSize = [decimal](((WsParameterRead "OPTIMAL_FILE_SIZE")[0]) | out-string).Trim()
+    $optimalFileSize = [decimal](((WsParameterRead "RANGE_OPTIMAL_FILE_SIZE")[0]) | out-string).Trim()
     if ( $optimalFileSize -eq 0 ) {
         $optimalFileSize = 100
         $logStream.WriteLine("${debugWord}Optimal File Size defaulted to:  $optimalFileSize Mb")
@@ -710,7 +711,7 @@ function GET-OPTIMAL-FILESIZE {
 
 function GET-COMPRESSION-RATE {
     $metaOdbc.Open()
-    $compressionRate = [decimal](((WsParameterRead "COMPRESSION_RATE")[0]) | out-string).Trim()
+    $compressionRate = [decimal](((WsParameterRead "RANGE_COMPRESSION_RATE")[0]) | out-string).Trim()
     if ( $compressionRate -eq 0 ) {
         $compressionRate = 5
         $logStream.WriteLine("${debugWord}Expected File Compression Rate defaulted to:  $compressionRate X")

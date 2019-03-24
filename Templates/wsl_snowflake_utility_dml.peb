@@ -20,9 +20,10 @@
 {# -- TK: Improved support for type 3 dimensions 2.0.5 (2018-11-06)                                                                                         -- #}
 {# -- TK: Added support for type 4 dimensions 2.0.6 (2018-11-09)                                                                                            -- #}
 {# -- TK: Improved handling for type 2 dimensions 2.0.6 (2018-11-20)                                                                                        -- #}
+{# -- TK: Improved handling of soft deleted records 2.0.7 (2019-03-20)                                                                                      -- #}
+{# -- JL: Changes to logical deleting to also allow for a deleted_flag and to fix a couple of issues 2.0.8 (2019-03-22)                                     -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
-
 
 {# -- This macro adds the target columns and dss columns of the destination table-- #}
 {% macro addSetInsertTargetColumns(indent = "", includeIdentity = false, includePreviousColumns = false) %}
@@ -204,11 +205,12 @@
 {% endmacro %}
 
 {# -- This macro inserts the default values for the Zero key insert -- #}
-{% macro defaultColumnsSnowflake() %}
+{% macro defaultColumnsSnowflake(dssDeleteFlag = dssDeleteFlag) %}
 {% from table.columns as column where not column.artificial %}
   {%- if not loop.first %}         , {% endif %}
   {%- if column.sourceSystem or column.dssVersion %}1
   {%- elseif column.currentFlag %}'Y'
+  {%- elseif column.name == dssDeleteFlag %}'N'
   {%- elseif column.updateTime or column.createTime %}CAST(CURRENT_TIMESTAMP AS TIMESTAMP)
   {%- elseif column.dssStartDate %}{{settings.changeDetectionStartInitial}}
   {%- elseif column.dssEndDate %}{{settings.changeDetectionEndCurrent}}
@@ -323,6 +325,7 @@
   $sql = @" {%- br %}
   SELECT DISTINCT {{col.source}} batch_start {%- br %}
   {%- for joinLine in (table.sourceJoinDetails.join | lines)%}  {{joinLine}}{%br%}{%- endfor%}
+  {%- for whereLine in (table.sourceJoinDetails.where | lines)%}  {{whereLine}}{%br%}{%- endfor%}
   ORDER BY 1 {%- br %}
 "@ {%- br %}
   $SnowflakeLoop = Run-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed batch distinct select from source tables step $step" -odbcConn $tgtConn {%- br %}
@@ -354,7 +357,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
       {%- if col.sourceColumn is defined and not sourceFound %}
         {%- fetch col.sourceColumn %}
         {%- if col.sourceColumn.name == settings.batchProcessingField %}
-{{indent}}{{nextWhere}}    {{col.source}} = '$($row[0])' {%br%}
+          {{- indent}}{{nextWhere}}    {{col.source}} = '$($row[0])' {%br%}
           {%- set sourceFound = true %}
         {%- endif %}
       {%- endif %}
@@ -385,19 +388,16 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- endfrom %}
 {%- endmacro %}
 
-
-
-
-
-
-{% macro addChangedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
+{% macro addChangedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag ) %}
   {{- indent }}SELECT
-  {%- from table.columns as column %}
+  {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
     {%- if column.artificial -%}
       0 AS MAXKEY{%- br -%}
     {%- elseif column.name == dssDeleteTime -%}
-      {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+      CAST(NULL AS {{ column.fullDataType}}) AS {{ column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteFlag -%}
+      'N' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
       {%- if table.subType == "P" and ((previousColumn("SF_TYPE_3_COLS",column.name)|trim) == "true") -%}
         {%- fetch column.sourceColumn -%}
@@ -423,6 +423,10 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
         {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.currentFlag -%}
         {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssLoadDate -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssRecordSource -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -430,14 +434,18 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- endfrom %}
 {% endmacro %}
 
-{% macro addType2ExpiringRowSelect ( indent = "    " ) %}
+{% macro addType2ExpiringRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag ) %}
   {{- indent }}SELECT
-  {%- from table.columns as column %}
+  {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
     {%- if column.artificial -%}
       0 AS MAXKEY{%- br -%}
     {%- elseif column.currentFlag -%}
       'N' AS {{ column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteTime -%}
+      CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteFlag -%}
+      'Y' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
       {{ table.name }}.{{ column.name}} AS {{ column.name }}{%- br -%}
     {%- else -%}
@@ -458,20 +466,22 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- endfrom %}
 {% endmacro %}
 
-{% macro addNewRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
+{% macro addNewRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag ) %}
   {{- indent }}SELECT {{ distinct() -}}
-  {%- from table.columns as column %}
+  {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}
     {%- if column.transform | trim != "" -%}
       {%- from column.transform | trim | lines as transLine -%}
         {%- if not loop.first %}{{- indent }}       {% endif -%}
         {{- transLine -}}
         {%- if not loop.last %}{% br %}{% endif -%}
-      {%- endfrom %} AS {{ column.name -}}
+      {%- endfrom %} AS {{ column.name -}}{%- br -%}
     {%- elseif column.artificial -%}
       MAXKEY.MAXKEY AS MAXKEY{%- br -%}
     {%- elseif column.name == dssDeleteTime -%}
       CAST(NULL AS {{ column.fullDataType }}) AS {{column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteFlag -%}
+      'N' AS {{column.name }}{%- br -%}
     {%- elseif column.currentFlag -%}
       'Y' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
@@ -491,6 +501,10 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
         {{settings.changeDetectionEndCurrent}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
         1 AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssLoadDate -%}
+        {{ column.source }} AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssRecordSource -%}
+        {{ column.source }} AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -498,19 +512,22 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- endfrom %}
 {% endmacro %}
 
-{% macro addVersionedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime ) %}
+{% macro addVersionedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag ) %}
   {{- indent }}SELECT {{ distinct() -}}
-  {%- from table.columns as column %}
+  {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}
     {%- if column.transform | trim != "" -%}
       {%- from column.transform | trim | lines as transLine -%}
         {%- if not loop.first %}{{- indent }}       {% endif -%}
-        {{ transLine }}{% br %}
-      {%- endfrom -%}
+        {{- transLine -}}
+        {%- if not loop.last %}{% br %}{% endif -%}
+      {%- endfrom %} AS {{ column.name -}}{%- br -%}
     {%- elseif column.artificial -%}
        MAXKEY.MAXKEY AS MAXKEY{%- br -%}
     {%- elseif column.name == dssDeleteTime -%}
       CAST(NULL AS {{ column.fullDataType }}) AS {{column.name }}{%- br -%}
+    {%- elseif column.name == dssDeleteFlag -%}
+      'N' AS {{column.name }}{%- br -%}
     {%- elseif column.currentFlag -%}
       'Y' AS {{ column.name }}{%- br -%}
     {%- elseif not column.dss -%}
@@ -526,6 +543,10 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
         {{settings.changeDetectionEndCurrent}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
         {{table.name}}.{{column.name}} + 1 AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssLoadDate -%}
+        {{ column.source }} AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssRecordSource -%}
+        {{ column.source }} AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -545,7 +566,7 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- for groupByLine in (table.sourceJoinDetails.groupBy | trim | lines)%}{{ indent }}{{groupByLine | trim}}{%br%}{%- endfor %}
 {% endmacro %}
 
-{% macro addType2TrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
+{% macro addType2TrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag, nullSupport = true ) %}
   {{- indent }}-- tracked columns{% br %}
   {%- from table.columns as column where column.slowlyChanging %}
     {%- if loop.first -%}{{- indent }}{{ whereType }}   (
@@ -561,11 +582,14 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
     {%- br -%}
     {%- if loop.last %}{{- indent }}){%br%}{%- endif %}
   {%- endfrom %}
+  {%- from table.columns as delTime where delTime.name == dssDeleteTime or delTime.name == dssDeleteFlag -%}
+    {{ indent }}OR {{table.name}}.{{delTime.name}} IS NOT NULL{% br %}
+  {%- endfrom -%}
 {% endmacro %}
 
-{% macro addType2UntrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
+{% macro addType2UntrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag, nullSupport = true ) %}
   {{- indent }}-- untracked columns{% br %}
-  {%- from table.columns as column where not ( column.slowlyChanging or column.businessKey or column.dss or column.artificial or ( column.name == dssDeleteTime ) ) %}
+  {%- from table.columns as column where not ( column.slowlyChanging or column.businessKey or column.dss or column.artificial or ( column.name == dssDeleteTime ) or ( column.name == dssDeleteFlag ) ) %}
     {%- if loop.first -%}{{- indent }}{{ whereType }}   (
     {%- else %}{{- indent }}{{ compareType }}
     {%- endif %}
@@ -581,8 +605,8 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- endfrom %}
 {% endmacro %}
 
-{% macro addChangedWhere ( indent = "    ", compareOperator = "<>", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, nullSupport = true ) %}
-  {%- from table.columns as column where not ( column.businessKey or column.dss or column.artificial or column.name == dssDeleteTime ) %}
+{% macro addChangedWhere ( indent = "    ", compareOperator = "<>", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag, nullSupport = true ) %}
+  {%- from table.columns as column where not ( column.businessKey or column.dss or column.artificial or ( column.name == dssDeleteTime ) or ( column.name == dssDeleteFlag ) ) %}
     {%- if loop.first -%}{{- indent }}{{ whereType }} (
     {%- else %}{{- indent }}  {{ compareType }}
     {%- endif %}

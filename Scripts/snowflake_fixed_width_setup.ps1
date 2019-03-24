@@ -3,7 +3,7 @@
 #-- DBMS Name        :    SNOWFLAKE Custom*
 #-- Block Name       :    snowflake_fixed_width_setup
 #-- Description      :    Set fixed width transformations on a RED Stage table
-#-- Author           :    Jason Laws
+#-- Author           :    WhereScape
 #--==============================================================================
 #-- Notes / History
 #-- JML v 1.0.0 2017-09-17 First Version

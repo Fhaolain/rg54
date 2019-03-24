@@ -7,7 +7,7 @@
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_pscript_hist                                                                                                       -- #}
-{# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.2.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake procedure specifically                                                                         -- #}
 {# --                      specifically designed for all RED non-stage tables                                                                               -- #}
 {# --                                                                                                                                                       -- #}
@@ -21,11 +21,14 @@
 {# -- JL: Added support for identity columns 2.0.2 (2017-12-14)                                                                                             -- #}
 {# -- JL: Extended logical deleting to work for tables without an artifical key 2.0.3 (2018-08-26)                                                          -- #}
 {# -- TK: Untracked rows now get updated when value in target does not match source 2.0.4 (2018-11-20)                                                      -- #}
+{# -- TK: Timezone setting is now excluded from scripts if not set at generation time 2.0.5 (2019-03-17)                                                    -- #}
+{# -- JL: Changes to logical deleting to also allow for a deleted_flag and to fix a couple of issues 2.0.6 (2019-03-22)                                     -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
 {% set counter = 0 %}
 {% set dssDeleteTime = "DSS_DELETE_TIME" %}
+{% set dssDeleteFlag = "DSS_DELETE_FLAG" %}
 {% import "wsl_snowflake_utility_dml" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
@@ -64,8 +67,14 @@ $status = 1{%br%}
 $step = {% counter %}00{%br%}
 {#- Work out if we are doing logical deletes -#}
 {%- set dssDeleteTimePresent = false -%}
+{%- set dssDeleteFlagPresent = false -%}
 {%- from table.columns as column where column.name == dssDeleteTime -%}
   {% set dssDeleteTimePresent = true %}
+{%- endfrom -%}
+{%- from table.columns as column where column.name == dssDeleteFlag -%}
+  {% set dssDeleteFlagPresent = true %}
+{%- endfrom -%}
+{%- from table.columns as column where column.name == dssDeleteTime or column.name == dssDeleteFlag -%}
 $logicalDeleteCount = 0{%br%}
 {%- endfrom -%}
 {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
@@ -84,6 +93,8 @@ $step = {% counter %}00{%br%}{%br%}
 ${{par}} = (WsParameterRead "{{par}}")[0]{%br%}
 {%- endfor %}
 
+{% set timezoneParam = getExtendedProperty( propertyName = "SF_TIMEZONE" ) | trim -%}
+{%- if timezoneParam != "" -%}
 #--============================================================================{%br%}
 #-- Set Timezone{%br%}
 #--============================================================================{%br%}{%br%}
@@ -94,6 +105,7 @@ if( ! [string]::IsNullOrEmpty($timeZone)) {
     $SnowflakeResult = Run-Snowflake-RedSQL -sql $tzSql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed to alter session timezone to '$timeZone'" -odbcConn $tgtConn
 }{% br %}
 {% br %}
+{%- endif %}
 
 {%- if settings.deleteBeforeInsert %}
   {%- if settings.deleteBeforeInsertTruncate %}{%br%}
@@ -163,7 +175,7 @@ if ( $status -eq 1 ){
   {%- endfrom -%}
 {%- endif %}
 
-{%- if dssDeleteTimePresent -%}
+{%- if dssDeleteTimePresent or dssDeleteFlagPresent -%}
 if ( $status -eq 1 ){ {%br%}{%br%}
   #--============================================================================{%br%}
   #-- Ensure there is Source Data before performing a logical delete {%br%}
@@ -183,7 +195,14 @@ if ( $status -eq 1 ){ {%br%}{%br%}
       $step = {% counter %}00{%br%}{%br%}
       $sql = @"
       UPDATE [TABLEOWNER].[{{table.name}}]{%br%}
-      SET    DSS_DELETE_TIME = CAST(CURRENT_TIMESTAMP AS TIMESTAMP){%br%}
+      {%- if dssDeleteTimePresent and dssDeleteFlagPresent %}
+      SET    {{dssDeleteTime}} = CAST(CURRENT_TIMESTAMP AS TIMESTAMP){%br%}
+           , {{dssDeleteFlag}} = 'Y'{%br%}
+      {%- elseif dssDeleteTimePresent %}
+      SET    {{dssDeleteTime}} = CAST(CURRENT_TIMESTAMP AS TIMESTAMP){%br%}
+      {%- elseif dssDeleteFlagPresent %}
+      SET    {{dssDeleteFlag}} = 'Y'{%br%}
+      {%- endif -%}
       {%- from table.columns as column where column.currentFlag or column.dssEndDate %}
         {%- if column.currentFlag %}
            , {{column.name}} = 'N'{%br%}
@@ -193,13 +212,17 @@ if ( $status -eq 1 ){ {%br%}{%br%}
       {%- endfrom %}
       WHERE NOT EXISTS ( {%br%}
         SELECT 1{%br%}
-        {%- for joinLine in (table.sourceJoinDetails.join | lines)%}        {{joinLine | trim}}{%br%}{%- endfor%}
+      {%- for joinLine in (table.sourceJoinDetails.join | lines)%}        {{joinLine | trim}}{%br%}{%- endfor%}
         {{addWhereJoinToTarget()}}{%br%}
         ){%br%}
-      AND   DSS_DELETE_TIME IS NULL{%br%}
-        {%- from table.columns as column where column.artificial %}
+      {%- if dssDeleteFlagPresent %}
+      AND   {{dssDeleteFlag}} = 'N'{%br%}
+      {%- elseif dssDeleteTimePresent %}
+      AND   {{dssDeleteTime}} IS NULL{%br%}
+      {%- endif -%}
+      {%- from table.columns as column where column.artificial %}
       AND   {{column.name}} <> 0{%br%}
-        {%- endfrom %}
+      {%- endfrom %}
       ;{%br%}
 "@
       $SnowflakeResult = Run-Snowflake-RedSQL $sql ${env:WSL_TGT_DSN} ${env:WSL_TGT_USER} ${env:WSL_TGT_PWD} "Failed logical delete in table {{table.name}} step $step" -odbcConn $tgtConn
@@ -343,7 +366,7 @@ if ( $status -eq 1 ) {
 {%br%}
   $return_Msg = "{{table.name}} updated.  "{%br%}
   $return_Msg += "$mergeCount records merged.  "{%br%}
-  {%- if dssDeleteTimePresent == "TRUE" %}
+  {%- if dssDeleteTimePresent or dssDeleteFlagPresent %}
   $return_Msg += "$logicalDeleteCount records logically deleted.  "{%br%}
   {%- endif %}
   {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
