@@ -30,6 +30,7 @@
 {% set dssDeleteTime = "DSS_DELETE_TIME" %}
 {% set dssDeleteFlag = "DSS_DELETE_FLAG" %}
 {% import "wsl_snowflake_utility_dml" %}
+{% import "wsl_snowflake_utility" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
 #-- DBMS Name        :    SNOWFLAKE {{table.dbType.name}}{%br%}
