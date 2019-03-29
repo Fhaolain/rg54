@@ -6,49 +6,15 @@
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
-{# -- Template Name      : wsl_snowflake_create_view                                                                                                        -- #}
+{# -- Template Name      : wsl_snowflake_create_no_view                                                                                                     -- #}
 {# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
-{# -- Description        : This template creates a Snowflake database view                                                                                  -- #}
+{# -- Description        : This template does not run view ddl and tells the user to run the custom proc instead                                            -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {# -- Notes / History                                                                                                                                       -- #}
-{# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
-{# -- JL: Snowflake Release 1.0.1 (2017-12-19)  Improvements to FROM/WHERE clause.                                                                          -- #}
-{# --                                           Addition of support for DISTINCT check box.                                                                 -- #}
-{# --                                                                                                                                                       -- #}
-{# --                                                                                                                                                       -- #}
+{# -- JL: Snowflake Release 1.0.0 (2019-03-27)                                                                                                              -- #}
 
-CREATE OR REPLACE VIEW [TABLEOWNER].[{{table.name}}] ({% br %}
-{%- fetch table -%}
-{%- for column in table.columns %}
-  {%- set sTargetColumn = column.name %}
-  {%- if loop.last %}
-    {{sTargetColumn }}{%- br %}
-  {%- else -%}
-    {{sTargetColumn }},{%- br %}
-  {%- endif -%}
-{%- endfor -%}
-){%- br %}
-AS{%- br %}
-SELECT {% if table.viewInfo.distinct %} DISTINCT{% endif %}{%- br %}
-{%- for column in table.columns %}
-  {%- set sSourceColumn = column.source %}
-  {%- if loop.last %}
-    {{sSourceColumn }}{%- br %}
-  {%- else -%}
-    {{sSourceColumn }},{%- br %}
-  {%- endif -%}
-{%- endfor -%}
-{%- fetch table.columns[0].sourceTable -%}
-{%- set sSource = table.columns[0].sourceTable.name -%}
-{%- if table.viewInfo.whereClause | trim == "" %}
-  FROM [TABLEOWNER].[{{sSource}}] {{sSource}}{%br%}
-{%- elseif table.viewInfo.whereClause | trim | upper | slice(0,4) != "FROM" %}
-  FROM [TABLEOWNER].[{{sSource}}] {{sSource}}{%br%}
-{%- endif -%}
-{%- if table.viewInfo.whereClause | trim != "" %}
-  {{table.viewInfo.whereClause | trim}}{%br%}
-{%- endif %}
-;
+Please generate a Custom Procedure on this view.  Then run the Custom Procedure to Create or Recreate this view.
+You could alternatively manually create a Custom Procedure as a Procedure of type Block.
