@@ -261,12 +261,12 @@ if ( $status -eq 1 ){
   {{- addJoinToTarget ( joinType = "LEFT OUTER", indent = "    " + batchIndent ) -}}
   {{- addMaxKeyJoin ( indent = "    " + batchIndent ) -}}
   {{- addWhereClause ( indent = "    " + batchIndent ) -}}
-  {%- if table.sourceJoinDetails.where | trim != "" %}{{batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
+  {{- addBatchLoopWhereClause()}}
+  {%- if (table.sourceJoinDetails.where | trim != "") or (settings.batchProcessingField != "") %}{{- batchIndent}}    AND {% else %}{{batchIndent}}    WHERE {% endif %}
   {%- from table.columns as bk where bk.businessKey -%}
     {%- if not loop.first -%}{{batchIndent}}    AND {% endif -%}
     {{- table.name}}.{{bk.name}} IS NULL{% br %}
   {%- endfrom %}
-  {{- addBatchLoopWhereClause()}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
   {#-                         -#}
   {#- C H A N G E D   R O W S -#}
@@ -277,6 +277,7 @@ if ( $status -eq 1 ){
   {{- addFromClause ( indent = "    " + batchIndent ) -}}
   {{- addJoinToTarget ( joinType = "INNER", indent = "    " + batchIndent ) -}}
   {{- addWhereClause ( indent = "    " + batchIndent ) -}}
+  {{- addBatchLoopWhereClause()}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
   {{batchIndent}}) AS src{%br%}
   {{batchIndent}}{{addMergeJoinCondition(alias = "src")}}
