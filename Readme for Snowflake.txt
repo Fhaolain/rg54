@@ -20,6 +20,15 @@ Installation:
 1. Install Snowsql client
 2. Install Snowflake ODBC Driver
 3. Create Snowflake ODBC DSN for your warehouse
+
+===================================================================================
+===================================================================================
+  U S E   T H E   R E D   F O R   S N O W F L A K E   I N S T A L L E R   ! ! ! ! 
+===================================================================================
+===================================================================================
+
+or manually!! do the following 31 steps:
+
 4. Install RED
 5. Pin Setup Administrator to the task bar and alter shortcut to always start as Administrator
 6. Stop and start Setup Administrator
