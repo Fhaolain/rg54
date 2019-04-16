@@ -23,6 +23,7 @@
 {# -- TK: Untracked rows now get updated when value in target does not match source 2.0.4 (2018-11-20)                                                      -- #}
 {# -- TK: Timezone setting is now excluded from scripts if not set at generation time 2.0.5 (2019-03-17)                                                    -- #}
 {# -- JL: Changes to logical deleting to also allow for a deleted_flag and to fix a couple of issues 2.0.6 (2019-03-22)                                     -- #}
+{# -- JL: Add dssFlag into batch looping macro call to remove double WHERE clauses from merge 2.0.7 (2019-04-17)                                            -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -242,7 +243,11 @@ if ( $status -eq 1 ){ {%br%}{%br%}
 
 if ( $status -eq 1 ){
 {%br%}
-  {{- addBatchLoopSelectClause()}}
+  {%- set dssFlag = false %}
+  {%- from table.columns as currFlag where currFlag.currentFlag %}
+    {%- set dssFlag = true %}
+  {%- endfrom %}
+	{{- addBatchLoopSelectClause()}}
   {{batchIndent}}#--============================================================================{%br%}
   {{batchIndent}}#-- Refresh data{%br%}
   {{batchIndent}}#--============================================================================{%br%}{%br%}
@@ -264,7 +269,7 @@ if ( $status -eq 1 ){
     {%- if not loop.first -%}{{batchIndent}}    AND {% endif -%}
     {{- table.name}}.{{bk.name}} IS NULL{% br %}
   {%- endfrom %}
-  {{- addBatchLoopWhereClause()}}
+  {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
   {#-                                 -#}
   {#- N E W   R O W   V E R S I O N S -#}
@@ -280,7 +285,7 @@ if ( $status -eq 1 ){
   {%- from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
-  {{- addBatchLoopWhereClause()}}
+  {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
   {#-                           -#}
   {#- E X P I R I N G   R O W S -#}
@@ -296,7 +301,7 @@ if ( $status -eq 1 ){
   {%- from table.columns as column where column.currentFlag %}{{ table.name }}.{{ column.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
-  {{- addBatchLoopWhereClause()}}
+  {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
   {#-                         -#}
   {#- C H A N G E D   R O W S -#}
@@ -324,7 +329,7 @@ if ( $status -eq 1 ){
     {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "=", compareType = "AND", nullSupport = settings.nullSupport ) -}}
     {#- WHERE UNTRACKED COLUMNS HAVE CHANGED #}
     {{- addType2UntrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
-    {{- addBatchLoopWhereClause()}}
+    {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
     {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
   {%- endif %}
   {{batchIndent}}) AS src{%br%}
