@@ -319,6 +319,10 @@ foreach($folder in $folders) {
                                 $th_type = "5"
                                 $th_lang = ""
                             }
+                            elseif($templateType -eq "Powershell64") {
+                                $th_type = "x"
+                                $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'PowerShell (64-bit)')" 
+                            }
                             elseif($templateType -eq "Utility") {
                                 $th_type = "7"
                                 $th_lang = ""
@@ -367,7 +371,7 @@ foreach($folder in $folders) {
                                 $th_lang = ""
                             }
                             elseif($templateType -eq "Powershell64") {
-                                $th_type = "X"
+                                $th_type = "x"
                                 $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'PowerShell (64-bit)')" 
                             }
                             elseif($templateType -eq "Windows") {
