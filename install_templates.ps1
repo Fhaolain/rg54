@@ -1,4 +1,4 @@
-﻿$gitProj = $PSScriptRoot
+$gitProj = $PSScriptRoot
 
 if([string]::IsNullOrEmpty($gitProj)) {
     Write-Output "Execute this script directly either from the console or with F5 from the ISE"
@@ -136,7 +136,7 @@ foreach($folder in $folders) {
                         $exists = $true
                     }
                     else {
-                        Write-Warning "Object with name '$objectName' already exists but is not a template. Skipping"
+                        Write-Warning "Object with name '$objectName' already exists but is a different object type. Skipping"
                         $trans.Rollback()
                         Continue
                     }
@@ -167,7 +167,40 @@ foreach($folder in $folders) {
 
                     $versionKey = $ws_header_tab_v_sr1
 
-                    if (( $ws_header_tab -eq "ws_tem_header" ) -or ( $ws_header_tab -eq "ws_scr_header" )) {
+                    if ( $ws_header_tab -eq "ws_scr_header" ) {
+                        $ws_header_tab_v_is1 = @"
+                          INSERT INTO $ws_header_tab_v (
+                              ${header_prefix}_version_no
+                            , ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_purpose
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_status
+                            , ${header_prefix}_script_language_key
+                            , ${header_prefix}_connect_key
+                          )
+                          SELECT
+                              $versionKey
+                            , ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_purpose
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_status
+                            , ${header_prefix}_script_language_key
+                            , ${header_prefix}_connect_key
+                          FROM $ws_header_tab
+                          WHERE ${header_prefix}_name = '$objectName'
+"@
+                    }
+                    elseif ( $ws_header_tab -eq "ws_tem_header" ) {
                         $ws_header_tab_v_is1 = @"
                           INSERT INTO $ws_header_tab_v (
                               ${header_prefix}_version_no
@@ -276,147 +309,196 @@ foreach($folder in $folders) {
                     $command.CommandText = $ws_obj_versions_is1
                     $ws_obj_versions_ir1 = $command.ExecuteNonQuery()
 
+                    $ws_table_attributes_ds1 = "DELETE FROM ws_table_attributes WHERE ta_obj_key = ( SELECT ${header_prefix}_obj_key FROM $ws_header_tab WHERE ${header_prefix}_name = '$objectName' )"
+                    $command.CommandText = $ws_table_attributes_ds1
+                    $ws_table_attributes_dr1 = $command.ExecuteNonQuery()
+
                     $ws_line_tab_ds1 = "DELETE FROM $ws_line_tab WHERE ${line_prefix}_obj_key = ( SELECT ${header_prefix}_obj_key FROM $ws_header_tab WHERE ${header_prefix}_name = '$objectName' )"
                     $command.CommandText = $ws_line_tab_ds1
                     $ws_line_tab_dr1 = $command.ExecuteNonQuery()
 
+                    $ws_header_tab_ds1 = "DELETE FROM $ws_header_tab WHERE ${header_prefix}_obj_key = ( SELECT ${header_prefix}_obj_key FROM $ws_header_tab WHERE ${header_prefix}_name = '$objectName' )"
+                    $command.CommandText = $ws_header_tab_ds1
+                    $ws_header_tab_dr1 = $command.ExecuteNonQuery()
+
                 }
-                else {
-                    Write-Output "Installing '$objectName'"
+                
+                Write-Output "Installing '$objectName'"
 
-                    $sw = [System.IO.File]::OpenText($objectPath)
-                    $header = $sw.ReadLine()
-                    $sw.Close()
-                    $header = $header.Replace("{# --","").Replace("-- #}","").Trim()
-                    $headConf = $header.Split(" ")
-                    try { $targetType = $headConf | Where { $_.IndexOf("TargetType:") -ne -1 } | ForEach-Object { $_.Replace("TargetType:","") } } catch {}
+                $sw = [System.IO.File]::OpenText($objectPath)
+                $header = $sw.ReadLine()
+                $sw.Close()
+                $header = $header.Replace("{# --","").Replace("-- #}","").Trim()
+                $headConf = $header.Split(" ")
+                try { $targetType = $headConf | Where { $_.IndexOf("TargetType:") -ne -1 } | ForEach-Object { $_.Replace("TargetType:","") } } catch {}
 
-                    switch ( $ws_header_tab ) {
-                        "ws_tem_header" {
+                switch ( $ws_header_tab ) {
+                    "ws_tem_header" {
 
-                            try { $templateType = $headConf | Where { $_.IndexOf("TemplateType:") -ne -1 } | ForEach-Object { $_.Replace("TemplateType:","") } } catch {}
+                        try { $templateType = $headConf | Where { $_.IndexOf("TemplateType:") -ne -1 } | ForEach-Object { $_.Replace("TemplateType:","") } } catch {}
 
-                            if($targetType -eq "SQLServer") {
-                                $ta_val_1 = 2
-                            }
-                            else {
-                                $ta_val_1 = 13
-                            }
-
-                            if($templateType -eq "Alter") {
-                                $th_type = "a"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "DDL") {
-                                $th_type = "6"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Powershell") {
-                                $th_type = "5"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Powershell32") {
-                                $th_type = "5"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Powershell64") {
-                                $th_type = "x"
-                                $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'PowerShell (64-bit)')" 
-                            }
-                            elseif($templateType -eq "Utility") {
-                                $th_type = "7"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Unix") {
-                                $th_type = "1"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Linux") {
-                                $th_type = "1"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Windows") {
-                                $th_type = "3"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "OLAP") {
-                                $th_type = "2"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Block") {
-                                $th_type = "8"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Procedure") {
-                                $th_type = "9"
-                                $th_lang = ""
-                            }
-                            else {
-                                Write-Warning "Failed to extract template type from template header. Falling back to Powershell"
-                                $th_type = "5"
-                                $th_lang = ""
-                            }
+                        if($targetType -eq "SQLServer") {
+                            $ta_val_1 = 2
+                        }
+                        else {
+                            $ta_val_1 = 13
                         }
 
-                        "ws_scr_header" {
-                        
-                            try { $templateType = $headConf | Where { $_.IndexOf("ScriptType:") -ne -1 } | ForEach-Object { $_.Replace("ScriptType:","") } } catch {}
-
-                            if($templateType -eq "Powershell") {
-                                $th_type = "P"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Powershell32") {
-                                $th_type = "P" 
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Powershell64") {
-                                $th_type = "x"
-                                $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'PowerShell (64-bit)')" 
-                            }
-                            elseif($templateType -eq "Windows") {
-                                $th_type = "W"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Unix") {
-                                $th_type = "U"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Linix") {
-                                $th_type = "U"
-                                $th_lang = ""
-                            }
-                            else {
-                                Write-Warning "Failed to extract script type from header. Falling back to Powershell"
-                                $th_type = "P"
-                                $th_lang = ""
-                            }
-                         }
-
-                        "ws_pro_header" { 
-                            
-                            try { $templateType = $headConf | Where { $_.IndexOf("ProcedureType:") -ne -1 } | ForEach-Object { $_.Replace("ProcedureType:","") } } catch {}
-
-                            if( $templateType -eq "Procedure" ) {
-                                $th_type = "P"
-                                $th_lang = ""
-                            }
-                            if( $templateType -eq "Trigger" ) {
-                                $th_type = "P"
-                                $th_lang = ""
-                            }
-                            elseif($templateType -eq "Block") {
-                                $th_type = "B"
-                                $th_lang = ""
-                            }
-                            else {
-                                Write-Warning "Failed to extract procedure type from header. Falling back to Block"
-                                $th_type = "P"
-                                $th_lang = ""
-                            }
+                        if($templateType -eq "Alter") {
+                            $th_type = "a"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "DDL") {
+                            $th_type = "6"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Powershell") {
+                            $th_type = "5"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Powershell32") {
+                            $th_type = "5"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Powershell64") {
+                            $th_type = "x"
+                            $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'PowerShell (64-bit)')" 
+                        }
+                        elseif($templateType -eq "Utility") {
+                            $th_type = "7"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Unix") {
+                            $th_type = "1"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Linux") {
+                            $th_type = "1"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Windows") {
+                            $th_type = "3"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "OLAP") {
+                            $th_type = "2"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Block") {
+                            $th_type = "8"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Procedure") {
+                            $th_type = "9"
+                            $th_lang = ""
+                        }
+                        else {
+                            Write-Warning "Failed to extract template type from template header. Falling back to Powershell"
+                            $th_type = "5"
+                            $th_lang = ""
                         }
                     }
-                
+
+                    "ws_scr_header" {
+                        
+                        try { $templateType = $headConf | Where { $_.IndexOf("ScriptType:") -ne -1 } | ForEach-Object { $_.Replace("ScriptType:","") } } catch {}
+
+                        if($templateType -eq "Powershell") {
+                            $th_type = "P"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Powershell32") {
+                            $th_type = "P" 
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Powershell64") {
+                            $th_type = "X"
+                            $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'PowerShell (64-bit)')" 
+                        }
+                        elseif($templateType -eq "Windows") {
+                            $th_type = "W"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Unix") {
+                            $th_type = "U"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Linix") {
+                            $th_type = "U"
+                            $th_lang = ""
+                        }
+                        else {
+                            Write-Warning "Failed to extract script type from header. Falling back to Powershell"
+                            $th_type = "P"
+                            $th_lang = ""
+                        }
+
+                        $script_conn_key_ss1 = @"
+                          SELECT script_conn.dc_obj_key
+                          FROM (
+                            SELECT CASE CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))
+                                     WHEN 0 THEN NULL
+                                     ELSE SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))+25,CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000))) + 20,4) AS INTEGER))
+                                   END script_conn_name
+                                 , dc_obj_key
+                            FROM ws_dbc_connect  
+                            WHERE dc_db_type_ind = 13  
+                          ) tgt_conn
+                          JOIN ws_dbc_connect script_conn
+                          ON script_conn.dc_name = tgt_conn.script_conn_name
+                          ORDER BY tgt_conn.dc_obj_key
+"@
+                        $command.CommandText = $script_conn_key_ss1
+                        $script_conn_key = $command.ExecuteScalar()
+                    }
+
+                    "ws_pro_header" { 
+                            
+                        try { $templateType = $headConf | Where { $_.IndexOf("ProcedureType:") -ne -1 } | ForEach-Object { $_.Replace("ProcedureType:","") } } catch {}
+
+                        if( $templateType -eq "Procedure" ) {
+                            $th_type = "P"
+                            $th_lang = ""
+                        }
+                        elseif( $templateType -eq "Trigger" ) {
+                            $th_type = "P"
+                            $th_lang = ""
+                        }
+                        elseif($templateType -eq "Block") {
+                            $th_type = "B"
+                            $th_lang = ""
+                        }
+                        else {
+                            Write-Warning "Failed to extract procedure type from header. Falling back to Block"
+                            $th_type = "B"
+                            $th_lang = ""
+                        }
+
+                        $repo_conn_key_ss1 = @"
+                          SELECT repo_conn.dc_obj_key
+                          FROM ws_dbc_connect repo_conn
+                          WHERE CHARINDEX('DataWarehouse', CAST(repo_conn.dc_attributes AS VARCHAR(4000))) <> 0
+                          ORDER BY repo_conn.dc_obj_key
+"@
+                        $command.CommandText = $repo_conn_key_ss1
+                        $repo_conn_key = $command.ExecuteScalar()
+                        
+                        $tgt_conn_key_ss1 = @"
+                          SELECT tgt_conn.dc_obj_key
+                          FROM ws_dbc_connect tgt_conn
+                          WHERE tgt_conn.dc_db_type_ind = 13
+                          ORDER BY tgt_conn.dc_obj_key
+"@
+                        $command.CommandText = $tgt_conn_key_ss1
+                        $tgt_conn_key = $command.ExecuteScalar()
+                    }
+                }
+
+                $ws_obj_object_ss1 = "SELECT count(oo_name) FROM dbo.ws_obj_object WHERE oo_name = '$objectName'"
+                $command.CommandText = $ws_obj_object_ss1
+                $ws_obj_object_sr1 = $command.ExecuteScalar()
+
+                if($ws_obj_object_sr1 -lt 1) {
 
                     $ws_obj_object_is1 = @"
                       INSERT INTO ws_obj_object (
@@ -438,11 +520,14 @@ foreach($folder in $folders) {
 "@
                     $command.CommandText = $ws_obj_object_is1
                     $ws_obj_object_ir1 = $command.ExecuteNonQuery()
+                }
 
-                    $ws_obj_object_ss3 = "SELECT oo_obj_key FROM ws_obj_object WHERE oo_name = '$objectName'"
-                    $command.CommandText = $ws_obj_object_ss3
-                    $ws_obj_object_sr3 = $command.ExecuteScalar()
-                    $objectKey = $ws_obj_object_sr3
+                $ws_obj_object_ss3 = "SELECT oo_obj_key FROM ws_obj_object WHERE oo_name = '$objectName'"
+                $command.CommandText = $ws_obj_object_ss3
+                $ws_obj_object_sr3 = $command.ExecuteScalar()
+                $objectKey = $ws_obj_object_sr3
+
+                if ( $ws_header_tab -eq "ws_scr_header" ) {
 
                     if ( [string]::IsNullOrWhiteSpace($th_lang) ) {
                         $ws_header_tab_is1 = @"
@@ -454,6 +539,7 @@ foreach($folder in $folders) {
                             , ${header_prefix}_updated
                             , ${header_prefix}_author
                             , ${header_prefix}_user_key
+                            , ${header_prefix}_connect_key
                           )
                           VALUES (
                               $objectKey
@@ -463,12 +549,13 @@ foreach($folder in $folders) {
                             , CURRENT_TIMESTAMP
                             , 'WhereScape Ltd'
                             , 0
+                            , CAST(NULLIF('$script_conn_key','') AS INTEGER)
                           )
 "@
                     }
                     else {
                         $ws_header_tab_is1 = @"
-                          INSERT INTO $ws_header_tab (
+                            INSERT INTO $ws_header_tab (
                               ${header_prefix}_obj_key
                             , ${header_prefix}_name
                             , ${header_prefix}_type
@@ -477,8 +564,9 @@ foreach($folder in $folders) {
                             , ${header_prefix}_author
                             , ${header_prefix}_user_key
                             , ${header_prefix}_script_language_key
-                          )
-                          VALUES (
+                            , ${header_prefix}_connect_key
+                            )
+                            VALUES (
                               $objectKey
                             , '$objectName'
                             , '$th_type'
@@ -487,33 +575,133 @@ foreach($folder in $folders) {
                             , 'WhereScape Ltd'
                             , 0
                             , $th_lang
-                          )
+                            , CAST(NULLIF('$script_conn_key','') AS INTEGER)
+                            )
 "@
                     }
-
-                    $command.CommandText = $ws_header_tab_is1
-                    $ws_header_tab_ir1 = $command.ExecuteNonQuery()
-
-                    if( $ws_header_tab -eq "ws_tem_header") {
-
-                        $ws_table_attributes_is1 = @"
-                          INSERT INTO ws_table_attributes (
-                              ta_obj_key
-                            , ta_type
-                            , ta_ind_1
-                            , ta_val_1
-                          )
-                          VALUES (
+                }
+                elseif ( $ws_header_tab -eq "ws_pro_header" ) {
+                    if ( [string]::IsNullOrWhiteSpace($th_lang) ) {
+                        $ws_header_tab_is1 = @"
+                            INSERT INTO $ws_header_tab (
+                              ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_connect_key
+                            )
+                            VALUES (
                               $objectKey
-                            , 'F'
-                            , 'W'
-                            , $ta_val_1
-                          )
+                            , '$objectName'
+                            , '$th_type'
+                            , CURRENT_TIMESTAMP
+                            , CURRENT_TIMESTAMP
+                            , 'WhereScape Ltd'
+                            , 0
+                            , CASE CHARINDEX('trg_dim_col', '$objectName') WHEN 0 THEN $tgt_conn_key ELSE $repo_conn_key END
+                            )
 "@
-                        $command.CommandText = $ws_table_attributes_is1
-                        $ws_table_attributes_ir1 = $command.ExecuteNonQuery()
                     }
+                    else {
+                        $ws_header_tab_is1 = @"
+                            INSERT INTO $ws_header_tab (
+                              ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_script_language_key
+                            , ${header_prefix}_connect_key
+                            )
+                            VALUES (
+                              $objectKey
+                            , '$objectName'
+                            , '$th_type'
+                            , CURRENT_TIMESTAMP
+                            , CURRENT_TIMESTAMP
+                            , 'WhereScape Ltd'
+                            , 0
+                            , $th_lang
+                            , CASE CHARINDEX('trg_dim_col', '$objectName') WHEN 0 THEN $tgt_conn_key ELSE $repo_conn_key END
+                            )
+"@
+                    }
+                }
+                else {
+                    if ( [string]::IsNullOrWhiteSpace($th_lang) ) {
+                        $ws_header_tab_is1 = @"
+                            INSERT INTO $ws_header_tab (
+                              ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            )
+                            VALUES (
+                              $objectKey
+                            , '$objectName'
+                            , '$th_type'
+                            , CURRENT_TIMESTAMP
+                            , CURRENT_TIMESTAMP
+                            , 'WhereScape Ltd'
+                            , 0
+                            )
+"@
+                    }
+                    else {
+                        $ws_header_tab_is1 = @"
+                            INSERT INTO $ws_header_tab (
+                              ${header_prefix}_obj_key
+                            , ${header_prefix}_name
+                            , ${header_prefix}_type
+                            , ${header_prefix}_created
+                            , ${header_prefix}_updated
+                            , ${header_prefix}_author
+                            , ${header_prefix}_user_key
+                            , ${header_prefix}_script_language_key
+                            )
+                            VALUES (
+                              $objectKey
+                            , '$objectName'
+                            , '$th_type'
+                            , CURRENT_TIMESTAMP
+                            , CURRENT_TIMESTAMP
+                            , 'WhereScape Ltd'
+                            , 0
+                            , $th_lang
+                            )
+"@
+                    }
+                }
 
+                $command.CommandText = $ws_header_tab_is1
+                $ws_header_tab_ir1 = $command.ExecuteNonQuery()
+
+                if( $ws_header_tab -eq "ws_tem_header") {
+
+                    $ws_table_attributes_is1 = @"
+                        INSERT INTO ws_table_attributes (
+                            ta_obj_key
+                        , ta_type
+                        , ta_ind_1
+                        , ta_val_1
+                        )
+                        VALUES (
+                            $objectKey
+                        , 'F'
+                        , 'W'
+                        , $ta_val_1
+                        )
+"@
+                    $command.CommandText = $ws_table_attributes_is1
+                    $ws_table_attributes_ir1 = $command.ExecuteNonQuery()
                 }
 
                 $sr = New-Object System.IO.StreamReader($objectPath)
