@@ -1,3 +1,15 @@
+#--==============================================================================
+#-- Script Name      :    install_templates.ps1
+#-- Description      :    Load all templates scripts and procedures into a RED Repository
+#-- Author           :    Tom Kelly, WhereScape
+#--==============================================================================
+#-- Notes / History
+#-- TK  v 1.0.0 2018-07-24 First Version
+#-- TK  v 2.0.0 2018-11-11 Now also handle scripts and procedures (not just templates)
+#-- TK  v 3.0.0 2019-03-28 64 bit template and script support
+#-- TK  v 4.0.0 2019-05-15 Better handling of upgrades
+#--
+
 $gitProj = $PSScriptRoot
 
 if([string]::IsNullOrEmpty($gitProj)) {

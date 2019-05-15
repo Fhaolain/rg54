@@ -1,4 +1,14 @@
-﻿$gitProj = $PSScriptRoot
+﻿#--==============================================================================
+#-- Script Name      :    export_templates.ps1
+#-- Description      :    Unloads all templates scripts and procedures from a RED Repository
+#-- Author           :    Tom Kelly, WhereScape
+#--==============================================================================
+#-- Notes / History
+#-- TK  v 1.0.0 2018-07-24 First Version
+#-- TK  v 2.0.0 2018-11-11 Now also handle scripts and procedures (not just templates)
+#--
+
+$gitProj = $PSScriptRoot
 
 if([string]::IsNullOrEmpty($gitProj)) {
     Write-Output "Execute this script directly either from the console or with F5 from the ISE"
