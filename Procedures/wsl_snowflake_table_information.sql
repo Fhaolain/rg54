@@ -15,6 +15,8 @@
 --
 -- Notes / History
 --
+-- 10-May-2019 TS - Include $DATABASE$ in FROM clause to handle multi-db target
+--
 
 SELECT table_catalog
      , table_schema
@@ -25,7 +27,7 @@ SELECT table_catalog
      , 'COMMENT'
      , 'Table Comment'
      , COMMENT
-FROM information_schema.tables
+FROM $DATABASE$.information_schema.tables
 WHERE UPPER(table_schema) = UPPER('$SCHEMA$')
 AND UPPER(table_name) = UPPER('$TABLE$')
 ORDER BY table_catalog, table_schema, table_name
@@ -68,7 +70,7 @@ SELECT table_catalog
     , 'IS_IDENTITY'
     , 'Is Identity'
     , COALESCE(IS_IDENTITY,'~~~~') AS IS_IDENTITY
-FROM information_schema.columns
+FROM $DATABASE$.information_schema.columns
 WHERE UPPER(table_schema) = UPPER('$SCHEMA$')
 AND UPPER(table_name) = UPPER('$TABLE$')
 ORDER BY table_catalog, table_schema, table_name, ordinal_position
