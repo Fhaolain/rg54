@@ -93,6 +93,12 @@ or manually!! do the following 31 steps:
     - Extended Property RANGE_CONCATWORD:        +  for databases that use this for concatinating strings (SQL Server / SYBASE)
                                                  || for databases that use this for concatinating strings (most databases)
 34. Run the date dimension job and wait for it to complete
+35. Copy the folder FieldSolutions to c:\ProgramData\WhereScape
+36. Open a SQL Admin window to the Repository connection
+37. Load the script "AddScriptLauncherItems.sql" and run it
+38. Close SQL Admin
+
+
 
 
 
