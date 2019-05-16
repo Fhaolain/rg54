@@ -27,77 +27,54 @@ Installation:
 ===================================================================================
 ===================================================================================
 
-or manually!! do the following 31 steps:
+or manually!! do the following steps:
 
 4. Install RED
-5. Pin Setup Administrator to the task bar and alter shortcut to always start as Administrator
-6. Stop and start Setup Administrator
-7. Add RED license
-8. Create repository
-9. Log in to RED and click OK on Tools/Options dialog
-10. Pin RED to the task bar
-11. Load the Extended Properties Set
-12. Open a SQL Admin window to the DataWarehouse connection
-13. Load the script "Snowflake metadata_options_setup.sql" and run it
-14. Close SQL Admin
-15. Restart RED
-16. Load all Data Type Mapping Sets
-17. Load Function Set
-18. Run the bat file "WslPowershell Install - RUN AS ADMIN.bat" as Administrator to install the powershell modules: when prompted, enter A for All
-19. Run the registry file:    "Disable Snowflake ODBC Driver Logging.reg"
-20. Install windows scheduler
-21. Make changes to "Snowflake Warehouse" Connection
+5. Pin Setup Administrator to the task bar, change the pinned shortcut to always run as administrator and restart Setup Administrator
+6. Add RED license
+7. Create repository
+8. Log in to RED and click OK on Tools/Options dialog
+9. Pin RED to the task bar
+10. Load the Extended Properties Set
+11. Load all Data Type Mapping Sets
+12. Load Function Set
+13. Pull "snowflake" repository from BitBucket
+14. Pull "wslpowershell" repository from BitBucket
+15. Run the file "WslPowershell Install - RUN AS ADMIN.bat" as administrator to install powershell modules
+16. Load templates using install_templates.ps1 following the on screen prompts.
+17. Copy the folder FieldSolutions to c:\ProgramData\WhereScape
+18. Open a SQL Admin window to the DataWarehouse connection
+19. Load the script "Snowflake metadata_options_setup.sql" and run it
+20. Close SQL Admin
+21. Run the registry file:    "Disable Snowflake ODBC Driver Logging.reg"
+22. Restart RED
+23. Install windows scheduler
+    Note: Check the scheduler log file after installation to ensure it has started successfully
+          If it has not, the most likely cause is the scheduler service account not having permissions for the SQL Server repository database
+          There are several ways to address this.
+24. Make changes to "Snowflake Warehouse" Connection
     - check ODBCDSN is correct
     - add extract username/password
-    - add data type mapping set:                 Snowflake to Snowflake
     - make list of schema for browsing match schemas on targets
-    - set all connectvity extended properties that are not set
     And on the Targets Tab:
     - change databases and schemas on individual targets
-22. Stop RED
-23. Pull "snowflake" repository from BitBucket
-24. Pull "wslpowershell" repository from BitBucket
-25. Run the file "WslPowershell Install - RUN AS ADMIN.bat" as administrator to install powershell modules
-26. Load templates using install_templates.ps1 following the on screen prompts and specifying the following two naming patterns:
-    - wsl_snowflake%
-    - snowflake%
-27. Load application for the date dimension
-28. Run the registry file:    "Add Default Templates Snowflake.reg"
-29. Start RED
-30. Make changes to "Snowflake Warehouse" Connection
-    - Default Table Create DDL Template:         wsl_snowflake_create_table
-    - Default View Create DDL Template:          wsl_snowflake_create_view
-    - Table/Column Information SQL Block:        wsl_snowflake_table_information
-    - Default Table Alter DDL Template:          wsl_snowflake_alter_ddl
-31. Create a new windows connecion called "Windows Comma Sep Files" and set it as follows:
+    And on the Extended Properties Tab:
+    - set all connectvity extended properties that are not set
+25. Check the connecions "Windows Comma Sep Files", "Windows Pipe Sep Files", "Windows Fixed Width Files", Windows XML Files", "Windows JSON Files":
     - default path for browsing:                 where your files are
-    - new table default load type:               Script based load
-    - new table default load script template:    ws_snowflake_pscript_load
-    - data type mapping set:                     Snowflake from File
-    - Extended Property FILE_FORMAT:             FMT_RED_CSV_SKIP_GZIP_COMMA
-32. Create a new windows connecion called "Windows Pipe Sep Files" and set it as follows:
-    - default path for browsing:                 where your files are
-    - new table default load type:               Script based load
-    - new table default load script template:    ws_snowflake_pscript_load
-    - data type mapping set:                     Snowflake from File
-    - Extended Property FILE_FORMAT:             FMT_RED_CSV_SKIP_GZIP_PIPE
-33. Rename the tutorial connection to be your first database source then:
-    - set Connection type to:                    ODBC
+26. Check the connection "Database Source System":
     - set ODBC DSN to your source
-    - set Work directory to                      c:\temp\
-    - set Default schema
-    - new table default load type:               Script based load
-    - new table default load script connection:  Runtime Connection for Scripts
-    - new table default load script template:    ws_snowflake_pscript_load
-    - data type mapping set:                     Snowflake from ?????
+    - set Username and Password for your source (if required)
+    - default schema for browsing
+    - data type mapping set:                     SNOWFLAKE from?????
     - Extended Property RANGE_CONCATWORD:        +  for databases that use this for concatinating strings (SQL Server / SYBASE)
                                                  || for databases that use this for concatinating strings (most databases)
-34. Run the date dimension job and wait for it to complete
-35. Copy the folder FieldSolutions to c:\ProgramData\WhereScape
-36. Open a SQL Admin window to the Repository connection
-37. Load the script "AddScriptLauncherItems.sql" and run it
-38. Close SQL Admin
-
+27. Stop RED
+28. Load application for the date dimension
+29. Load application for file formats
+30. Run the registry file:    "Add Default Templates Snowflake.reg"
+31. Start RED
+32. Run the date dimension job and wait for it to complete
 
 
 
