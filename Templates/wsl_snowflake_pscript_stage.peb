@@ -21,6 +21,7 @@
 {# -- JL: Improved dim mismatch reporting 2.0.2 (2018-08-27)                                                                                                -- #}
 {# -- JL: Improved dim mismatch reporting for type 3 dimensions 2.0.3 (2018-12-10)                                                                          -- #}
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.4 (2019-03-25)                                                    -- #}
+{# -- JL: Fixed issue with status messages when reporting details of missing dimension rows 2.0.3 (2019-05-19)                                              -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -200,8 +201,8 @@ if ( $status -eq 1 ){
   $sql = $sql_select + " ORDER BY 1"
 
   $SnowflakeResult = Run-Snowflake-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed to log missing dimension keys for {{ dimTableName }} at step $step" -odbcConn $tgtConn
-  foreach($row in $SnowflakeResult[4]) { {%br%}
-    $null = WsWrkError -Status "I" -messageType "AUTO_ADD" -Message "Auto added {{dimTableName}} row: $($row[0])" {%br%}
+  foreach($row in $SnowflakeResult[3]) { {%br%}
+    $null = WsWrkError -Status "{{missingBkStatus}}" -messageType "AUTO_ADD" -Message "Auto added {{dimTableName}} row: $($row[0])" {%br%}
   }{%br%}
       {%- endif %}
 }{%br%}
@@ -329,6 +330,11 @@ if ( $status -eq 1 ){
 {# -- =========================================== -- #}
 {# --                                             -- #}
 {%- for rel in table.relations %}
+  {%- if rel.noWarningForUnmatchedBusinessKeys %}
+    {%- set missingBkStatus="I" %}
+  {%- else %}
+    {%- set missingBkStatus="W" %}
+  {%- endif %}
   {%- fetch rel.fks[0].toTable %}
   {%- if rel.detailLogForUnmatchedBusinessKeys and not rel.autoAddUnmatchedBusinessKeys %}
     {%- set dimTable = rel.fks[0].toTable %}
@@ -379,7 +385,7 @@ if ( $status -eq 1 ){
 "@{%br%}{%br%}
   $SnowflakeResult = Run-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed to log missing dimension keys for {{ dimTableName }} at step $step" -odbcConn $tgtConn
   foreach($row in $SnowflakeResult[4]) { {%br%}
-    $null = WsWrkError -Status "I" -messageType "LOOKUP" -Message "Dimension key not found in dimension {{dimTableName}} row: $($row[0])" {%br%}
+    $null = WsWrkError -Status "{{missingBkStatus}}" -messageType "LOOKUP" -Message "Dimension key not found in dimension {{dimTableName}} row: $($row[0])" {%br%}
   }{%br%}
 }{%br%}
     {%- endif %}
