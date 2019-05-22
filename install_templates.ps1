@@ -613,7 +613,7 @@ foreach($folder in $folders) {
                             , CURRENT_TIMESTAMP
                             , 'WhereScape Ltd'
                             , 0
-                            , CASE CHARINDEX('trg_dim_col', '$objectName') WHEN 0 THEN $tgt_conn_key ELSE $repo_conn_key END
+                            , CASE CHARINDEX('trg_dim_col', '$objectName') WHEN 0 THEN CAST(NULLIF('$tgt_conn_key','') AS INTEGER) ELSE CAST(NULLIF('$repo_conn_key','') AS INTEGER) END
                             )
 "@
                     }
@@ -639,7 +639,7 @@ foreach($folder in $folders) {
                             , 'WhereScape Ltd'
                             , 0
                             , $th_lang
-                            , CASE CHARINDEX('trg_dim_col', '$objectName') WHEN 0 THEN $tgt_conn_key ELSE $repo_conn_key END
+                            , CASE CHARINDEX('trg_dim_col', '$objectName') WHEN 0 THEN CAST(NULLIF('$tgt_conn_key','') AS INTEGER) ELSE CAST(NULLIF('$repo_conn_key','') AS INTEGER) END
                             )
 "@
                     }
