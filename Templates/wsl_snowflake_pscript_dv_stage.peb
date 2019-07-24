@@ -18,8 +18,10 @@
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
 {# -- JL: Powershell Mods 2.0.0 (2017-08-03)                                                                                                                -- #}
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.1 (2019-04-13)                                                    -- #}
+{# -- JL: Added include for general utility macros 2.0.2 (2019-07-23)                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
+{% import "wsl_snowflake_utility" %}
 {% import "wsl_snowflake_utility_dv" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}

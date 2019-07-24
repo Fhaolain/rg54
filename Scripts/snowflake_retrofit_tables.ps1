@@ -1,7 +1,7 @@
 # ScriptVersion:005 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* ScriptType:Powershell64
 #--==============================================================================
-#-- Script Name      :    snowflake_retrofit_fivetran_tables
-#-- Description      :    Retrofit in any number of fivetran tables
+#-- Script Name      :    snowflake_retrofit_tables
+#-- Description      :    Retrofit in any number of existing snowflake tables
 #-- Author           :    WhereScape
 #--==============================================================================
 #-- Notes / History
@@ -15,7 +15,7 @@ try {
     if( ! [string]::IsNullOrEmpty(${env:WSL_META_PWD})) { $parserArgs += " ${env:WSL_META_PWD}" }
     start-Process -Wait -FilePath $parserCommand -ArgumentList $parserArgs
     $host.ui.WriteLine("1")
-    $host.ui.WriteLine("Fivetran Retrofit completed.")
+    $host.ui.WriteLine("Snowflake Retrofit completed.")
     try {
         $host.ui.WriteLine("Loading log file: $logFile")
         $logReader = New-Object IO.StreamReader($logFile)
@@ -29,7 +29,7 @@ try {
 }
 catch {
     $host.ui.WriteLine("-3")
-    $host.ui.WriteLine("Fivetran Retrofit failed.")
+    $host.ui.WriteLine("Snowflake Retrofit failed.")
     $host.ui.WriteLine("An unhandled exception occurred.")
     $host.ui.WriteLine($_.Exception.Message)
     $host.ui.WriteLine($_.InvocationInfo.PositionMessage)

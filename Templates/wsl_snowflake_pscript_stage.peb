@@ -22,6 +22,7 @@
 {# -- JL: Improved dim mismatch reporting for type 3 dimensions 2.0.3 (2018-12-10)                                                                          -- #}
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.4 (2019-03-25)                                                    -- #}
 {# -- JL: Fixed issue with status messages when reporting details of missing dimension rows 2.0.3 (2019-05-19)                                              -- #}
+{# -- TK: Changed row count variables to int64 to handle more than 2b rows 2.0.4 (2019-06-23)                                                               -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -64,9 +65,9 @@ $status = 1{%br%}
 #--============================================================================{%br%}{%br%}
 $step = {% counter %}00{%br%}
 {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
-$deleteCount = 0{%br%}
+[int64]$deleteCount = 0{%br%}
 {%- endif %}
-$insertCount = 0{%br%}
+[int64]$insertCount = 0{%br%}
 
 {%- for par in settings.parameters %}
   {%- if loop.first %}

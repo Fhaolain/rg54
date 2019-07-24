@@ -25,6 +25,7 @@
 {# -- TK: Seperated new and changed rows select statements to improve SQL readability 2.0.6 (2018-11-22)                                                    -- #}
 {# -- TK: Timezone setting is now excluded from scripts if not set at generation time 2.0.7 (2019-03-17)                                                    -- #}
 {# -- JL: Changes to logical deleting to also allow for a deleted_flag and to fix a couple of issues 2.0.8 (2019-03-22)                                     -- #}
+{# -- TK: Changed row count variables to int64 to handle more than 2b rows 2.0.8 (2019-06-23)                                                               -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -78,12 +79,12 @@ $step = {% counter %}00{%br%}
   {% set dssDeleteFlagPresent = true %}
 {%- endfrom -%}
 {%- from table.columns as column where column.name == dssDeleteTime or column.name == dssDeleteFlag -%}
-$logicalDeleteCount = 0{%br%}
+[int64]$logicalDeleteCount = 0{%br%}
 {%- endfrom -%}
 {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
-$deleteCount = 0{%br%}
+[int64]$deleteCount = 0{%br%}
 {%- endif %}
-$mergeCount = 0{%br%}
+[int64]$mergeCount = 0{%br%}
 
 {%- for par in settings.parameters %}
   {%- if loop.first %}
