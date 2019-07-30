@@ -23,6 +23,7 @@
 {# -- TK: Improved handling of soft deleted records 2.0.7 (2019-03-20)                                                                                      -- #}
 {# -- JL: Changes to logical deleting to also allow for a deleted_flag and to fix a couple of issues 2.0.8 (2019-03-22)                                     -- #}
 {# -- JL: Fixed issue with DISTINCT keyword not always having a space after it 2.0.9 (2019-07-22)                                                           -- #}
+{# -- JL: Added this new macro: addMergeTargetColumnsSelect to support MINUS change detection in the perm template 2.1.0 (2019-07-22)                       -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
@@ -627,6 +628,21 @@ foreach($row in $SnowflakeLoop[4]) { {%- br %}
   {%- from table.columns as artificialKey where artificialKey.artificial -%}
     {%- if loop.first -%}
       {{- indent }}CROSS JOIN ( SELECT MAX({{artificialKey.name}}) AS maxkey FROM [TABLEOWNER].[{{table.name}}]) AS maxkey{% br %}
+    {%- endif -%}
+  {%- endfrom %}
+{% endmacro %}
+
+{# -- This macro adds the select from the target table -- #}
+{% macro addMergeTargetColumnsSelect ( indent = "    " ) %}
+  {{- indent }}SELECT
+  {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
+    {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
+    {%- if column.artificial -%}
+      0 AS MAXKEY{%- br -%}
+    {%- elseif column.updateTime -%}
+      CAST(CURRENT_TIMESTAMP AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
+    {%- else -%}
+      {{- table.name}}.{{column.name}}{%- br -%}
     {%- endif -%}
   {%- endfrom %}
 {% endmacro %}

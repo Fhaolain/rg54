@@ -26,6 +26,7 @@
 {# -- TK: Timezone setting is now excluded from scripts if not set at generation time 2.0.7 (2019-03-17)                                                    -- #}
 {# -- JL: Changes to logical deleting to also allow for a deleted_flag and to fix a couple of issues 2.0.8 (2019-03-22)                                     -- #}
 {# -- TK: Changed row count variables to int64 to handle more than 2b rows 2.0.8 (2019-06-23)                                                               -- #}
+{# -- JL: Added support for MINUS change detection to avoid unchanged rows being updated, if turned on by user 2.0.9 (2019-07-22)                           -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -280,6 +281,13 @@ if ( $status -eq 1 ){
   {{- addWhereClause ( indent = "    " + batchIndent ) -}}
   {{- addBatchLoopWhereClause()}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
+  {%- if settings.mergeChangedRowsOnly %}
+    {{batchIndent}}-- EXCEPT FOR EXISTING ROWS TO NOT PROCESS UNCHANGED ROWS{% br %}
+    {{batchIndent}}MINUS{% br %}
+  {{- addMergeTargetColumnsSelect ( indent = "    " + batchIndent ) }}
+    {{batchIndent}}FROM [TABLEOWNER].[{{table.name}}] {{table.name}}{%br%}
+  {{- addBatchLoopWhereClause()}}
+  {%- endif %}
   {{batchIndent}}) AS src{%br%}
   {{batchIndent}}{{addMergeJoinCondition(alias = "src")}}
   {%- if table.subType == "R" -%}
