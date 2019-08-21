@@ -390,6 +390,14 @@ function Load-Data { {%- br %}
     $filePath = ${env:WSL_WORKDIR}
     $fileDat = "wsl${env:WSL_LOAD_TABLE}${env:WSL_SEQUENCE}"
     {%- br %}
+    $logStream.WriteLine("================= CLEANUP FILES ==================="){%- br %}
+    foreach($df in $((Get-ChildItem "${filePath}${fileDat}*").FullName)){
+        $logStream.WriteLine("Cleaning file $df"){%- br %}
+        Remove-Item -Path $df
+    }
+    $logStream.WriteLine("Cleaning ${fileDat} from SnowFlake stage"){%- br %}
+    $snowsqlDelete = "snowsql -q ""rm @~ pattern='.*$fileDat.*'""  -o friendly=false  -o remove_comments=true -o timing=false"
+    $putRes = & $([ScriptBlock]::Create($snowsqlDelete)){%- br %}
     $logStream.WriteLine("================= EXTRACT SQL ====================="){%- br %}
     {%- set empty = "" %}
     $extractSql = @"
