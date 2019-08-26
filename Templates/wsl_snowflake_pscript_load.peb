@@ -29,7 +29,8 @@
 {# -- JL: Powershell release V12 (2019-03-01)  Fixed a bug that caused ranges to fail on some databases due to double FROM clause                            -- #}
 {# -- TK: Powershell release V13 (2019-03-01)  Enabled file splitting for windows file loads                                                                 -- #}
 {# -- TK: Powershell release V14 (2019-03-02)  Enabled trigger files for windows file loads                                                                  -- #}
-{# -- TK: Powershell release V14 (2019-03-20)  Corrected issue introduced with trigger loads relating to fixed external stage loads                          -- #}
+{# -- TK: Powershell release V15 (2019-03-20)  Corrected issue introduced with trigger loads relating to fixed external stage loads                          -- #}
+{# -- JL: Powershell release V16 (2019-08-26)  Added support for file formats to reside in schema other than PUBLIC                                          -- #}
 {# --                                                                                                                                                        -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}
 #=============================================================================={%- br %}
@@ -279,7 +280,7 @@ function Load-Data { {%- br %}
     ${env:ACCESS_KEY}         = Get-ExtendedProperty -PropertyName "SF_ACCESS_KEY" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:SECRET_KEY}         = Get-ExtendedProperty -PropertyName "SF_SECRET_KEY" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:SEND_FILES_ZIPPED}  = Get-ExtendedProperty -PropertyName "SF_SEND_FILES_ZIPPED" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
-    ${env:FILE_FORMAT}        = Get-ExtendedProperty -PropertyName "SF_FILE_FORMAT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
+		${env:FILE_FORMAT}        = Get-ExtendedProperty -PropertyName "SF_FILE_FORMAT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:SNOWSQL_ACCOUNT}    = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_ACCOUNT" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:SNOWSQL_DATABASE}   = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_DATABASE" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
     ${env:SNOWSQL_SCHEMA}     = Get-ExtendedProperty -PropertyName "SF_SNOWSQL_SCHEMA" -TableName ${env:WSL_LOAD_TABLE}{%- br %}
@@ -322,6 +323,27 @@ function Load-Data { {%- br %}
     ${env:SNOWSQL_USER} = ${env:WSL_TGT_USER}{%- br %}
     ${env:SNOWSQL_PWD}  = ${env:WSL_TGT_PWD}{%- br %}
     {%- br %}
+
+    # Work out full file format name{%- br %}
+    Add-Type -Path $(Join-Path -Path ${env:WSL_BINDIR} -ChildPath 'WslMetadataServiceClient.dll')
+    $metaDbType = [WslMetadataServiceClient.MetaDatabaseType]::SqlServer
+    # Metadata DSN, Meta DB Type enum, Metadata User, Metadata Password, Metadata schema and lastly maybe 64bit
+    if ([System.Environment]::Is64BitProcess) {
+        $metaArch = [WslMetadataServiceClient.Architecture]::_64bit
+        $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo.",$metaArch)
+    }
+    else {
+        $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo.")
+    }
+    $root = $repo.objectsByName
+    $fileFormatObject = $root[${env:FILE_FORMAT}]
+		${env:fileFormatDatabase} = $fileFormatObject.target.database.GetValue()
+    ${env:fileFormatSchema} = $fileFormatObject.target.schema.GetValue()
+    ${env:fileFormatFullName} = ""
+    if( ! [string]::IsNullOrEmpty(${env:fileFormatDatabase})) { ${env:fileFormatFullName} += ${env:fileFormatDatabase} + "." }
+    if( ! [string]::IsNullOrEmpty(${env:fileFormatSchema})) { ${env:fileFormatFullName} += ${env:fileFormatSchema} + "." }
+    ${env:fileFormatFullName} += ${env:FILE_FORMAT}
+
     if(${env:DEBUG} -eq "TRUE") { {%- br %}
         $logStream.WriteLine("=================== LOAD OPTIONS ==================="){%- br %}
         $logStream.WriteLine("Specified Load Table:        " + ${env:WSL_LOAD_TABLE}){%- br %}
@@ -371,6 +393,7 @@ function Load-Data { {%- br %}
         $logStream.WriteLine("SF_SNOWSQL_DATABASE:      " + ${env:SNOWSQL_DATABASE}){%- br %}
         $logStream.WriteLine("SF_SNOWSQL_SCHEMA:        " + ${env:SNOWSQL_SCHEMA}){%- br %}
         $logStream.WriteLine("SF_FILE_FORMAT:           " + ${env:FILE_FORMAT}){%- br %}
+        $logStream.WriteLine("fileFormatFullName:       " + ${env:fileFormatFullName}){%- br %}
         $logStream.WriteLine("SF_SEND_FILES_ZIPPED:     " + ${env:SEND_FILES_ZIPPED}){%- br %}
         $logStream.WriteLine("SF_UNLOAD_DELIMITER:      " + ${env:UNLOAD_DELIM}){%- br %}
         $logStream.WriteLine("SF_UNLOAD_ENCLOSED_BY:    " + ${env:UNLOAD_ENC}){%- br %}
@@ -687,7 +710,7 @@ function Load-Data { {%- br %}
               FROM $(if ( [string]::IsNullOrWhiteSpace(${env:EXTERNAL_STAGE})) { "@~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY} t" }
                      else { "@${env:EXTERNAL_STAGE}/${fileDat} t" })
             ){%- br %}
-            FILE_FORMAT = '${env:FILE_FORMAT}'{%- br %}
+            FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
@@ -697,7 +720,7 @@ function Load-Data { {%- br %}
             $copyStmt = @"
             COPY INTO ${env:WSL_LOAD_FULLNAME}
             FROM @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY}
-            FILE_FORMAT = '${env:FILE_FORMAT}'{%- br %}
+            FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
@@ -773,7 +796,7 @@ function Load-Data { {%- br %}
             COPY INTO ${env:WSL_LOAD_FULLNAME}{% br %}
             FROM ${filePath}${fileDat}{%- br %}
             CREDENTIALS = (AWS_KEY_ID='${env:ACCESS_KEY}' AWS_SECRET_KEY='${env:SECRET_KEY}'){%- br %}
-            FILE_FORMAT = '${env:FILE_FORMAT}'{%- br %}
+            FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
@@ -832,7 +855,7 @@ function Load-Data { {%- br %}
             FROM ${filePath}${fileDat}{%- br %}
             CREDENTIALS = (AZURE_SAS_TOKEN='${env:AZ_SAS_TOKEN}'){%- br %}
             $(if( ! [string]::IsNullOrWhiteSpace(${env:AZ_ENCRYPTION_TYPE})) { "ENCRYPTION = (TYPE='${env:AZ_ENCRYPTION_TYPE}' MASTER_KEY='${env:AZ_ENCRYPTION_KEY}')" })
-            FILE_FORMAT = '${env:FILE_FORMAT}'{%- br %}
+            FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}

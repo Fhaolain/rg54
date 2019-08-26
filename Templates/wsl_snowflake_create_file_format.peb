@@ -15,10 +15,11 @@
 {# --                                                                                                                                                       -- #}
 {# -- Notes / History                                                                                                                                       -- #}
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
+{# -- TS: Added support for file formats to reside in schema other than PUBLIC 2.0.0 (2019-08-26)                                                           -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
-CREATE OR REPLACE FILE FORMAT PUBLIC.{{table.name}}{% br %}
+CREATE OR REPLACE FILE FORMAT $OBJECT${% br %}
 {%- for column in table.columns -%}
 {{column.name}} = {{column.fullDataType}}{% br %}
 {%- endfor -%}
