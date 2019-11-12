@@ -1,3 +1,4 @@
 # ignore personal import/export files
 connect_info.txt
 objects_to_export.txt
+.DS_Store
