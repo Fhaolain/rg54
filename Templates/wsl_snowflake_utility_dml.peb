@@ -24,7 +24,7 @@
 {# -- JL: Changes to logical deleting to also allow for a deleted_flag and to fix a couple of issues 2.0.8 (2019-03-22)                                     -- #}
 {# -- JL: Fixed issue with DISTINCT keyword not always having a space after it 2.0.9 (2019-07-22)                                                           -- #}
 {# -- JL: Added this new macro: addMergeTargetColumnsSelect to support MINUS change detection in the perm template 2.1.0 (2019-07-22)                       -- #}
-{# --                                                                                                                                                       -- #}
+{# -- PK: Changed macro  macroaddBatchLoopSelectClause to call Run-Snowflake-RedSQL                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
 {# -- This macro adds the target columns and dss columns of the destination table-- #}
@@ -330,10 +330,10 @@
   {%- for whereLine in (table.sourceJoinDetails.where | lines)%}  {{whereLine}}{%br%}{%- endfor%}
   ORDER BY 1 {%- br %}
 "@ {%- br %}
-  $SnowflakeLoop = Run-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed batch distinct select from source tables step $step" -odbcConn $tgtConn {%- br %}
+  $SnowflakeLoop = Run-Snowflake-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed batch distinct select from source tables step $step" -odbcConn $tgtConn {%- br %}
 }{%br%}
 {%- br %}
-foreach($row in $SnowflakeLoop[4]) { {%- br %}
+foreach($row in $SnowflakeLoop[3]) { {%- br %}
 {%- br %}
   if ( $status -eq 1 ){ {%- br %}
 {%- br %}
