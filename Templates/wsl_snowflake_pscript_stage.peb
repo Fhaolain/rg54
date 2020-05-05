@@ -23,6 +23,7 @@
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.4 (2019-03-25)                                                    -- #}
 {# -- JL: Fixed issue with status messages when reporting details of missing dimension rows 2.0.3 (2019-05-19)                                              -- #}
 {# -- TK: Changed row count variables to int64 to handle more than 2b rows 2.0.4 (2019-06-23)                                                               -- #}
+{# -- PM: For Multi-Pass Delete option added batch delete code (2020-05-05)                                                                                 -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
@@ -66,6 +67,10 @@ $status = 1{%br%}
 $step = {% counter %}00{%br%}
 {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
 [int64]$deleteCount = 0{%br%}
+{%- endif %}
+{%- if settings.deleteBeforeInsertMultiPass %}
+[int64]$batchDeleteCount = 0{%br%}
+[int64]$batchLoop = 1{%br%}
 {%- endif %}
 [int64]$insertCount = 0{%br%}
 
@@ -114,6 +119,30 @@ if ( $status -eq 1 ){
   $SnowflakeResult = Run-Snowflake-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed truncating table {{table.name}} step $step" -odbcConn $tgtConn
   $return_Msg = $SnowflakeResult[2]{%br%}
 }{%br%}
+  {%- elseif settings.deleteBeforeInsertMultiPass %}{%br%}
+if ( $status -eq 1 ){
+{%br%}
+  #--============================================================================{%br%}
+  #-- Delete existing records in batch{%br%}
+  #--============================================================================{%br%}{%br%}
+  do{ {%br%}
+	 $null = WsWrkAudit -Message "Processing delete batch : $($batchLoop)"{%br%}
+    $sql = @"{%br%}
+    MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
+    USING ({%br%}
+    SELECT TOP 1000000 * FROM [TABLEOWNER].[{{table.name}}]{%br%}
+    {%- if settings.deleteWhereClause | trim != "" %} {{settings.deleteWhereClause}}{%br%}{%- endif %}
+    )X ON X.{{table.columns[0].name}} = [TABLEOWNER].[{{table.name}}].{{table.columns[0].name}}{%br%}
+		{%- if settings.deleteWhereClause | trim != "" %}  AND {{settings.deleteWhereClause | replace({'WHERE': ''})}}{%br%}{%- endif %}
+    WHEN MATCHED THEN DELETE;{%br%}
+"@
+    $SnowflakeResult = Run-Snowflake-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed deleting from table {{table.name}} step $step" -odbcConn $tgtConn{%br%}
+    $batchDeleteCount= $SnowflakeResult[1]{%br%}
+    $deleteCount += $SnowflakeResult[1]{%br%}
+	$batchLoop=$batchLoop+1{%br%}
+	 $return_Msg = $SnowflakeResult[2]{%br%}
+   } while ($batchDeleteCount -ge 1000000){%br%}
+  }
   {%- else %}{%br%}
 if ( $status -eq 1 ){
 {%br%}
