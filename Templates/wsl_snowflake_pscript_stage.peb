@@ -23,7 +23,7 @@
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.4 (2019-03-25)                                                    -- #}
 {# -- JL: Fixed issue with status messages when reporting details of missing dimension rows 2.0.3 (2019-05-19)                                              -- #}
 {# -- TK: Changed row count variables to int64 to handle more than 2b rows 2.0.4 (2019-06-23)                                                               -- #}
-{# -- PM: For Multi-Pass Delete option added batch delete code (2020-05-05)                                                                                 -- #}
+{# -- PM: Added batch delete code (2020-04-29)                                                                                                              -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
