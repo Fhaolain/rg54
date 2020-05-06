@@ -19,6 +19,7 @@
 {# -- JL: Powershell Mods 2.0.0 (2017-08-03)                                                                                                                -- #}
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.1 (2019-04-13)                                                    -- #}
 {# -- JL: Added include for general utility macros 2.0.2 (2019-07-23)                                                                                       -- #}
+{# -- PM: Removed delete code (2020-05-05)                                                                                                          -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% import "wsl_snowflake_utility" %}
@@ -58,9 +59,6 @@ $status = 1{%br%}
 #-- Main{%br%}
 #--============================================================================{%br%}{%br%}
 $step = {% counter %}00{%br%}
-{%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
-$deleteCount = 0{%br%}
-{%- endif %}
 $insertCount = 0{%br%}
 
 {%- for par in settings.parameters %}
@@ -119,11 +117,7 @@ if ( $status -eq 1 ){
 #--====================================================={%br%}{%br%}
 $step = {% counter %}00{%br%}{%br%}
 #-- WsWrkTask call to updated row counts in Ws_Wrk_Task_Run/Log{%br%}
-{%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
-$metaResult = WsWrkTask -Replaced $insertCount -Deleted $deleteCount{%br%}
-{%- else %}
 $metaResult = WsWrkTask -Replaced $insertCount{%br%}
-{%- endif %}
 if ( $metaResult -lt -1 ){
   $status = -2{%br%}
   $return_Msg = "Failure executing WsWrkTask. $insertCount records inserted."{%br%}
@@ -134,9 +128,7 @@ if ( $status -eq 1 ) {
 {%br%}
   $return_Msg = "{{table.name}} updated.  "{%br%}
   $return_Msg += "$insertCount records inserted.  "{%br%}
-  {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
-  $return_Msg += "$deleteCount records deleted.  "{%br%}
-  {%- endif %}
+
 }
 
 $status
