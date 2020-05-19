@@ -19,8 +19,8 @@
 {# -- JL: Powershell Mods 2.0.0 (2017-08-03)                                                                                                                -- #}
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.1 (2019-04-13)                                                    -- #}
 {# -- JL: Added include for general utility macros 2.0.2 (2019-07-23)                                                                                       -- #}
-{# -- PM: Removed delete code (2020-05-05)                                                                                                          -- #}
-{# --                                                                                                                                                       -- #}
+{# -- PM: Removed delete code (2020-05-05)                                                                                                                  -- #}
+{# -- PM: Added Batch by Column (2020-05-13)                                                                                                                -- #}
 {# --                                                                                                                                                       -- #}
 {% import "wsl_snowflake_utility" %}
 {% import "wsl_snowflake_utility_dv" %}
@@ -86,8 +86,14 @@ if( ! [string]::IsNullOrEmpty($timeZone)) {
 {% br %}
 {%- endif %}
 
+{%- if settings.batchProcessingField != "" %}
+  {%- set batchIndent = "  " %}
+{%- else %}
+  {%- set batchIndent = "" %}
+{%- endif %}
 {#- Insert new records #}
 if ( $status -eq 1 ){
+  {{- addBatchLoopSelectClause()}}
 {%br%}
   #--============================================================================{%br%}
   #-- Insert new records{%br%}
@@ -98,12 +104,15 @@ if ( $status -eq 1 ){
   {{- addSetInsertTargetColumns(indentString = "  ")}}
   SELECT {{distinct()}} {{addSetInsertColumnsPerm(indentString = "       ")}}
   {%- if table.sourceJoinDetails.join | trim != "" %}  {{table.sourceJoinDetails.join}}{%br%} {%- endif %}
+
   {%- if table.objectType.name == "Satellite" %}  {{addSatCurrentVersion()}} {%- endif %}
   {%- if table.sourceJoinDetails.where | trim != "" %}  {{table.sourceJoinDetails.where | trim }}{%br%} {%- endif %}
-  {%- if table.objectType.name == "Hub" %}  {{addHubWhereNotExists()}}
+		 {{- addBatchLoopWhereClause()}}
+	{%- if table.objectType.name == "Hub" %}  {{addHubWhereNotExists()}}
   {%- elseif table.objectType.name == "Link" %}  {{addLinkWhereNotExists()}}
   {%- elseif table.objectType.name == "Satellite" %}  {{addSatWhereNotExists()}}
   {%- endif %}
+
   {%- if table.sourceJoinDetails.groupBy | trim != "" %}  {{table.sourceJoinDetails.groupBy | trim }}{%br%} {%- endif %}
   ;{%br%}
 "@
@@ -111,7 +120,9 @@ if ( $status -eq 1 ){
   $insertCount = $insertCount + $SnowflakeResult[1]
   $return_Msg = $SnowflakeResult[2]{%br%}
 }{%br%}
-
+{%- if settings.batchProcessingField != "" %}
+} {%br%}
+{%- endif %}
 #--====================================================={%br%}
 #-- All Done report the results{%br%}
 #--====================================================={%br%}{%br%}

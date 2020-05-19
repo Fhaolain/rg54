@@ -15,7 +15,7 @@
 {# --                                                                                                                                                       -- #}
 {# -- Notes / History                                                                                                                                       -- #}
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
-{# --                                                                                                                                                       -- #}
+{# -- PM: Macro added for batch by column                                                                                                                   -- #}
 {# --                                                                                                                                                       -- #}
 
 {# -- This macro adds hub hash key calculations                                   -- #}
@@ -143,7 +143,7 @@
 
 {# -- This macro inserts the where not exists query for a hub -- #}
 {% macro addHubWhereNotExists(indent="        ") %}
-{%- if table.sourceJoinDetails.where | trim != "" %}
+{%- if table.sourceJoinDetails.where | trim != "" or settings.batchProcessingField != "" %}
 AND NOT EXISTS ({%br%}
 {%- else %}
 WHERE NOT EXISTS ({%br%}
@@ -162,7 +162,7 @@ WHERE NOT EXISTS ({%br%}
 
 {# -- This macro inserts the where not exists query for a link -- #}
 {% macro addLinkWhereNotExists(indent="        ") %}
-{%- if table.sourceJoinDetails.where | trim != "" %}
+{%- if table.sourceJoinDetails.where | trim != "" or settings.batchProcessingField != "" %}
 AND NOT EXISTS ({%br%}
 {%- else %}
 WHERE NOT EXISTS ({%br%}
@@ -181,7 +181,7 @@ WHERE NOT EXISTS ({%br%}
 
 {# -- This macro inserts the where not exists query for a satellite -- #}
 {% macro addSatWhereNotExists(indent="        ") %}
-{%- if table.sourceJoinDetails.where | trim != "" %}
+{%- if table.sourceJoinDetails.where | trim != "" or settings.batchProcessingField != "" %}
 AND NOT EXISTS ({%br%}
 {%- else %}
 WHERE NOT EXISTS ({%br%}
@@ -199,9 +199,9 @@ WHERE NOT EXISTS ({%br%}
 {# -- This macro inserts the query to find the current row for a satellite -- #}
 {% macro addSatCurrentVersion(indent="        ") %}
 LEFT OUTER JOIN ({%br%}
-{{indent}}SELECT
+{{indent}}SELECT{{indent}}
 {%- from table.columns as column where column.hubHashKey or column.linkHashKey %}
-  {%- if loop.first %} {% else %}{{indent}}, {% endif %}{{table.name}}.{{column.name}}{%br%}
+  {%- if loop.first %}{% else %}{{indent}}, {% endif %}{{table.name}}.{{column.name}}{%br%}
 {%- endfrom %}
 {%- from table.columns as column where column.dssStartDate or column.dssVersion %}
   {{indent}}   , MAX({{table.name}}.{{column.name}}) AS {{column.name}}{%br%}
@@ -221,4 +221,58 @@ LEFT OUTER JOIN ({%br%}
 {{- indentString -}}--====================================================={%br%}
 {{- indentString -}}-- {{commentMessage}}{%br%}
 {{- indentString -}}--====================================================={%br%}
+{% endmacro %}
+
+
+
+{# -- This macro adds in logic for batch looping -- #}
+{% macro addBatchLoopSelectClause() %}
+{%- if settings.batchProcessingField != "" %}
+  {%- set sourceFound = false %}
+  {%- for col in table.columns %}
+    {%- if col.sourceColumn is defined and not sourceFound %}
+      {%- fetch col.sourceColumn %}
+      {%- if col.sourceColumn.name == settings.batchProcessingField %}
+  $step = {% counter %}00{%br%}{%br%}
+  $sql = @" {%- br %}
+  SELECT DISTINCT {{col.source}} batch_start {%- br %}
+  {%- for joinLine in (table.sourceJoinDetails.join | lines)%}  {{joinLine}}{%br%}{%- endfor%}
+  {%- for whereLine in (table.sourceJoinDetails.where | lines)%}  {{whereLine}}{%br%}{%- endfor%}
+  ORDER BY 1 {%- br %}
+"@ {%- br %}
+  $SnowflakeLoop = Run-Snowflake-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed batch distinct select from source tables step $step" -odbcConn $tgtConn {%- br %}
+}{%br%}
+{%- br %}
+foreach($row in $SnowflakeLoop[3]) { {%- br %}
+{%- br %}
+  if ( $status -eq 1 ){ {%- br %}
+{%- br %}
+    $null = WsWrkAudit -Message "Processing batch : $($row[0])" {%- br %}
+{%- br %}
+        {%- set sourceFound = true %}
+      {%- endif %}
+    {%- endif %}
+  {%- endfor %}
+{%- endif %}
+{% endmacro %}
+
+{# -- This macro adds in logic for batch looping -- #}
+{% macro addBatchLoopWhereClause(indent = "      ", dssFlag = false) %}
+  {%- if table.sourceJoinDetails.where | trim != "" or dssFlag %}
+    {%- set nextWhere = "AND" %}
+  {%- else %}
+    {%- set nextWhere = "WHERE" %}
+  {%- endif %}
+  {%- if settings.batchProcessingField != "" %}
+    {%- set sourceFound = false %}
+    {%- for col in table.columns %}
+      {%- if col.sourceColumn is defined and not sourceFound %}
+        {%- fetch col.sourceColumn %}
+        {%- if col.sourceColumn.name == settings.batchProcessingField %}
+          {{- indent}}{{nextWhere}}    {{col.source}} = '$($row[0])' {%br%}
+          {%- set sourceFound = true %}
+        {%- endif %}
+      {%- endif %}
+    {%- endfor %}
+  {%- endif %}
 {% endmacro %}
