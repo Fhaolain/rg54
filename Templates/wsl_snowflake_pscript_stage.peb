@@ -23,8 +23,8 @@
 {# -- JL: Timezone setting is now excluded from scripts if not set at generation time 2.0.4 (2019-03-25)                                                    -- #}
 {# -- JL: Fixed issue with status messages when reporting details of missing dimension rows 2.0.3 (2019-05-19)                                              -- #}
 {# -- TK: Changed row count variables to int64 to handle more than 2b rows 2.0.4 (2019-06-23)                                                               -- #}
-{# -- PM: Added batch delete code (2020-04-29)                                                                                                              -- #}
-{# --                                                                                                                                                       -- #}
+{# -- PM: For Multi-Pass Delete option added batch delete code (2020-05-05)                                                                                 -- #}
+{# -- PM: Code added for Batch by column                                                                                                                    -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
 {% set counter = 0 %}
@@ -98,6 +98,11 @@ if( ! [string]::IsNullOrEmpty($timeZone)) {
 }{% br %}
 {% br %}
 {%- endif %}
+{%- if settings.batchProcessingField != "" %}
+  {%- set batchIndent = "  " %}
+{%- else %}
+  {%- set batchIndent = "" %}
+{%- endif %}
 
 {# --                                             -- #}
 {# -- =========================================== -- #}
@@ -126,23 +131,23 @@ if ( $status -eq 1 ){
   #-- Delete existing records in batch{%br%}
   #--============================================================================{%br%}{%br%}
   do{ {%br%}
-	 $null = WsWrkAudit -Message "Processing delete batch : $($batchLoop)"{%br%}
+	  $null = WsWrkAudit -Message "Processing delete batch : $($batchLoop)"{%br%}
     $sql = @"{%br%}
     MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
     USING ({%br%}
     SELECT TOP 1000000 * FROM [TABLEOWNER].[{{table.name}}]{%br%}
-    {%- if settings.deleteWhereClause | trim != "" %} {{settings.deleteWhereClause}}{%br%}{%- endif %}
+    {%- if settings.deleteWhereClause | trim != "" %}    {{settings.deleteWhereClause}}{%br%}{%- endif %}
     )X ON X.{{table.columns[0].name}} = [TABLEOWNER].[{{table.name}}].{{table.columns[0].name}}{%br%}
-		{%- if settings.deleteWhereClause | trim != "" %}  AND {{settings.deleteWhereClause | replace({'WHERE': ''})}}{%br%}{%- endif %}
+		{%- if settings.deleteWhereClause | trim != "" %}    AND {{settings.deleteWhereClause | replace({'WHERE': ''})}}{%br%}{%- endif %}
     WHEN MATCHED THEN DELETE;{%br%}
 "@
     $SnowflakeResult = Run-Snowflake-RedSQL -sql $sql -dsn ${env:WSL_TGT_DSN} -uid ${env:WSL_TGT_USER} -pwd ${env:WSL_TGT_PWD} -failureMsg "Failed deleting from table {{table.name}} step $step" -odbcConn $tgtConn{%br%}
     $batchDeleteCount= $SnowflakeResult[1]{%br%}
     $deleteCount += $SnowflakeResult[1]{%br%}
-	$batchLoop=$batchLoop+1{%br%}
-	 $return_Msg = $SnowflakeResult[2]{%br%}
+ 	  $batchLoop=$batchLoop+1{%br%}
+	  $return_Msg = $SnowflakeResult[2]{%br%}
    } while ($batchDeleteCount -ge 1000000){%br%}
-  }
+}{%br%}
   {%- else %}{%br%}
 if ( $status -eq 1 ){
 {%br%}
@@ -292,6 +297,7 @@ if ( $status -eq 1 ){
 {# -- =========================================== -- #}
 {# --                                             -- #}
 if ( $status -eq 1 ){
+  {{- addBatchLoopSelectClause()}}
 {%br%}
   #--============================================================================{%br%}
   #-- Insert new records{%br%}
@@ -305,6 +311,7 @@ if ( $status -eq 1 ){
   {%- for joinLine in (table.sourceJoinDetails.join | lines)%}  {{joinLine}}{%br%}{%- endfor%}
   {{- addDimensionJoins(indent = "  ")}}
   {%- for whereLine in (table.sourceJoinDetails.where | trim | lines)%}  {{whereLine}}{%br%}{%- endfor%}
+	{{- addBatchLoopWhereClause()}}
   {%- for groupByLine in (table.sourceJoinDetails.groupBy | trim | lines)%}  {{groupByLine}}{%br%}{%- endfor%}
   ;{%br%}
 "@
@@ -312,7 +319,9 @@ if ( $status -eq 1 ){
   $insertCount = $insertCount + $SnowflakeResult[1]
   $return_Msg = $SnowflakeResult[2]{%br%}
 }{%br%}{%br%}
-
+{%- if settings.batchProcessingField != "" %}
+} {%br%}
+{%- endif %}
 {# --                                             -- #}
 {# -- =========================================== -- #}
 {# -- Report missed dimension lookups             -- #}

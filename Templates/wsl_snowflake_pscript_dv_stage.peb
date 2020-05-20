@@ -92,6 +92,12 @@ if( ! [string]::IsNullOrEmpty($timeZone)) {
 {% br %}
 {%- endif %}
 
+{%- if settings.batchProcessingField != "" %}
+  {%- set batchIndent = "  " %}
+{%- else %}
+  {%- set batchIndent = "" %}
+{%- endif %}
+
 {%- if settings.deleteBeforeInsert %}
   {%- if settings.deleteBeforeInsertTruncate %}{%br%}
 if ( $status -eq 1 ){
@@ -152,6 +158,7 @@ if ( $status -eq 1 ){
 
 if ( $status -eq 1 ){
 {%br%}
+  {{- addBatchLoopSelectClause()}}
   #--============================================================================{%br%}
   #-- Insert new records{%br%}
   #--============================================================================{%br%}{%br%}
@@ -162,6 +169,7 @@ if ( $status -eq 1 ){
   SELECT {{distinct()}} {{addSetInsertColumns(indentString = "       ")}}
   {%- if table.sourceJoinDetails.join | trim != "" %}  {{table.sourceJoinDetails.join}}{%br%} {%- endif %}
   {%- if table.sourceJoinDetails.where | trim != "" %}  {{table.sourceJoinDetails.where | trim }}{%br%} {%- endif %}
+	{{- addBatchLoopWhereClause()}}
   {%- if table.sourceJoinDetails.groupBy | trim != "" %}  {{table.sourceJoinDetails.groupBy | trim }}{%br%} {%- endif %}
   ;{%br%}{%br%}
 "@
@@ -169,7 +177,9 @@ if ( $status -eq 1 ){
   $insertCount = $insertCount + $SnowflakeResult[1]
   $return_Msg = $SnowflakeResult[2]{%br%}
 }{%br%}
-
+{%- if settings.batchProcessingField != "" %}
+} {%br%}
+{%- endif %}
 #--====================================================={%br%}
 #-- All Done report the results{%br%}
 #--====================================================={%br%}{%br%}
