@@ -1,25 +1,25 @@
-# -- TemplateVersion:003 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Python3.8                                               -- #}
-#                                                                                                                                                           -- #}
-# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template         -- #}
-# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.          -- #}
-# --                                                                                                                                                        -- #}
-# -- =============================================================================                                                                          -- #}
-# --                                                                                                                                                        -- #}
-# -- DBMS Name          : Snowflake                                                                                                                         -- #}
-# -- Template Name      : wsl_snowflake_pscript_load                                                                                                        -- #}
-# -- RED Version        : 8.3.1.0                                                                                                                           -- #}
-# -- Description        : This template creates a Snowflake script specifically                                                                             -- #}
-# --                      specifically designed for all RED load tables                                                                                     -- #}
-# --                                                                                                                                                        -- #}
-# -- =============================================================================                                                                          -- #}
-# --                                                                                                                                                        -- #}
-# --                                                                                                                                                        -- #}
-#  Notes / History                                                                                                                                          -- #}
+{# -- TemplateVersion:003 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Python                                                  -- #}
+{#                                                                                                                                                           -- #}
+{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template         -- #}
+{# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.          -- #}
+{# --                                                                                                                                                        -- #}
+{# -- =============================================================================                                                                          -- #}
+{# --                                                                                                                                                        -- #}
+{# -- DBMS Name          : Snowflake                                                                                                                         -- #}
+{# -- Template Name      : wsl_snowflake_pyscript_load                                                                                                       -- #}
+{# -- RED Version        : 8.4.1.0                                                                                                                           -- #}
+{# -- Description        : This template creates a Snowflake script specifically                                                                             -- #}
+{# --                      specifically designed for all RED load tables                                                                                     -- #}
+{# --                                                                                                                                                        -- #}
+{# -- =============================================================================                                                                          -- #}
+{# --                                                                                                                                                        -- #}
+{# --                                                                                                                                                        -- #}
+{#  Notes / History                                                                                                                                          -- #}
 {%- set dssRecordSrc = "DSS_RECORD_SOURCE" -%}{%- br %}
 #=============================================================================={%- br %}
 # DBMS Name        :    SNOWFLAKE {{table.dbType.name}}{%- br %}
 # Template         :    {{settings.template.name}}{%- br %}
-# Template Version :    8.3.1.0{%- br %}
+# Template Version :    8.4.1.0{%- br %}
 # Description      :    Load {{table.name}}{%- br %}
 # Generated by     :    {{env.productVersion}}{%- br %}
 # Generated for    :    {{env.licensedTo}}{%- br %}
@@ -28,7 +28,6 @@
 #=============================================================================={%- br %}
 # Notes / History{%- br %}
 #{%- br %}
-import WslPythonCommon{%br%}
 import os{%br%}
 import re{%br%}
 import gzip{%br%}
@@ -39,6 +38,9 @@ import glob{%br%}
 import pyodbc{%br%}
 import snowflake.connector{%br%}
 import time{%br%}
+sys.path.append('C:\ProgramData\WhereScape\Modules\WslPython'){%br%}
+import WslPythonCommon{%br%}
+
 WslPythonCommon.HideWindow(){%br%}
 
 def PrintLog(fileAud):{%br%}
@@ -208,8 +210,30 @@ def LoadData(runMode):{%br%}
     if os.environ["FILE_FORMAT"]=="":{%br%}
         os.environ["FILE_FORMAT"] = "FMT_RED_CSV_SKIP_GZIP_COMMA"{%br%}
 
+    unicode = False{% br %}
+    if str(os.getenv('UNICODE_SUPPORT'))== "TRUE":{% br %}
+       unicode = True{% br %}
+    if str(os.getenv('FILE_COUNT'))=="None":{% br %}
+      fileCount=0{% br %}
+    else:{% br %}
+      fileCount=int(str(os.getenv('FILE_COUNT'))){% br %}
+
+    if str(os.getenv('SPLIT_THRESHOLD'))=="None":{% br %}
+      splitThresholdCount=0{% br %}
+    else:{% br %}
+      splitThresholdCount=int(str(os.getenv('SPLIT_THRESHOLD'))){% br %}
+
     os.environ["SNOWSQL_USER"] = os.environ["WSL_TGT_USER"]{%br%}
     os.environ["SNOWSQL_PWD"]  = os.environ["WSL_TGT_PWD"]{%br%}
+
+    # Work out full file format name{%- br %}
+    FILE_FORMAT_FULL=WslPythonCommon.GetFileFormatFullName( os.environ["FILE_FORMAT"] )
+    os.environ["fileFormatFullName"] = ""
+    if FILE_FORMAT_FULL != "":
+         os.environ["fileFormatFullName"] = FILE_FORMAT_FULL+"."+os.environ["FILE_FORMAT"]
+    else:
+      os.environ["fileFormatFullName"] = os.environ["FILE_FORMAT"]
+
     filePath = os.environ["WSL_WORKDIR"]{%br%}
     auditLog=str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+".txt"{%br%}
     logStream = open(os.path.join(filePath,auditLog), 'a+'){%br%}
@@ -307,21 +331,6 @@ def LoadData(runMode):{%br%}
     if str(os.getenv('DEBUG'))== "TRUE":{% br %}
        logStream.write("BEGIN create of data file from source system: "+str(datetime.now())+'\n'){% br %}
 
-    if os.environ["FILE_FORMAT"]=="":{%br%}
-       os.environ["FILE_FORMAT"] = "FMT_RED_CSV_SKIP_GZIP_COMMA"{%br%}
-
-    unicode = False{% br %}
-    if str(os.getenv('UNICODE_SUPPORT'))== "TRUE":{% br %}
-       unicode = True{% br %}
-    if str(os.getenv('FILE_COUNT'))=="None":{% br %}
-      fileCount=0{% br %}
-    else:{% br %}
-      fileCount=int(str(os.getenv('FILE_COUNT'))){% br %}
-
-    if str(os.getenv('SPLIT_THRESHOLD'))=="None":{% br %}
-      splitThresholdCount=0{% br %}
-    else:{% br %}
-      splitThresholdCount=int(str(os.getenv('SPLIT_THRESHOLD'))){% br %}
 
     rowCount = WslPythonCommon.GetDataToFile(extractSql,str(os.getenv('WSL_SRC_DSN')),str(os.getenv('WSL_SRC_USER')),str(os.getenv('WSL_SRC_PWD')),os.path.join(filePath,fileDat),str(os.getenv('UNLOAD_DELIM')), fileCount, splitThresholdCount, True, unicode, str(os.getenv('UNLOAD_ENC')), str(os.getenv('UNLOAD_ESC'))){% br %}
     if str(os.getenv('DEBUG')) == "TRUE":
@@ -393,7 +402,7 @@ def LoadData(runMode):{%br%}
               print("-1")
             {%- endif %}
               print("File "+ fileCheck +" was not found. "){%- br %}
-			  logStream.close(){%- br %}
+              logStream.close(){%- br %}
               PrintLog(os.path.join(str(os.environ["WSL_WORKDIR"]),auditLog)){%- br %}
               sys.exit(){%- br %}
               {%- else -%}{%- br %}
@@ -411,8 +420,8 @@ def LoadData(runMode):{%br%}
             {%- else %}
               print("-1")
             {%- endif %}
-              print("File "+ fileCheck +" was not found. ")
-							logStream.close(){%- br %}
+              print("File "+ fileCheck +" was not found. "){%- br %}
+              logStream.close(){%- br %}
               PrintLog(os.path.join(str(os.environ["WSL_WORKDIR"]),auditLog)){%- br %}
               sys.exit(){%- br %}
         {%- endif -%}
@@ -425,7 +434,12 @@ def LoadData(runMode):{%br%}
         originalDat = fileDat
         for sourceFile in dataFilesCopy:
             rowCount = 0
-            with open(sourceFile, 'r') as f:
+            if os.environ["UNICODE_SUPPORT"]=="TRUE":
+             with open(sourceFile, 'r', encoding='utf-8') as f:
+              for line in f:
+                rowCount += 1
+            else:
+             with open(sourceFile, 'r') as f:
               for line in f:
                 rowCount += 1
             if fileHeader=="true":
@@ -537,6 +551,7 @@ def LoadData(runMode):{%br%}
             if str(os.getenv('DEBUG'))== "TRUE":{% br %}
                 logStream.write("\nEND PUT of files matching " +fileDat+" : "+str(datetime.now())+'\n'){% br %}
 {% br %}
+ {%- set noindent = "" %}
         if os.environ["TIMEZONE"] !="":{% br %}
             tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ["TIMEZONE"]) +"'"+ ";`r`n"{% br %}
             logStream.write("\nSET TIMEZONE:"){% br %}
@@ -548,17 +563,17 @@ def LoadData(runMode):{%br%}
         if os.environ["FILE_TYPE"]== "CSV":{% br %}
             copyStatement ="""
             COPY INTO """+str(os.environ["WSL_LOAD_FULLNAME"])+"""
-            (
+            ({{ noindent }}
               {%- for col in table.columns %}
-                {%- if not loop.first %}
-            ,
+               {%- if not loop.first %}
+            , {{ noindent }}
                 {%- endif %}
-            {{ col.name }}{%- br %}
+            {{- noindent }}{{ col.name }}{%- br %}
               {%- endfor %}
             ){%- br %}
             FROM ({%- br %}{% set csvPos = 0 %}
               SELECT {% for col in table.columns %}
-                {%- if not loop.first %}, {% endif %}
+                {%- if not loop.first %}                       , {% endif %}
                 {%- if (table.loadInfo.sourceConnectionType.name == "Windows") and (col.name == dssRecordSrc ) %}METADATA$FILENAME
                 {%- elseif col.transformType.code == "A" %}{{ col.source }}
                 {%- else %}
@@ -569,17 +584,16 @@ def LoadData(runMode):{%br%}
               {%- endfor %}
               FROM """+externalStageName+"""
             ){%- br %}
-            FILE_FORMAT = """+"'"+str(os.getenv('FILE_FORMAT'))+"'"+"""
+            FILE_FORMAT = '"""+os.environ["fileFormatFullName"] +"'"
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
-          """{%- br %}
 
         else:{%- br %}
           copyStatement = """
           COPY INTO """+str(os.environ["WSL_LOAD_FULLNAME"])+"""
           FROM"""+ " @~/WSL"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+"""
-          FILE_FORMAT = """+"'"+str(os.getenv('FILE_FORMAT'))+"'"
+          FILE_FORMAT = '"""+os.environ["fileFormatFullName"] +"'"
 
         maskedLoad = copyStatement{%- br %}
 
@@ -656,7 +670,7 @@ def LoadData(runMode):{%br%}
             copyStatement = """{%- br %}
             COPY INTO """+str(os.environ["WSL_LOAD_FULLNAME"])+"""
             FROM"""+ " @~/WSL"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+" CREDENTIALS = (AWS_KEY_ID="+str(os.getenv('ACCESS_KEY'))+ " AWS_SECRET_KEY="+str(os.getenv('SECRET_KEY'))+") "+"""
-            FILE_FORMAT = """+"'"+str(os.getenv('FILE_FORMAT'))+"'"{%- br %}
+            FILE_FORMAT = """+"'"+os.environ["fileFormatFullName"] +"'"{%- br %}
             maskedLoad = copyStatement{%- br %}
             if str(os.getenv('ACCESS_KEY')) !="":{%- br %}
                 maskedLoad = maskedLoad.replace(str(os.getenv('ACCESS_KEY')),'*'* len(str(os.getenv('ACCESS_KEY')))){%- br %}
