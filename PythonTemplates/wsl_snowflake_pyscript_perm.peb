@@ -1,4 +1,4 @@
-{# -- TemplateVersion:003 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:STAR,ODS,NORMAL TemplateType:Python3.8                              -- #}
+{# -- TemplateVersion:003 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:STAR,ODS,NORMAL TemplateType:Python                                   -- #}
 {# --                                                                                                                                                       -- #}
 {# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
@@ -6,7 +6,7 @@
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
-{# -- Template Name      : wsl_snowflake_pyscript_perm                                                                                                       -- #}
+{# -- Template Name      : wsl_snowflake_pyscript_perm                                                                                                      -- #}
 {# -- RED Version        : 8.4.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake procedure specifically                                                                         -- #}
 {# --                      specifically designed for all RED non-stage tables                                                                               -- #}
@@ -14,13 +14,14 @@
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
-{# -- Notes / History                                                                                                                                       -- #}{# --                                                                                                                                                       -- #}
+{# -- Notes / History                                                                                                                                       -- #}
+{# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% fetch table %}
 {% set counter = 0 %}
 {% set dssDeleteTime = "DSS_DELETE_TIME" %}
 {% set dssDeleteFlag = "DSS_DELETE_FLAG" %}
-{% import "wsl_snowflake_utility_dml" %}
+{% import "wsl_snowflake_utility_dml_py" %}
 {% import "wsl_snowflake_utility" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
@@ -37,11 +38,13 @@
 #-- Notes / History{%br%}
 #--{%br%}
 
-import WslPythonCommon{%br%}
-import WslPythonSnowflake{%br%}
+
 import os{%br%}
 import sys{%br%}
 import fnmatch{%br%}
+sys.path.append('C:\ProgramData\WhereScape\Modules\WslPython'){%br%}
+import WslPythonCommon{%br%}
+import WslPythonSnowflake{%br%}
 ret=WslPythonCommon.HideWindow(){%br%}
 
 #--============================================================================{%br%}
@@ -168,14 +171,13 @@ if status == 1:
   ){%br%}
   ;{%br%}
 """
-  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed to insert missing dimension keys into {{ dimTableName }} at step '+str(step) , '',step)
+  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed to insert missing dimension keys into {{table.name}} at step '+str(step) , '',step)
   status=SnowflakeResult[1]
   mergeCount = mergeCount + SnowflakeResult[2]
-   if status<1:
+  if status<1:
    returnMsg = str(SnowflakeResult[3])
   else:
-   returnMsg = str(SnowflakeResult[2])
-  returnMsg = SnowflakeResult[2]{%br%}
+   returnMsg = str(SnowflakeResult[2]){%br%}
 {%br%}
     {%- endif -%}
   {%- endfrom -%}
