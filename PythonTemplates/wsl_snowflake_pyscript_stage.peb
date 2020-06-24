@@ -1,4 +1,4 @@
-{# -- TemplateVersion:001 MinVersion:8410 MaxVersion:* TargetType:Snowflake ModelType:STAR TemplateType:Python3.8                                       -- #}
+{# -- TemplateVersion:001 MinVersion:8410 MaxVersion:* TargetType:Snowflake ModelType:STAR TemplateType:Python                                              -- #}
 {# --                                                                                                                                                       -- #}
 {# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
@@ -6,7 +6,7 @@
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
-{# -- Template Name      : wsl_snowflake_pyscript_stage                                                                                                      -- #}
+{# -- Template Name      : wsl_snowflake_pyscript_stage                                                                                                     -- #}
 {# -- RED Version        : 8.4.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake procedure using Insert                                                                         -- #}
 {# --                      specifically designed for RED stage tables                                                                                       -- #}
@@ -18,7 +18,7 @@
 {# -- 				                                                                                                                                              -- #}
 {% fetch table %}
 {% set counter = 0 %}
-{% import "wsl_snowflake_utility_dml" %}
+{% import "wsl_snowflake_utility_dml_py" %}
 {% import "wsl_snowflake_utility" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
@@ -35,11 +35,12 @@
 #-- Notes / History{%br%}
 #--{%br%}
 
-import WslPythonCommon{%br%}
-import WslPythonSnowflake{%br%}
 import os{%br%}
 import sys{%br%}
 import fnmatch{%br%}
+sys.path.append('C:\ProgramData\WhereScape\Modules\WslPython'){%br%}
+import WslPythonCommon{%br%}
+import WslPythonSnowflake{%br%}
 ret=WslPythonCommon.HideWindow(){%br%}
 #--============================================================================{%br%}
 #-- General Variables{%br%}
@@ -95,9 +96,9 @@ if timeZone and not timeZone.isspace():
   {%- if settings.deleteBeforeInsertTruncate %}{%br%}
 if status==1:
 {%br%}
-  #--============================================================================{%br%}
-  #-- Truncate existing records{%br%}
-  #--============================================================================{%br%}
+#--============================================================================{%br%}
+#-- Truncate existing records{%br%}
+#--============================================================================{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql = "TRUNCATE TABLE [TABLEOWNER].[{{table.name}}];"{%br%}
   SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed truncating table {{table.name}} step '+str(step) , '',step)
@@ -111,9 +112,9 @@ if status==1:
   {%- else %}{%br%}
 if status==1:
 {%br%}
-  #--============================================================================{%br%}
-  #-- Delete existing records{%br%}
-  #--============================================================================{%br%}
+#--============================================================================{%br%}
+#-- Delete existing records{%br%}
+#--============================================================================{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql = """
   DELETE FROM [TABLEOWNER].[{{table.name}}]{%br%}
@@ -159,9 +160,9 @@ if status==1:
       {%- endif %}
 if status == 1:
 {%br%}
-  #--============================================================================{%br%}
-  #--= Build sql for finding missing dimension keys for dimension {{ dimTableName }}{%br%}
-  #--============================================================================{%br%}
+#--============================================================================{%br%}
+#--= Build sql for finding missing dimension keys for dimension {{ dimTableName }}{%br%}
+#--============================================================================{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql_select = """{% br %}
       {%- for fk in rel.fks %}
@@ -189,9 +190,9 @@ if status == 1:
   FROM [TABLEOWNER].[{{ dimTable.name }}] {{ dimTable.name }} {% br %}
 """{%br%}
       {%- if rel.detailLogForUnmatchedBusinessKeys %}
-  #--============================================================================{%br%}
-  #--= Log messages for auto adds to dimension {{ dimTableName }}{%br%}
-  #--============================================================================{%br%}
+#--============================================================================{%br%}
+#--= Log messages for auto adds to dimension {{ dimTableName }}{%br%}
+#--============================================================================{%br%}
   step = {% counter %}00{%br%}
   sql = sql_select + " ORDER BY 1"
   SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed to log missing dimension keys for {{ dimTableName }} at step '+str(step) , '',step)
@@ -206,9 +207,9 @@ if status == 1:
       {%- endif %}
 if status==1:
 {%br%}
-  #--============================================================================{%br%}
-  #--= Insert missing dimension keys for dimension {{ dimTableName }}{%br%}
-  #--============================================================================{%br%}
+#--============================================================================{%br%}
+#--= Insert missing dimension keys for dimension {{ dimTableName }}{%br%}
+#--============================================================================{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql = """
   INSERT INTO [TABLEOWNER].[{{ dimTable.name }}]{% br %}
@@ -263,9 +264,9 @@ if status==1:
 {# --                                             -- #}
 if status==1:
 {%br%}
-  #--============================================================================{%br%}
-  #-- Insert new records{%br%}
-  #--============================================================================{%br%}
+#--============================================================================{%br%}
+#-- Insert new records{%br%}
+#--============================================================================{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql = """
   INSERT INTO [TABLEOWNER].[{{table.name}}]{%br%}
@@ -308,24 +309,24 @@ if status==1:
   {%- endif %}
 if status==1:
 {%br%}
-  #--====================================================={%br%}
-  #-- Check {{dimTable}} for bad key joins{%br%}
-  #--====================================================={%br%}{%br%}
+#--====================================================={%br%}
+#-- Check {{dimTable}} for bad key joins{%br%}
+#--====================================================={%br%}{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql = """
   SELECT COUNT(*) {%br%}
   FROM [TABLEOWNER].[{{table.name}}] {%br%}
   WHERE {{dimKeyColumn}} = 0 {%br%}
 """
-   SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), ' Failed to count zero key rows at step'+ str(step)  , '',step)
-   status=SnowflakeResult[1]
-   if status<1:
+  SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), ' Failed to count zero key rows at step'+ str(step)  , '',step)
+  status=SnowflakeResult[1]
+  if status<1:
      returnMsg = str(SnowflakeResult[3])
-   else:
+  else:
      returnMsg += str(SnowflakeResult[2])
-   for row in SnowflakeLoop[4]:{%br%}
-    if row[0] >0: {%br%}
-      	newvar = WslPythonCommon.WsWrkAudit ("{{missingBkStatus}}", row[0] + "rows that could not be matched to {{dimTable}}"" ,'',''){%br%}
+  for row in SnowflakeResult[4]:{%br%}
+   if row[0] >0:
+      newvar = WslPythonCommon.WsWrkAudit ("{{missingBkStatus}}", str(row[0]) + "rows that could not be matched to {{dimTable}}" ,'','')
     {%br%}
 {%- endfor %}
 {# --                                             -- #}
@@ -357,9 +358,9 @@ if status==1:
       {%- endif %}
 if status==1:
 {%br%}
-  #--============================================================================{%br%}
-  #--= Log messages for unmatched dimension keys in {{ dimTableName }}{%br%}
-  #--============================================================================{%br%}
+#--============================================================================{%br%}
+#--= Log messages for unmatched dimension keys in {{ dimTableName }}{%br%}
+#--============================================================================{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql = """{% br %}
       {%- for fk in rel.fks %}
@@ -407,6 +408,7 @@ if status==1:
 #--====================================================={%br%}
 #-- All Done report the results{%br%}
 #--====================================================={%br%}
+
 step = {% counter %}00{%br%}{%br%}
 #-- WsWrkTask call to updated row counts in Ws_Wrk_Task_Run/Log{%br%}
 {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
@@ -415,16 +417,17 @@ metaResult=WslPythonCommon.WsWrkTask(0,0,0,insertCount,deleteCount,0,0){%br%}
 metaResult=WslPythonCommon.WsWrkTask(0,0,0,insertCount,0,0,0){%br%}
 {%- endif %}
 if int(metaResult) < -1:
-   status=-2{%br%}
-   returnMsg = "Failure executing WsWrkTask. "+ str(insertCount)+" records inserted."{%br%}
+  status=-2{%br%}
+  returnMsg = "Failure executing WsWrkTask. "+ str(insertCount)+" records inserted."{%br%}
 
 if status==1:
-  #-- Work out return message
-  returnMsg = "{{table.name}} updated.  "{%br%}
-  returnMsg +=str(insertCount) + " records inserted.  " {%br%}
-  {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
-  returnMsg +=str(deleteCount) + " records deleted.  "{%br%}
-  {%- endif %}
+   #-- Work out return message
+   returnMsg = "{{table.name}} updated.  "{%br%}
+   returnMsg +=str(insertCount) + " records inserted.  " {%br%}
+   {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
+   returnMsg +=str(deleteCount) + " records deleted.  "{%br%}
+   {%- endif %}
 print(status){%br%}
 print(returnMsg){%br%}
-sys.exit(0){%br%}
+
+
