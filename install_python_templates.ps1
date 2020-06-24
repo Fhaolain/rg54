@@ -1,5 +1,5 @@
 #--==============================================================================
-#-- Script Name      :    install_templates.ps1
+#-- Script Name      :    install_python_templates.ps1
 #-- Description      :    Load all templates scripts and procedures into a RED Repository
 #-- Author           :    Tom Kelly, WhereScape
 #--==============================================================================
@@ -8,7 +8,7 @@
 #-- TK  v 2.0.0 2018-11-11 Now also handle scripts and procedures (not just templates)
 #-- TK  v 3.0.0 2019-03-28 64 bit template and script support
 #-- TK  v 4.0.0 2019-05-15 Better handling of upgrades
-#--
+
 
 $gitProj = $PSScriptRoot
 
@@ -404,7 +404,7 @@ foreach($folder in $folders) {
                             $th_type = "9"
                             $th_lang = ""
                         }
-						elseif($templateType -eq "Python3.8") {
+						elseif($templateType -eq "Python") {
                             $th_type = "x"
                             $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'Python')" 
                         }
@@ -443,7 +443,7 @@ foreach($folder in $folders) {
                             $th_type = "U"
                             $th_lang = ""
                         }
-						 elseif($templateType -eq "Python3.8") {
+						 elseif($templateType -eq "Python") {
                             $th_type = "Py"
                             $th_lang = "(SELECT sl_key FROM ws_script_language WHERE sl_name = 'Python')" 
 
