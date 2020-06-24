@@ -76,37 +76,15 @@ or manually!! do the following steps:
 31. Start RED
 32. Run the date dimension job and wait for it to complete
 
-
-Download and install python
 ===================================================================================
-1. Download python installer from https://www.python.org/downloads/windows/ The latest version is 3.8.1
-2. Note the path while installing.
-3. Install Python Packages
- 3.1    Download pip manager :
-	https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=2ahUKEwieub_agYXnAhUb73MBHQSSBT4QFjAAegQIAhAB&url=https%3A%2F%2Fbootstrap.pypa.io%2Fget-pip.py&usg=AOvVaw0zKVO_zW0nkF7s0zdjWFNj
- 3.2    Paste the get-pip.py file on the python path. Install Pip to install further packages:
-	Type below command :
-	Python home path>python get-pip.py
-	Python home path>setx PATH "%PATH%;C:\Users\waghp\AppData\Local\Programs\Python\Python38-32\Scripts"
-	Change directory to Scripts folder e.g:	cd C:\Users\Administrator\AppData\Local\Programs\Python\Python38\Scripts
-	Python home path\Scripts>pip install pywin32-ctypes
-	Python home path\Scripts>pip install python-tds
-	Python home path\Scripts>pip install pywin32
-	Python home path\Scripts>pip install glob2
-	Python home path\Scripts>pip install gzip-reader
-	Python home path\Scripts>pip install --upgrade snowflake-connector-python
-	Python home path\Scripts>pip install regex
-	Python home path\Scripts>pip install pyodbc
- 3.3	If you get the visual C++ 14 error for pyodbc.
-	Download and install : VC_redist.x64.exe
-	From : https://www.microsoft.com/en-in/download/details.aspx?id=48145
-	Rerun the pyodbc command pip install pyodbc
-	
-4.	Login to RED Snowflake and open/invoke SQL Admin for Datawarehouse/Repository connection and run WsGetExtendedProperty.sql
-	WsGetExtendedProperty.sql Placed at : Procedures folder of repository
-	Get Extended Property function in powershell calls DLL provided by wherescape and call function from the dll to retrieve the extended property value of the table.
-	In python ,we replaced this function with the sql procedure above which returns the same value.
-5.  RED Setup of Python Script:
+Prereqs:
+1.Python Installation
+2.PIP Manager Installation
+RED Python Setup
+===================================================================================
+1.  Pull "wslpython" repository from BitBucket
+2.  Run batch script "Install PIP And Module - RUN AS ADMIN"
+3.  RED Setup of Python Script:
 	Login to RED Snowflake
 	Go to Tools >> Host Script Languages >> Maintain Host Script Languages
 	Click New and add Python 
@@ -114,17 +92,9 @@ Download and install python
 	E.g:
 	C:\Users\Administrator\AppData\Local\Programs\Python\Python38\python.exe $SCRIPT_NAME$
 
-6.  Modules and Application Installation
-	Download below files from from Deployment Applications folder :
-	1.WslPythonSnowflake.py
-	2.WslPythonCommon.py
-	Paste them to :Python path
-	e.g. C:\Users\Administrator\AppData\Local\Programs\Python\Python38
+4.   Load templates using install_python_templates.ps1 (run this file using powershell)
 
-
-7.   Load templates using install_python_templates.ps1 (run this file using powershell)
-
-NOTE: This repository contains both powershell and python templates.Powershell templates are default.
+NOTE: This repository contains both powershell and python templates. Powershell templates are default.
 
 To Add Support for Loading Files in a external S3 Bucket:
 ======================================================================
