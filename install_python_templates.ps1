@@ -74,10 +74,39 @@ if( ! (Test-Path $objectConfig) ) {
     Write-Warning "You will not be prompted again"
     Write-Output  "Delete '$objectConfig' if you wish to be prompted for template names"
 }
+$conn.open()
+#-- Search Python Path
+ $vars=[Environment]::GetEnvironmentVariable("path").split(";")
+ foreach ($line in  $vars) 
+{
+    if($line.IndexOf("Python") -gt 0)
+    {
+    $pythonpath=$line.Replace("Scripts","")
+    }
+}
+$pythonpath +='python.exe $SCRIPT_NAME$'
+write-output($pythonpath)
 
 $objectsToInstall = @(Get-Content $objectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
-$conn.Open()
+$wsAddPythonScript=@"
+                 INSERT INTO [dbo].[ws_script_language]
+                  ([sl_name]
+                 ,[sl_description]
+                 ,[sl_file_extension]
+                 ,[sl_command])
+                 VALUES
+                 ('Python'
+                 ,'Python Language'
+                 ,'py'
+                 ,'$pythonpath')
+           
+"@
+                $command = New-Object System.Data.Odbc.OdbcCommand
+                $command.Connection = $conn
+                $command.Transaction = $trans
+                $command.CommandText = $wsAddPythonScript
+                $ws_obj_object_sr1 = $command.ExecuteScalar()
 
 $folders = @("PythonTemplates")
 
@@ -755,6 +784,8 @@ foreach($folder in $folders) {
                 $ws_header_tab_us1 = "UPDATE $ws_header_tab SET ${header_prefix}_updated = CURRENT_TIMESTAMP WHERE ${header_prefix}_name = '$objectName'"
                 $command.CommandText = $ws_header_tab_us1
                 $ws_header_tab_ur1 = $command.ExecuteScalar()
+
+                 
 
                 $trans.Commit()
             }
