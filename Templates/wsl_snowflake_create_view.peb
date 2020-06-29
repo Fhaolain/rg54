@@ -1,13 +1,13 @@
-{# -- TemplateVersion:003 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:DDL                                                    -- #}
+{# -- TemplateVersion:003 MinVersion:8410 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:DDL                                                    -- #}
 {# --                                                                                                                                                       -- #}
-{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
+{# --    (c) WhereScape Ltd 2020. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_create_view                                                                                                        -- #}
-{# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.4.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake database view                                                                                  -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -17,6 +17,7 @@
 {# -- JL: Snowflake Release 1.0.0 (2017-06-06)                                                                                                              -- #}
 {# -- JL: Snowflake Release 1.0.1 (2017-12-19)  Improvements to FROM/WHERE clause.                                                                          -- #}
 {# --                                           Addition of support for DISTINCT check box.                                                                 -- #}
+{# -- TM: (2020-06-02)                          Fixed template if first column of view does not have a source                                               -- #}
 {# --                                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 
@@ -34,15 +35,32 @@ CREATE OR REPLACE VIEW [TABLEOWNER].[{{table.name}}] ({% br %}
 AS{%- br %}
 SELECT {% if table.viewInfo.distinct %} DISTINCT{% endif %}{%- br %}
 {%- for column in table.columns %}
-  {%- set sSourceColumn = column.source %}
-  {%- if loop.last %}
+{%-   if column.source | trim != "" %}
+{%-      set sSourceColumn = column.source %}
+{%-   else -%}
+{%-      set sSourceColumn = column.transform %}
+{%-   endif -%}
+{%-   if loop.last %}
     {{sSourceColumn }}{%- br %}
-  {%- else -%}
+{%-   else -%}
     {{sSourceColumn }},{%- br %}
-  {%- endif -%}
+{%-   endif -%}
 {%- endfor -%}
-{%- fetch table.columns[0].sourceTable -%}
-{%- set sSource = table.columns[0].sourceTable.name -%}
+
+{%- set sSource = "" %}
+{%- for column in table.columns %}
+{%-   if column.sourceTable is defined %}
+{%-     fetch column.sourceTable %}
+{%-     if column.sourceTable.name | trim != "" %}
+{%-       if sSource | trim == "" %}
+{%-         set sSource = column.sourceTable.name -%}
+{%-       endif %}
+{%-     endif %}
+{%-   endif %}
+{%- endfor -%}
+
+{#- fetch table.columns[0].sourceTable -#}
+{#- set sSource = table.columns[0].sourceTable.name -#}
 {%- if table.viewInfo.whereClause | trim == "" %}
   FROM [TABLEOWNER].[{{sSource}}] {{sSource}}{%br%}
 {%- elseif table.viewInfo.whereClause | trim | upper | slice(0,4) != "FROM" %}

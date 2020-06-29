@@ -28,53 +28,11 @@ Installation:
 ===================================================================================
 
 or manually!! do the following steps:
-
-4. Install RED
-5. Pin Setup Administrator to the task bar, change the pinned shortcut to always run as administrator and restart Setup Administrator
-6. Add RED license
-7. Create repository
-8. Log in to RED and click OK on Tools/Options dialog
-9. Pin RED to the task bar
-10. Load the Extended Properties Set
-11. Load all Data Type Mapping Sets
-12. Load Function Set
-13. Pull "snowflake" repository from BitBucket
-14. Pull "wslpowershell" repository from BitBucket
-15. Run the file "WslPowershell Install - RUN AS ADMIN.bat" as administrator to install powershell modules
-16. Load templates using install_templates.ps1 following the on screen prompts.
-17. Copy the folder FieldSolutions to c:\ProgramData\WhereScape
-18. Open a SQL Admin window to the DataWarehouse connection
-19. Load the script "Snowflake metadata_options_setup.sql" and run it
-20. Close SQL Admin
-21. Run the registry file:    "Disable Snowflake ODBC Driver Logging.reg"
-22. Restart RED
-23. Install windows scheduler
-    Note: Check the scheduler log file after installation to ensure it has started successfully
-          If it has not, the most likely cause is the scheduler service account not having permissions for the SQL Server repository database
-          There are several ways to address this.
-24. Make changes to "Snowflake Warehouse" Connection
-    - check ODBCDSN is correct
-    - add extract username/password
-    - make list of schema for browsing match schemas on targets
-    And on the Targets Tab:
-    - change databases and schemas on individual targets
-    And on the Extended Properties Tab:
-    - set all connectvity extended properties that are not set
-25. Check the connecions "Windows Comma Sep Files", "Windows Pipe Sep Files", "Windows Fixed Width Files", Windows XML Files", "Windows JSON Files":
-    - default path for browsing:                 where your files are
-26. Check the connection "Database Source System":
-    - set ODBC DSN to your source
-    - set Username and Password for your source (if required)
-    - default schema for browsing
-    - data type mapping set:                     SNOWFLAKE from?????
-    - Extended Property RANGE_CONCATWORD:        +  for databases that use this for concatinating strings (SQL Server / SYBASE)
-                                                 || for databases that use this for concatinating strings (most databases)
-27. Stop RED
-28. Load application for the date dimension
-29. Load application for file formats
-30. Run the registry file:    "Add Default Templates Snowflake.reg"
-31. Start RED
-32. Run the date dimension job and wait for it to complete
+1. Create a metadata db in sql server and add dsn with the same name to odbc.
+2. Run powershell script red_installer.ps1
+3. Run the registry file:    "Add Default Templates Snowflake.reg"
+4. Start RED
+5. Run the date dimension job and wait for it to complete
 
 ===================================================================================
 Prereqs:
@@ -83,16 +41,8 @@ Prereqs:
 RED Python Setup
 ===================================================================================
 1.  Pull "wslpython" repository from BitBucket
-2.  Run batch script "Install PIP And Module - RUN AS ADMIN"
-3.  RED Setup of Python Script:
-	Login to RED Snowflake
-	Go to Tools >> Host Script Languages >> Maintain Host Script Languages
-	Click New and add Python 
-	Enter file extension as py and path of the python.exe file with parameter $SCRIPT_NAME$
-	E.g:
-	C:\Users\Administrator\AppData\Local\Programs\Python\Python38\python.exe $SCRIPT_NAME$
-
-4.   Load templates using install_python_templates.ps1 (run this file using powershell)
+2.  Run batch script "Install PIP And Module - RUN AS ADMIN
+3.  Load templates using install_python_templates.ps1 (run this file using powershell)
 
 NOTE: This repository contains both powershell and python templates. Powershell templates are default.
 
