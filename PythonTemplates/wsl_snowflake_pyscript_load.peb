@@ -67,8 +67,8 @@ def ReplaceWslTags(stuff):{%br%}
        stuff = stuff.replace('\$',''){%br%}
     return stuff.strip(){%br%}
 
-# File archiving function for windows file loads
 {% if (table.loadInfo.archiveFile.path != "") or (table.loadInfo.archiveFile.name != "") and (table.loadInfo.sourceConnectionType.name == "Windows") %}
+# File archiving function for windows file loads
 def ArchiveFiles(files, runMode,logStream): {%- br %}
     ArchivePath = r'{{ table.loadInfo.archiveFile.path }} '.replace("\ ","").strip(){%- br %}
     ArchiveName = '{{ table.loadInfo.archiveFile.name }}'{%- br %}
@@ -104,8 +104,9 @@ def ArchiveFiles(files, runMode,logStream): {%- br %}
 {%- br %}
 {%- endif %}
 
-# File archiving function for windows file loads
+
 {% if (table.loadInfo.triggerArchiveFile.path != "") or (table.loadInfo.triggerArchiveFile.name != "") and (table.loadInfo.sourceConnectionType.name == "Windows") %}
+# File archiving function for windows trigger file
 def ArchiveTrigger({%- br %}
         files{%- br %}
        ,logStream{%- br %}
@@ -322,10 +323,11 @@ def LoadData(runMode):{%br%}
       {%- endfrom %}
     {%- if table.loadInfo.sourceTables != "" -%}FROM """+str(os.getenv('WSL_SRC_SCHEMA'))+""".{{ table.loadInfo.sourceTables }} {{table.loadInfo.sourceTables }}{%- br %}{% endif %}
     {%- from table.loadInfo.whereAndGroupByClauses | lines as whereLine %}
-    {{ whereLine }}{% br %}
+		 {{ whereLine }}{% br %}
     {%- endfrom %}
 """{%- br %}
     {%- br %}
+
     logStream.write(extractSql)
 
     if str(os.getenv('DEBUG'))== "TRUE":{% br %}
@@ -333,14 +335,19 @@ def LoadData(runMode):{%br%}
 
 
     rowCount = WslPythonCommon.GetDataToFile(extractSql,str(os.getenv('WSL_SRC_DSN')),str(os.getenv('WSL_SRC_USER')),str(os.getenv('WSL_SRC_PWD')),os.path.join(filePath,fileDat),str(os.getenv('UNLOAD_DELIM')), fileCount, splitThresholdCount, True, unicode, str(os.getenv('UNLOAD_ENC')), str(os.getenv('UNLOAD_ESC'))){% br %}
+    if rowCount[0]== -2:
+       logStream.write("An error has occurred: : " + rowCount[1]+"\n"+rowCount[2])
+       raise Exception(rowCount[2])
+    elif rowCount[0]==1 and  rowCount[1]< 1:
+      logStream.write("Source query returned 0 rows"+'\n')
+      print("1")
+      print("Source query returned 0 rows"+'\n')
+      PrintLog(logStream)
+
     if str(os.getenv('DEBUG')) == "TRUE":
        logStream.write("END create of data file from source system: "+str(datetime.now())+'\n'){% br %}
 
-    if rowCount < 1:{% br %}
-       logStream.write("Source query returned 0 rows"+'\n'){% br %}
-       print("1"){% br %}
-       print("Source query returned 0 rows"+'\n'){% br %}
-       WslPythonCommon.PrintLog(logStream){% br %}
+
 
     dataFiles = []{% br %}
     for f in glob.iglob(os.path.join(filePath,fileDat)+'*.txt'): {% br %}
@@ -809,6 +816,5 @@ try: {%- br %}
     PrintLog(auditFile){%- br %}
 except Exception as exceptionError:{%- br %}
   print("-2"){%- br %}
-  print("Load failed"){%- br %}
+  print("Load Failed"){%- br %}
   print(exceptionError.args){%- br %}
-  print(exceptionError){%- br %}
