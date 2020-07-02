@@ -165,6 +165,7 @@ def GzipFile({%br%}
     return (outNewFile){%br%}
 
 def LoadData(runMode):{%br%}
+  try:
     os.environ["DEBUG"]              = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
     os.environ["ACCESS_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_ACCESS_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
     os.environ["SECRET_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_SECRET_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
@@ -796,6 +797,21 @@ def LoadData(runMode):{%br%}
             PrintLog(os.path.join(filePath,auditLog)){%- br %}
     logStream.close(){%- br %}
     return os.path.join(str(os.environ["WSL_WORKDIR"]),auditLog){%- br %}
+  except Exception as exceptionError:
+    logStream.write("An error has occurred: : " + repr( exceptionError))
+		 # Get a list of all the files created by load
+    fileList = glob.glob(os.path.join(str(os.environ["WSL_WORKDIR"]),"*"+fileDat+"*"))
+     # Iterate over the list of filepaths & remove each file.
+    logStream.write("\nRolling back all files created")
+    for filePath in fileList:
+      try:
+        os.remove(filePath)
+        logStream.write("\nFile Deleted : " +filePath)
+      except:
+        logStream.write("\nError while deleting file : "+ filePath)
+    logStream.close()
+    raise Exception(repr( exceptionError))
+
 try: {%- br %}
    {%- br %}
     {% if (table.loadInfo.sourceConnectionType.name == "ODBC") or (table.loadInfo.sourceConnectionType.name == "Database") -%}
