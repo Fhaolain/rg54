@@ -1,9 +1,9 @@
 SFDATEDIM
 0001
-8003000
-Date Dimension Application for Snowflake
-20190325
+8005000
+Date Dimension
+
 SQL Server
-WhereScape RED Version 8.3.1.0 (build 190201-084748)
-8003000000
-Microsoft SQL Server 12.00.2000
+WhereScape RED Version 8.5.1.0 (build 200413-185814)
+8005000000
+Microsoft SQL Server 15.00.2000

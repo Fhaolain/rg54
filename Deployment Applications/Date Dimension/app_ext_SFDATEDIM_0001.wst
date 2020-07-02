@@ -1,5 +1,14 @@
-3;74;UPDATE_STAGE_DATE_SF;;
+3;2406;UPDATE_STAGE_DATE_SF;;
+1;2425;daily_date_roll;;
+1;2422;update_dim_date;;
 1;30;DAILY_DATE_ROLL_SF;;
 3;31;UPDATE_DIM_DATE_SF;;
-7;75;STAGE_DATE_SF;STAGE_DATE_SF;
+1;2423;update_dss_fact_table;;
+1;2424;update_dss_source_system;;
+7;2405;STAGE_DATE_SF;STAGE_DATE_SF;
+6;2426;dim_date;dim_date;
 6;69;DIM_DATE_SF;DIM_DATE_SF;
+6;2427;dss_fact_table;dss_fact_table;
+6;2428;dss_source_system;dss_source_system;
+10;2429;dim_date_idx_0;;
+10;2430;dim_date_idx_A;;
