@@ -176,7 +176,7 @@ if status==1:
   {%- endfrom -%}
 {%- endif %}
 
-{%- if dssDeleteTimePresent or dssDeleteFlagPresent -%}
+{%- if dssDeleteTimePresent or dssDeleteFlagPresent -%}{%br%}
 if status==1:
 #--============================================================================{%br%}
 #-- Ensure there is Source Data before performing a logical delete {%br%}
@@ -188,7 +188,7 @@ if status==1:
   ;{%br%}
 """ {%- br %}
   SourceCount = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), ' "Failed batch distinct select from source tables  {{table.name}} step '+str(step) , '',step)
-   for row in SnowflakeResult[4]:{%br%}
+  for row in SourceCount[4]:{%br%}
     if row[0] >0: {%br%}
 #--============================================================================{%br%}
 #-- Perform Logical Deletes{%br%}
@@ -226,7 +226,7 @@ if status==1:
       {%- endfrom %}
       ;{%br%}
 """
-	    SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), ' Failed logical delete in table {{table.name}} step'+ str(step)  , '',step)
+      SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), ' Failed logical delete in table {{table.name}} step'+ str(step)  , '',step)
       logicalDeleteCount = logicalDeleteCount + SnowflakeResult[1]
       returnMsg = SnowflakeResult[2]{%br%}
     {%br%}
@@ -371,7 +371,7 @@ if status==1:
   returnMsg = "{{table.name}} updated.  "{%br%}
   returnMsg +=str(mergeCount) + " records merged.  " {%br%}
   {%- if dssDeleteTimePresent or dssDeleteFlagPresent %}
-  $return_Msg += str(logicalDeleteCount)+" records logically deleted.  "{%br%}
+  returnMsg += str(logicalDeleteCount)+" records logically deleted.  "{%br%}
   {%- endif %}
   {%- if settings.deleteBeforeInsert and not settings.deleteBeforeInsertTruncate %}
   returnMsg +=str(deleteCount) + " records deleted.  "{%br%}
