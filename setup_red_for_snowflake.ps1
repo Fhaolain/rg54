@@ -1,44 +1,133 @@
 #Run this Script as Administrator
 # Set these vars to suit your environment
-$dsnName="EDW_SF_RCLI"
-$dsnArch="64"
-$metaUser=""
-$metaPwd=""
-$metaBase="EDW_SF_RCLI"
+#.\setup_red_for_snowflake.ps1 EDW_SF_RCLI 64 " " " " EDW_SF_RCLI TEST_DRIVE_DB100 RG_DEV_LOAD RG_DEV_STAGE RG_DEV_EDW RG_DEV_DATA_VAULT TEST_DRIVE100 wsl TEST_DRIVE_WH
+$dsnName=$args[0]
+If ($dsnName -eq $Null) { $dsnName = Read-Host -Prompt "Please Enter Vaild DSN"  }
+$dsnArch=$args[1]
+If ($dsnArch -eq $Null) { $dsnArch = Read-Host -Prompt "Please Enter Vaild DSN Arch"  }
+$metaUser=$args[2]
+If ($metaUser -eq $Null) { $metaUser = Read-Host -Prompt "Please Enter Vaild Meta User"  }
+$metaPwd=$args[3]
+If ($metaPwd -eq $Null) { $metaPwd = Read-Host -Prompt "Please Enter Vaild Meta Password"  }
+$metaBase=$args[4]
+If ($metaBase -eq $Null) { $metaBase = Read-Host -Prompt "Please Enter Vaild Meta DB"  }
+$sfDatabase=$args[5]
+If ($sfDatabase -eq $Null) { $sfDatabase = Read-Host -Prompt "Please Enter Vaild SF DB"  }
+$schemaLoad =$args[6]
+If ($schemaLoad -eq $Null) { $schemaLoad = Read-Host -Prompt "Please Enter Vaild Schema Load"  }
+$schemaStage=$args[7]
+If ($schemaStage -eq $Null) { $schemaStage = Read-Host -Prompt "Please Enter Vaild Schema Stage"  }
+$schemaEdw=$args[8]
+If ($schemaEdw -eq $Null) { $schemaEdw = Read-Host -Prompt "Please Enter Vaild Schema EDW"  }
+$schemaDV=$args[9]
+If ($schemaDV -eq $Null) { $schemaDV = Read-Host -Prompt "Please Enter Vaild Schema DV"  }
+$sfUser=$args[10]
+If ($sfUser -eq $Null) { $sfUser = Read-Host -Prompt "Please Enter Vaild SF User"  }
+$sfPwd=$args[11]
+If ($sfPwd -eq $Null) { $sfPwd = Read-Host -Prompt "Please Enter Vaild SF PWD"  }
+$sfSnowsqlWH=$args[12]
+If ($sfSnowsqlWH -eq $Null) { $sfSnowsqlWH = Read-Host -Prompt "Please Enter Vaild SF WH"  }
 $logLevel=9
 $outputMode="json"
-$redInstallDir="C:\Program Files\WhereScape\RED\"
-$redCliPath = Join-Path -Path $redInstallDir -ChildPath "RedCli.exe"
-$sfDatabase="TEST_DRIVE_DB100"
-$schemaLoad ="RG_DEV_LOAD"
-$schemaStage="RG_DEV_STAGE"
-$schemaEdw="RG_DEV_EDW"
-$schemaDV="RG_DEV_DATA_VAULT"
-$sfUser="TEST_DRIVE100"
-$sfPwd="wsl"
-$sfSnowsqlWH="TEST_DRIVE_WH"
+$redCliDir="C:\Program Files\WhereScape\RED\RedCli.exe"
 $defDtmDir="C:\Program Files\WhereScape\RED\Administrator\Data Type Mappings"
 $defDfsDir="C:\Program Files\WhereScape\RED\Administrator\Function Sets"
 $dstDir="c:\temp\"
 $schedulerName="WIN0001"
-$redcliDir="C:\Program Files\WhereScape\RED\RedCli.exe"
 $wslSched="C:\Program Files\WhereScape\RED\WslSched.exe"
 $wslSchedLog="C:\ProgramData\WhereScape\Scheduler\WslSched_redcli.log"
+$defBrowserSchema="dbo"
+$dtmSFFile=".\Data Type Mappings\SNOWFLAKE from File.xml"
+$dtmSFFWF=".\Data Type Mappings\SNOWFLAKE from FIXED WIDTH FILE.xml"
+$dtmSFXmlJson=".\Data Type Mappings\SNOWFLAKE from XML and JSON.xml"
+$dtmSFSF=".\Data Type Mappings\SNOWFLAKE from SNOWFLAKE.xml"
+$dtmSFSql=".\Data Type Mappings\SNOWFLAKE from SQL Server.xml"
+$dtmSFDb2=".\Data Type Mappings\SNOWFLAKE from DB2.xml"
+$dtmSFOra=".\Data Type Mappings\SNOWFLAKE from Oracle.xml"
+$dtmSFO=".\Data Type Mappings\SNOWFLAKE from Other.xml"
+$dtmSFPsql=".\Data Type Mappings\SNOWFLAKE from PostgreSQL.xml"
+$dtmSFRedShift=".\Data Type Mappings\SNOWFLAKE from Redshift.xml"
+$dtmSFTD=".\Data Type Mappings\SNOWFLAKE from Teradata.xml"
+$dfsSF=".\Database Function Sets\Snowflake Function Set.xml"
+$extProFile=".\Extended Properties\Snowflake.extprop"
+$templatesFile=".\install_templates.ps1"
+$optionsFile=".\Options.xml"
+#Checking Redcli Files exist or not.
+if (!(Test-Path $dtmSFFile)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFFWF)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from FIXED WIDTH FILE does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFXmlJson)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from XML and JSON File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFSF)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from SNOWFLAKE File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFSql)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from SQL Server File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFDb2)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from DB2 File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFOra)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from Oracle File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFO)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from Other File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFPsql)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from PostgreSQL File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFRedShift)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from Redshift File does not exist"
+  Exit
+}
+if (!(Test-Path $dtmSFTD)) {
+  Write-Warning "Please Check DTM SNOWFLAKE from Teradata File does not exist"
+  Exit
+}
+if (!(Test-Path $dfsSF)) {
+  Write-Warning "Please Check Function Set Snowflake File does not exist"
+  Exit
+}
+if (!(Test-Path $extProFile)) {
+  Write-Warning "Please Check Extended Properties File does not exist"
+  Exit
+}
+if (!(Test-Path $templatesFile)) {
+  Write-Warning "Please Check Templates Script File does not exist"
+  Exit
+}
+if (!(Test-Path $optionsFile)) {
+  Write-Warning "Please Check Options Xml File does not exist"
+  Exit
+}
 $cmds=@"
 repository create
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from File.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from FIXED WIDTH FILE.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from XML and JSON.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from SNOWFLAKE.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from SQL Server.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from DB2.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from Oracle.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from Other.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from PostgreSQL.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from Redshift.xml"
-dtm import --default-dtm-path "$defDtmDir" --file-name ".\Data Type Mappings\SNOWFLAKE from Teradata.xml"
-dfs import --default-dfs-path "$defDfsDir" --file-name ".\Database Function Sets\Snowflake Function Set.xml"
-ext-prop-definition import --file-name ".\Extended Properties\Snowflake.extprop"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFFile"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFFWF"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFXmlJson"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFSF"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFSql"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFDb2"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFOra"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFO"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFPsql"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFRedShift"
+dtm import --default-dtm-path "$defDtmDir" --file-name "$dtmSFTD"
+dfs import --default-dfs-path "$defDfsDir" --file-name "$dfsSF"
+ext-prop-definition import --file-name "$extProFile"
 parameter add --name JSON_NUMBER_PLUS_FACTOR --value 2 --comments "When setting precision of decimals, this formula is used:   round up to nearest A of (( X + B ) * C )  where this parameter is B and X is the max precision found"
 parameter add --name JSON_NUMBER_ROUNDING --value 1 --comments "When setting precision of decimals, this formula is used:   round up to nearest A of (( X + B ) * C )  where this parameter is A and X is the max precision found"
 parameter add --name JSON_NUMBER_TIMES_FACTOR --value 1 --comments "When setting precision of decimals, this formula is used:   round up to nearest A of (( X + B ) * C )  where this parameter is C and X is the max precision found"
@@ -86,7 +175,7 @@ Function Execute-Command ($commandTitle, $commandPath, $commandArguments)
 }
 # main
 foreach ($cmd in $cmds.replace("`r`n", "`n").split("`n")) {
-    $cmdReturn = Execute-Command "RedCli CMD" $redCliPath "$cmd $commonArgs"
+    $cmdReturn = Execute-Command "RedCli CMD" $redCliDir "$cmd $commonArgs"
     $progressEnd = ($cmdReturn.stdout -split "`n" | Select-String -Pattern ',"Progress End":.+"}').Line
     if ($cmdReturn.stderr.Trim() -ne '' -or $progressEnd -notmatch 'Error Message":"","Progress End"') {
         Write-Output "Failure executing cmd: $cmd"
@@ -100,33 +189,33 @@ foreach ($cmd in $cmds.replace("`r`n", "`n").split("`n")) {
     }
 }
 
-& ".\install_templates.ps1"
+& "$templatesFile"
 
 #Connections commands
 $conCmds=@"
-connection add --name "Database Source System" --con-type ODBC --odbc-source "SET THIS VALUE" --odbc-source-arch 64 --work-dir $dstDir --db-type "SQL Server" --dtm-set-name "SNOWFLAKE from SQL Server" --def-load-type "Script based load" --def-load-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --load-port-start 0 --load-port-end 0 --def-browser-schema "SET THIS VALUE" --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --def-load-script-tem "wsl_snowflake_pscript_load"
+connection add --name "Database Source System" --con-type ODBC --odbc-source "SET THIS VALUE" --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --dtm-set-name "SNOWFLAKE from SQL Server" --def-load-type "Script based load" --def-load-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --def-browser-schema "SET THIS VALUE" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
 ext-prop-value modify --object-name "Database Source System" --value-data "+" --value-name "RANGE_CONCATWORD"
-connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch 64 --work-dir $dstDir --db-type "SQL Server" --def-load-type "ODBC load" --def-pre-load-action Truncate --def-browser-schema dbo --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted
-target add --connection-name "Range Table Location" --name RangeTables --database RANGE_WORK_DB --schema dbo --tree-colour #ff57ff
+connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --def-load-type "ODBC load" --def-pre-load-action Truncate --def-browser-schema $defBrowserSchema --def-odbc-user Extract
 connection rename --force --new-name Repository --old-name "DataWarehouse"
-connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaBase --odbc-source-arch 64 --work-dir $dstDir --db-type "SQL Server" --meta-repo true --notes "This connection points back to the data warehouse and is used during drag and drop operations." --def-load-type "Database link load" --function-set SNOWFLAKE --load-port-start 0 --load-port-end 0 --def-browser-schema dbo --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted
+connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaBase --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --notes "This connection points back to the data warehouse and is used during drag and drop operations." --def-load-type "Database link load" --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract
 connection rename --force --new-name "Runtime Connection for Scripts" --old-name "windows"
-connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --def-load-type "Script based load" --load-port-start 0 --load-port-end 0 --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --admin-user-id $sfUser --admin-pwd $sfPwd
-connection add --name "Windows Comma Sep Files" --con-type Windows --odbc-source-arch 32 --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --db-type None --def-load-type "Script based load" --load-port-start 0 --load-port-end 0 --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --def-load-script-tem "wsl_snowflake_pscript_load"
+connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --def-load-type "Script based load" --def-odbc-user Extract --admin-user-id $sfUser --admin-pwd $sfPwd
+connection add --name "Windows Comma Sep Files" --con-type Windows --odbc-source-arch 32 --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
 ext-prop-value modify --object-name "Windows Comma Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_COMMA" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows Fixed Width" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE" --db-type None --def-load-type "Script based load" --load-port-start 0 --load-port-end 0 --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --def-load-script-tem "wsl_snowflake_pscript_load"
+connection add --name "Windows Fixed Width" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
 ext-prop-value modify --object-name "Windows Fixed Width" --value-data "FMT_RED_FIX_NOSKIP_GZIP" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows JSON Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON " --db-type None --def-load-type "Script based load" --load-port-start 0 --load-port-end 0  --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --def-load-script-tem "wsl_snowflake_pscript_load"
+connection add --name "Windows JSON Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON " --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
 ext-prop-value modify --object-name "Windows JSON Files" --value-data "FMT_RED_JSON_GZIP" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows Pipe Sep Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --db-type None --def-load-type "Script based load" --load-port-start 0 --load-port-end 0 --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --def-load-script-tem "wsl_snowflake_pscript_load"
+connection add --name "Windows Pipe Sep Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
 ext-prop-value modify --object-name "Windows Pipe Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_PIPE" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows XML Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON" --db-type None --def-load-type "Script based load" --load-port-start 0 --load-port-end 0  --create-indexes true --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --def-load-script-tem "wsl_snowflake_pscript_load"
+connection add --name "Windows XML Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
 ext-prop-value modify --object-name "Windows XML Files" --value-data "FMT_RED_XML_GZIP" --value-name "SF_FILE_FORMAT"
-connection add --name Snowflake --con-type "Database" --db-id $sfDatabase --odbc-source Snowflake --odbc-source-arch 64 --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-load-type "Database link" --def-load-script-con "Runtime Connection for Scripts" --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE ($MAXDISPLAYDATA$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "RG_DEV_LOAD,RG_DEV_STAGE,RG_DEV_EDW,RG_DEV_DATA_VAULT" --def-odbc-user Extract --ext-user-sec-mode Unencrypted --ext-pwd-sec-mode Unencrypted --admin-user-sec-mode Unencrypted --admin-pwd-sec-mode Unencrypted --td-wallet-user-sec-mode Unencrypted --td-wallet-string-sec-mode Unencrypted --jdbc-user-sec-mode Unencrypted --jdbc-pwd-sec-mode Unencrypted --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --def-load-script-tem "wsl_snowflake_pscript_load" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $sfUser --extract-pwd $sfPwd
+connection add --name Snowflake --con-type "Database" --db-id $sfDatabase --odbc-source Snowflake --odbc-source-arch $dsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-load-type "Database link" --def-load-script-con "Runtime Connection for Scripts" --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE ($MAXDISPLAYDATA$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$schemaLoad,$schemaStage,$schemaEdw,$schemaDV" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --def-load-script-tem "wsl_snowflake_pscript_load" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $sfUser --extract-pwd $sfPwd
 target add --connection-name Snowflake --name load --database $sfDatabase --schema $schemaLoad --tree-colour #ff0000
 target add --connection-name Snowflake --name stage --database $sfDatabase --schema $schemaStage --tree-colour #4e00c0
 target add --connection-name Snowflake --name edw --database $sfDatabase --schema $schemaEdw --tree-colour #008054
 target add --connection-name Snowflake --name data_vault --database $sfDatabase --schema $schemaDV --tree-colour #c08000
+target add --connection-name "Range Table Location" --name RangeTables --database RANGE_WORK_DB --schema $defBrowserSchema --tree-colour #ff57ff
 ext-prop-value modify --object-name Snowflake --value-data "+" --value-name "RANGE_CONCATWORD"
 ext-prop-value modify --object-name Snowflake --value-data False --value-name "SF_DEBUG_MODE"
 ext-prop-value modify --object-name Snowflake --value-data "WHERESCAPE" --value-name "SF_SNOWSQL_ACCOUNT"
@@ -168,7 +257,7 @@ connection set-default-template --connection-name "Snowflake" --obj-type "Agg" -
 connection set-default-template --connection-name "Snowflake" --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
 connection set-default-template --connection-name "Snowflake" --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
 connection set-default-template --connection-name "Snowflake" --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-options import -f ".\Options.xml"
+options import -f "$optionsFile"
 deployment deploy --app-number SFDATEDIM --app-version 0001 --app-directory ".\Deployment Applications\Date Dimension" --continue-ver-mismatch
 deployment deploy --app-number SFFILEFMT --app-version 0001 --app-directory ".\Deployment Applications\File Formats" --continue-ver-mismatch
 deployment deploy --app-number SFEXTENSIONS --app-version 0001 --app-directory ".\Deployment Applications\Extensions" --continue-ver-mismatch
@@ -176,7 +265,7 @@ deployment deploy --app-number SFJOBS --app-version 0001 --app-directory ".\Depl
 "@
 
 foreach ($cmd in $conCmds.replace("`r`n", "`n").split("`n")) {
-    $cmdReturn = Execute-Command "RedCli CMD" $redCliPath "$cmd $commonArgs"
+    $cmdReturn = Execute-Command "RedCli CMD" $redCliDir "$cmd $commonArgs"
     $progressEnd = ($cmdReturn.stdout -split "`n" | Select-String -Pattern ',"Progress End":.+"}').Line
     if ($cmdReturn.stderr.Trim() -ne '' -or $progressEnd -notmatch 'Error Message":"","Progress End"') {
         Write-Output "Failure executing cmd: $cmd"
@@ -191,7 +280,7 @@ foreach ($cmd in $conCmds.replace("`r`n", "`n").split("`n")) {
 }
 
 #Scheduler
-& $redcliDir scheduler add --service-name $dsnName --scheduler-name $schedulerName --exe-path-name $wslSched --sched-log-level 2 --log-file-name $wslSchedLog --sched-meta-dsn-arch $dsnArch --sched-meta-dsn $dsnName --sched-meta-user-name $metaUser --sched-meta-password $metaPwd --login-mode LocalSystemAccount --ip-service tcp --host-name ${env:COMPUTERNAME}
+& $redcliDir scheduler add --service-name $dsnName --scheduler-name $schedulerName --exe-path-name "$wslSched" --sched-log-level 2 --log-file-name "$wslSchedLog" --sched-meta-dsn-arch $dsnArch --sched-meta-dsn $dsnName --sched-meta-user-name $metaUser --sched-meta-password $metaPwd --login-mode LocalSystemAccount --ip-service tcp --host-name ${env:COMPUTERNAME}
 
 #Update Options Tool with Sql commands
 $sql = @"
@@ -200,89 +289,43 @@ SET ot_options = SUBSTRING(CAST(ot_options AS VARCHAR(4000)),1,CHARINDEX('OBJTGT
 WHERE ot_type_key IN (8,31,32)
 ;
 UPDATE ws_obj_type
-SET    ot_options   = 'OBJCOLOR=16751515;OBJCOLORTXT=16777215;OBJTGTKEY=3;OBJTGTSET=1;OBJSUBTYPE=D;AUTOADDKEY=Y;' 
-     , ot_position   = 10
-     , ot_pre_fix   = 'DIM_' 
-     , ot_end_user_visible   = 'Y' 
-     , ot_description   = 'Dimension' 
+SET  ot_pre_fix   = 'DIM_' 
 WHERE  ot_type_key   = 6
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_CHANGE_HASH' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_CHANGE_HASH' 
 WHERE  mn_object   = 'dss_change_hash' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'WSL_NOT_USED_BY_DSS' 
-     , mn_postfix   = '' 
-WHERE  mn_object   = 'dss_count' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_CREATE_TIME' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_CREATE_TIME' 
 WHERE  mn_object   = 'dss_create_time' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_CURRENT_FLAG' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_CURRENT_FLAG'
 WHERE  mn_object   = 'dss_current_flag' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_END_DATE' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_END_DATE' 
 WHERE  mn_object   = 'dss_end_date' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'dss_fact_table' 
-     , mn_postfix   = '' 
-WHERE  mn_object   = 'dss_fact_table' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'dss_file_name' 
-     , mn_postfix   = '' 
-WHERE  mn_object   = 'dss_file_name' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_LOAD_DATE' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_LOAD_DATE' 
 WHERE  mn_object   = 'dss_load_date' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_RECORD_SOURCE' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_RECORD_SOURCE' 
 WHERE  mn_object   = 'dss_record_source' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'WSL_NOT_USED_BY_DSS' 
-     , mn_postfix   = '' 
-WHERE  mn_object   = 'dss_source_system' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_START_DATE' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_START_DATE' 
 WHERE  mn_object   = 'dss_start_date' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_UPDATE_TIME' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_UPDATE_TIME' 
 WHERE  mn_object   = 'dss_update_time' 
 ;
 UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'DSS_VERSION' 
-     , mn_postfix   = '' 
+SET    mn_name   = 'DSS_VERSION'
 WHERE  mn_object   = 'dss_version' 
 ;
 UPDATE ws_meta_names
@@ -412,52 +455,8 @@ AND    ta_type      = 'M'
 ;
 UPDATE ws_table_attributes
 SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Update~;Minus_Update:;Update_Hint:TABLOCK~;Insert~;Minus_Insert:;Insert_Hint:TABLOCK~;HISNullSupport=TRUE;'
-     , ta_text_2   = '' 
-     , ta_text_3   = '' 
-     , ta_ind_1    = '' 
-     , ta_ind_2    = '' 
-     , ta_ind_3    = '' 
-     , ta_val_1    = CAST(NULL AS INTEGER)
-     , ta_val_2    = CAST(NULL AS INTEGER)
-     , ta_val_3    = 0
 WHERE ta_obj_key IN (-28,-29,-30)
 AND    ta_type      = 'M' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;DefLoadScriptCon~=0030;Runtime Connection for Scripts;OdbcDsnArch~=2;64;'
-WHERE  dc_name = 'Database Source System' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0009;ODBC load;OdbcDsnArch~=2;64;'
-WHERE  dc_name = 'Range Table Location' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;'
-WHERE  dc_name = 'Runtime Connection for Scripts' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0013;Database link;DefLoadScriptCon~=0030;Runtime Connection for Scripts;DefUpdateScriptCon~=0030;Runtime Connection for Scripts;OdbcDsnArch~=2;64;'
-WHERE  dc_name = 'Snowflake' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;'
-WHERE  dc_name = 'Windows Comma Sep Files' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;'
-WHERE  dc_name = 'Windows Fixed Width' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;'
-WHERE  dc_name = 'Windows JSON Files' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;'
-WHERE  dc_name = 'Windows Pipe Sep Files' 
-;
-UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;'
-WHERE  dc_name = 'Windows XML Files' 
 ;
 "@
 
