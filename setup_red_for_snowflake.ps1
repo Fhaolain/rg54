@@ -193,29 +193,29 @@ foreach ($cmd in $cmds.replace("`r`n", "`n").split("`n")) {
 
 #Connections commands
 $conCmds=@"
-connection add --name "Database Source System" --con-type ODBC --odbc-source "SET THIS VALUE" --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --dtm-set-name "SNOWFLAKE from SQL Server" --def-load-type "Script based load" --def-load-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --def-browser-schema "SET THIS VALUE" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
-ext-prop-value modify --object-name "Database Source System" --value-data "+" --value-name "RANGE_CONCATWORD"
-connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --def-load-type "ODBC load" --def-pre-load-action Truncate --def-browser-schema $defBrowserSchema --def-odbc-user Extract
-connection rename --force --new-name Repository --old-name "DataWarehouse"
-connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaBase --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --notes "This connection points back to the data warehouse and is used during drag and drop operations." --def-load-type "Database link load" --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract
 connection rename --force --new-name "Runtime Connection for Scripts" --old-name "windows"
-connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --def-load-type "Script based load" --def-odbc-user Extract --admin-user-id $sfUser --admin-pwd $sfPwd
-connection add --name "Windows Comma Sep Files" --con-type Windows --odbc-source-arch 32 --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
-ext-prop-value modify --object-name "Windows Comma Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_COMMA" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows Fixed Width" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
-ext-prop-value modify --object-name "Windows Fixed Width" --value-data "FMT_RED_FIX_NOSKIP_GZIP" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows JSON Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON " --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
-ext-prop-value modify --object-name "Windows JSON Files" --value-data "FMT_RED_JSON_GZIP" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows Pipe Sep Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
-ext-prop-value modify --object-name "Windows Pipe Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_PIPE" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows XML Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON" --def-load-type "Script based load" --def-odbc-user Extract --def-load-script-tem "wsl_snowflake_pscript_load"
-ext-prop-value modify --object-name "Windows XML Files" --value-data "FMT_RED_XML_GZIP" --value-name "SF_FILE_FORMAT"
-connection add --name Snowflake --con-type "Database" --db-id $sfDatabase --odbc-source Snowflake --odbc-source-arch $dsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-load-type "Database link" --def-load-script-con "Runtime Connection for Scripts" --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE ($MAXDISPLAYDATA$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$schemaLoad,$schemaStage,$schemaEdw,$schemaDV" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --def-load-script-tem "wsl_snowflake_pscript_load" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $sfUser --extract-pwd $sfPwd
+connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --default-load-type "Script based load" --def-odbc-user Extract --admin-user-id $sfUser --admin-pwd $sfPwd
+connection add --name Snowflake --con-type "Database" --db-id $sfDatabase --odbc-source Snowflake --odbc-source-arch $dsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --default-load-type "Database link" --default-load-script-con "Runtime Connection for Scripts" --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$schemaLoad,$schemaStage,$schemaEdw,$schemaDV" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --default-load-script-template "wsl_snowflake_pscript_load" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $sfUser --extract-pwd $sfPwd
 target add --connection-name Snowflake --name load --database $sfDatabase --schema $schemaLoad --tree-colour #ff0000
 target add --connection-name Snowflake --name stage --database $sfDatabase --schema $schemaStage --tree-colour #4e00c0
 target add --connection-name Snowflake --name edw --database $sfDatabase --schema $schemaEdw --tree-colour #008054
 target add --connection-name Snowflake --name data_vault --database $sfDatabase --schema $schemaDV --tree-colour #c08000
+connection add --name "Database Source System" --con-type ODBC --odbc-source "SET THIS VALUE" --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --dtm-set-name "SNOWFLAKE from SQL Server" --default-load-type "Script based load" --default-load-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --def-browser-schema "SET THIS VALUE" --def-odbc-user Extract --default-load-script-template "wsl_snowflake_pscript_load"
+ext-prop-value modify --object-name "Database Source System" --value-data "+" --value-name "RANGE_CONCATWORD"
+connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --default-load-type "ODBC load" --def-pre-load-action Truncate --def-browser-schema $defBrowserSchema --def-odbc-user Extract
 target add --connection-name "Range Table Location" --name RangeTables --database RANGE_WORK_DB --schema $defBrowserSchema --tree-colour #ff57ff
+connection rename --force --new-name Repository --old-name "DataWarehouse"
+connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaBase --odbc-source-arch $dsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --notes "This connection points back to the data warehouse and is used during drag and drop operations." --default-load-type "Database link load" --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract
+connection add --name "Windows Comma Sep Files" --con-type Windows --odbc-source-arch 32 --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --default-load-type "Script based load" --def-odbc-user Extract --default-load-script-template "wsl_snowflake_pscript_load"
+ext-prop-value modify --object-name "Windows Comma Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_COMMA" --value-name "SF_FILE_FORMAT"
+connection add --name "Windows Fixed Width" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE" --db-type None --default-load-type "Script based load" --def-odbc-user Extract --default-load-script-template "wsl_snowflake_pscript_load"
+ext-prop-value modify --object-name "Windows Fixed Width" --value-data "FMT_RED_FIX_NOSKIP_GZIP" --value-name "SF_FILE_FORMAT"
+connection add --name "Windows JSON Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON " --db-type None --default-load-type "Script based load" --def-odbc-user Extract --default-load-script-template "wsl_snowflake_pscript_load"
+ext-prop-value modify --object-name "Windows JSON Files" --value-data "FMT_RED_JSON_GZIP" --value-name "SF_FILE_FORMAT"
+connection add --name "Windows Pipe Sep Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File" --default-load-type "Script based load" --def-odbc-user Extract --default-load-script-template "wsl_snowflake_pscript_load"
+ext-prop-value modify --object-name "Windows Pipe Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_PIPE" --value-name "SF_FILE_FORMAT"
+connection add --name "Windows XML Files" --con-type Windows --odbc-source-arch 32  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON" --default-load-type "Script based load" --def-odbc-user Extract --default-load-script-template "wsl_snowflake_pscript_load"
+ext-prop-value modify --object-name "Windows XML Files" --value-data "FMT_RED_XML_GZIP" --value-name "SF_FILE_FORMAT"
 ext-prop-value modify --object-name Snowflake --value-data "+" --value-name "RANGE_CONCATWORD"
 ext-prop-value modify --object-name Snowflake --value-data False --value-name "SF_DEBUG_MODE"
 ext-prop-value modify --object-name Snowflake --value-data "WHERESCAPE" --value-name "SF_SNOWSQL_ACCOUNT"
@@ -257,7 +257,7 @@ connection set-default-template --connection-name "Snowflake" --obj-type "Agg" -
 connection set-default-template --connection-name "Snowflake" --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
 connection set-default-template --connection-name "Snowflake" --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
 connection set-default-template --connection-name "Snowflake" --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-options import -f "$optionsFile"
+options import -f ".\Options.xml"
 deployment deploy --app-number SFDATEDIM --app-version 0001 --app-directory ".\Deployment Applications\Date Dimension" --continue-ver-mismatch
 deployment deploy --app-number SFFILEFMT --app-version 0001 --app-directory ".\Deployment Applications\File Formats" --continue-ver-mismatch
 deployment deploy --app-number SFEXTENSIONS --app-version 0001 --app-directory ".\Deployment Applications\Extensions" --continue-ver-mismatch
@@ -457,6 +457,44 @@ UPDATE ws_table_attributes
 SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Update~;Minus_Update:;Update_Hint:TABLOCK~;Insert~;Minus_Insert:;Insert_Hint:TABLOCK~;HISNullSupport=TRUE;'
 WHERE ta_obj_key IN (-28,-29,-30)
 AND    ta_type      = 'M' 
+;
+INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES (60,13,37,5)
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0013;Database link;DefLoadScriptCon~=0030;Runtime Connection for Scripts;DefUpdateScriptCon~=0030;Runtime Connection for Scripts;DefPreLoadAct~=0008;Truncate;DisplayDataSQL~=0053;SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS);RowCountSQL~=0030;SELECT COUNT(*) FROM `$OBJECT`$ ;DropTableSQL~=0019;DROP TABLE `$OBJECT`$;DropViewSQL~=0018;DROP VIEW `$OBJECT`$;TruncateSQL~=0023;TRUNCATE TABLE `$OBJECT`$;OdbcDsnArch~=2;64;DefSch~=053;$schemaLoad,$schemaStage,$schemaEdw,$schemaDV;'
+WHERE  dc_name = 'Snowflake' 
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0017;Script based load;DefLoadScriptCon~=0030;Runtime Connection for Scripts;OdbcDsnArch~=2;64;DefSch~=053;SET THIS VALUE'
+WHERE  dc_name = 'Database Source System'
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0009;ODBC load;OdbcDsnArch~=2;64;'
+WHERE  dc_name = 'Range Table Location' 
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0017;Script based load;'
+WHERE  dc_name = 'Runtime Connection for Scripts' 
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0017;Script based load;'
+WHERE  dc_name = 'Windows Comma Sep Files' 
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0017;Script based load;'
+WHERE  dc_name = 'Windows Fixed Width' 
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0017;Script based load;'
+WHERE  dc_name = 'Windows JSON Files' 
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0017;Script based load;'
+WHERE  dc_name = 'Windows Pipe Sep Files' 
+;
+UPDATE ws_dbc_connect
+SET dc_attributes = 'DefLoad~=0017;Script based load;'
+WHERE  dc_name = 'Windows XML Files' 
 ;
 "@
 
