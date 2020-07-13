@@ -218,6 +218,13 @@ if status==1:
         ){%br%}
       {%- if dssDeleteFlagPresent %}
       AND   {{dssDeleteFlag}} = 'N'{%br%}
+     {%- from table.columns as column where column.dssVersion %}
+      AND   {{ table.name }}.{{ column.name }} =({%br%}
+      {%- endfrom %}
+        SELECT MAX(maxversion.dss_version)
+        FROM [TABLEOWNER].[{{table.name}}] AS maxversion
+        {{addWhereJoinToTargetMaxVersion()}}
+        )
       {%- elseif dssDeleteTimePresent %}
       AND   {{dssDeleteTime}} IS NULL{%br%}
       {%- endif -%}
@@ -252,7 +259,7 @@ if status==1:
   {{batchIndent}}#--============================================================================{%br%}{%br%}
   {{batchIndent}}step = {% counter %}00{%br%}{%br%}
   {{batchIndent}}sql = """
-  {{batchIndent}}MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
+ {{batchIndent}}MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
   {{batchIndent}}USING ({%br%}
   {#-                             -#}
   {#- V E R S I O N   1   R O W S -#}
@@ -284,6 +291,12 @@ if status==1:
   {%- from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
+  {%- from table.columns as delTime where delTime.name == dssDeleteTime or delTime.name == dssDeleteFlag -%}
+	{%- if loop.first -%}
+   {{batchIndent}}AND( {{table.name}}.{{delTime.name}} IS NULL OR  {{table.name}}.{{dssDeleteFlag}} = 'N'){% br %}
+	 {%- endif -%}
+  {%- endfrom -%}
+
   {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
   {#-                           -#}
@@ -300,6 +313,11 @@ if status==1:
   {%- from table.columns as column where column.currentFlag %}{{ table.name }}.{{ column.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
+    {%- from table.columns as delTime where delTime.name == dssDeleteTime or delTime.name == dssDeleteFlag -%}
+		{%- if loop.first -%}
+  {{batchIndent}}OR( {{table.name}}.{{delTime.name}} IS NOT NULL AND  {{table.name}}.{{dssDeleteFlag}} = 'Y'){% br %}
+	  {%- endif -%}
+  {%- endfrom -%}
   {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
   {{- addGroupByClause ( indent = "    " + batchIndent ) }}
   {#-                         -#}
@@ -328,7 +346,12 @@ if status==1:
     {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "=", compareType = "AND", nullSupport = settings.nullSupport ) -}}
     {#- WHERE UNTRACKED COLUMNS HAVE CHANGED #}
     {{- addType2UntrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) -}}
-    {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
+    {%- from table.columns as delTime where delTime.name == dssDeleteTime or delTime.name == dssDeleteFlag -%}
+		{%- if loop.first -%}
+    {{batchIndent}}OR( {{table.name}}.{{delTime.name}} IS NOT NULL AND  {{table.name}}.{{dssDeleteFlag}} = 'Y'){% br %}
+		  {%- endif -%}
+     {%- endfrom -%}
+   {{- addBatchLoopWhereClause(dssFlag = dssFlag)}}
     {{- addGroupByClause ( indent = "    " + batchIndent ) -}}
   {%- endif %}
   {{batchIndent}}) AS src{%br%}

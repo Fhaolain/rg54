@@ -291,6 +291,13 @@
   {%- endfrom -%}
 {% endmacro %}
 
+{# -- This macro inserts the join back to the target -- #}
+{% macro addWhereJoinToTargetMaxVersion(indent="        ") %}
+  {%- from table.columns as column where column.businessKey -%}
+    {%- if loop.first %}WHERE {% else %}{{indent}}AND   {% endif %}maxversion.{{column.name}} = {{table.name}}.{{column.name}}{%- if not loop.last %}{%br%}{%- endif %}
+  {%- endfrom -%}
+{% endmacro %}
+
 {# -- This macro adds the source columns and dss columns for a set merge -- #}
 {% macro addSetInsertColumnsSnowflakeMerge(cleanSourceTable = "" , indent = "       ") %}
   {%- for column in table.columns %}
@@ -418,9 +425,9 @@ for row in SnowflakeLoop[4]:{%br%}
       {%- elseif column.dssEndDate -%}
         {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
-        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+        {{ table.name }}.{{ column.name }} +1 AS {{ column.name }}{%- br -%}
       {%- elseif column.currentFlag -%}
-        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+        'Y' AS {{ column.name }}{%- br -%}
       {%- elseif column.dssLoadDate -%}
         {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssRecordSource -%}
@@ -433,7 +440,7 @@ for row in SnowflakeLoop[4]:{%br%}
 {% endmacro %}
 
 {% macro addType2ExpiringRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag ) %}
-  {{- indent }}SELECT
+  {{- indent }}SELECT DISTINCT
   {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% else %} {% endif -%}
     {%- if column.artificial -%}
@@ -457,6 +464,10 @@ for row in SnowflakeLoop[4]:{%br%}
         {{settings.changeDetectionEndExpiring}} AS {{ column.name }}{%- br -%}
       {%- elseif column.dssVersion -%}
         {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+			{%- elseif column.dssLoadDate -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
+      {%- elseif column.dssRecordSource -%}
+        {{ table.name }}.{{ column.name }} AS {{ column.name }}{%- br -%}
       {%- else -%}
         CAST(NULL AS {{ column.fullDataType }}) AS {{ column.name }}{%- br -%}
       {%- endif -%}
@@ -465,7 +476,7 @@ for row in SnowflakeLoop[4]:{%br%}
 {% endmacro %}
 
 {% macro addNewRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag ) %}
-  {{- indent }}SELECT {{ distinct() -}}
+  {{- indent }}SELECT DISTINCT {{- indent }}
   {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}
     {%- if column.transform | trim != "" -%}
@@ -511,7 +522,7 @@ for row in SnowflakeLoop[4]:{%br%}
 {% endmacro %}
 
 {% macro addVersionedRowSelect ( indent = "    ", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag ) %}
-  {{- indent }}SELECT {{ distinct() -}}
+  {{- indent }}SELECT DISTINCT{{- indent }}
   {%- from table.columns as column where column.dataType.indexOf("identity") == -1 %}
     {%- if not loop.first %}{{- indent }}     , {% endif -%}
     {%- if column.transform | trim != "" -%}
@@ -580,9 +591,6 @@ for row in SnowflakeLoop[4]:{%br%}
     {%- br -%}
     {%- if loop.last %}{{- indent }}){%br%}{%- endif %}
   {%- endfrom %}
-  {%- from table.columns as delTime where delTime.name == dssDeleteTime or delTime.name == dssDeleteFlag -%}
-    {{ indent }}OR {{table.name}}.{{delTime.name}} IS NOT NULL{% br %}
-  {%- endfrom -%}
 {% endmacro %}
 
 {% macro addType2UntrackedWhere ( indent = "    ", compareOperator = "=", whereType = "AND", compareType = "OR", dssDeleteTime = dssDeleteTime, dssDeleteFlag = dssDeleteFlag, nullSupport = true ) %}
