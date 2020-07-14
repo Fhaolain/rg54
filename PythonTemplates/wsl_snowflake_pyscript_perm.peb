@@ -1,6 +1,6 @@
-{# -- TemplateVersion:003 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:STAR,ODS,NORMAL TemplateType:Python                                   -- #}
+{# -- TemplateVersion:001 MinVersion:8510 MaxVersion:* TargetType:Snowflake ModelType:STAR,ODS,NORMAL TemplateType:Python                                   -- #}
 {# --                                                                                                                                                       -- #}
-{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
+{# --    (c) WhereScape Inc 2020. WhereScape Inc permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -8,7 +8,7 @@
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_pyscript_perm                                                                                                      -- #}
 {# -- RED Version        : 8.5.1.0                                                                                                                          -- #}
-{# -- Description        : This template creates a Snowflake procedure specifically                                                                         -- #}
+{# -- Description        : This template creates a Python based Snowflake update script                                                                     -- #}
 {# --                      specifically designed for all RED non-stage tables                                                                               -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -21,8 +21,9 @@
 {% set counter = 0 %}
 {% set dssDeleteTime = "DSS_DELETE_TIME" %}
 {% set dssDeleteFlag = "DSS_DELETE_FLAG" %}
-{% import "wsl_snowflake_utility_dml_py" %}
 {% import "wsl_snowflake_utility" %}
+{% import "wsl_snowflake_utility_dml" %}
+{% import "wsl_snowflake_utility_dml_py" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
 #-- DBMS Name        :    SNOWFLAKE {{table.dbType.name}}{%br%}
@@ -251,13 +252,13 @@ if status == 1:{%br%}
 {%- endif %}
 
 if status==1:
-{%br%}
   {{- addBatchLoopSelectClause()}}
-  {{batchIndent}}#--============================================================================{%br%}
-  {{batchIndent}}#-- Refresh data{%br%}
-  {{batchIndent}}#--============================================================================{%br%}{%br%}
-  {{batchIndent}}step = {% counter %}00{%br%}{%br%}
-  {{batchIndent}}sql = """
+{%br%}
+ {{batchIndent}}#--============================================================================{%br%}
+ {{batchIndent}}#-- Refresh data{%br%}
+ {{batchIndent}}#--============================================================================{%br%}{%br%}
+ {{batchIndent}}step = {% counter %}00{%br%}{%br%}
+ {{batchIndent}}sql = """
   {{batchIndent}}MERGE INTO [TABLEOWNER].[{{table.name}}]{%br%}
   {{batchIndent}}USING ({%br%}
   {#-                 -#}
@@ -309,12 +310,12 @@ if status==1:
   {{batchIndent}}){%br%}
   {{batchIndent}};{%br%}
 """
-  SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed data merge into table {{table.name}} step'+ str(step)  , '',step)
-  mergeCount = mergeCount + SnowflakeResult[2]{%br%}
-  status=SnowflakeResult[1]{%br%}
-  if status<1:{%br%}
+   SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed data merge into table {{table.name}} step'+ str(step)  , '',step)
+   mergeCount = mergeCount + SnowflakeResult[2]{%br%}
+   status=SnowflakeResult[1]{%br%}
+   if status<1:{%br%}
      returnMsg = str(SnowflakeResult[3]){%br%}
-  else:{%br%}
+   else:{%br%}
      returnMsg = str(SnowflakeResult[2]){%br%}
 {{batchIndent}} {%br%}
 {%- if settings.batchProcessingField != "" %}

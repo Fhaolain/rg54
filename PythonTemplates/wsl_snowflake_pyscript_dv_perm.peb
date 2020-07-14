@@ -1,6 +1,6 @@
-{# -- TemplateVersion:003 MinVersion:8510 MaxVersion:* TargetType:Snowflake ModelType:DATAVAULT TemplateType:Python                                         -- #}
+{# -- TemplateVersion:001 MinVersion:8510 MaxVersion:* TargetType:Snowflake ModelType:DATAVAULT TemplateType:Python                                         -- #}
 {# --                                                                                                                                                       -- #}
-{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
+{# --    (c) WhereScape Ltd 2020. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
@@ -17,7 +17,8 @@
 {# -- Notes / History                                                                                                                                       -- #}
 {# --                                                                                                                                                       -- #}
 {% import "wsl_snowflake_utility" %}
-{% import "wsl_snowflake_utility_dv_py" %}
+{% import "wsl_snowflake_utility_dv" %}
+{% import "wsl_snowflake_utility_dml_py" %}
 {# --                                                            Start of main procedure text                                                               -- #}
 #--=============================================================================={%br%}
 #-- DBMS Name        :    SNOWFLAKE {{table.dbType.name}}{%br%}
