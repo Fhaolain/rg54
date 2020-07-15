@@ -74,22 +74,34 @@ if( ! (Test-Path $objectConfig) ) {
     Write-Warning "You will not be prompted again"
     Write-Output  "Delete '$objectConfig' if you wish to be prompted for template names"
 }
+
 $conn.open()
 #-- Search Python Path
- $vars=[Environment]::GetEnvironmentVariable("path").split(";")
- foreach ($line in  $vars) 
+$vars=[Environment]::GetEnvironmentVariable("path").split(";")
+foreach ($line in  $vars) 
 {
     if($line.IndexOf("Python") -gt 0)
     {
     $pythonpath=$line.Replace("Scripts","")
     }
 }
+$pythonpath ='"' + $pythonpath +'"'
 $pythonpath +='python.exe $SCRIPT_NAME$'
-write-output($pythonpath)
-
 $objectsToInstall = @(Get-Content $objectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
-$wsAddPythonScript=@"
+#-- Add Python Script to RED
+Try 
+     {
+                $wsAddPythonScript="Select count(*) from [dbo].[ws_script_language] where [sl_name] like '%python%' or [sl_file_extension] ='py'"
+                $command = New-Object System.Data.Odbc.OdbcCommand
+                $command.Connection = $conn
+                $command.Transaction = $trans
+                $command.CommandText = $wsAddPythonScript
+                $ws_obj_object_sr1 = $command.ExecuteScalar()
+
+               if( $ws_obj_object_sr1 -eq 0)
+               {
+                 $wsAddPythonScript=@"
                  INSERT INTO [dbo].[ws_script_language]
                   ([sl_name]
                  ,[sl_description]
@@ -106,9 +118,24 @@ $wsAddPythonScript=@"
                 $command.Connection = $conn
                 $command.Transaction = $trans
                 $command.CommandText = $wsAddPythonScript
-                $ws_obj_object_sr1 = $command.ExecuteScalar()
+                $ws_obj_object_sr1 = $command.ExecuteScalar() 
+              }
+              else 
+              {
+                 Write-Warning "Python Script already exists. Skipping"
+              }               
 
-$folders = @("PythonTemplates")
+}
+Catch
+{
+    $ErrorMessage = $_.Exception.Message
+    $FailedItem = $_.Exception.ItemName
+    Write-Warning $ErrorMessage
+    $conn.Close()
+    Break
+}
+
+$folders = @("PythonTemplates","Templates")
 
 foreach($folder in $folders) {
 
@@ -123,6 +150,15 @@ foreach($folder in $folders) {
             $line_prefix = "tl"
         }
 
+       "Templates" {
+            $oo_type_key = 4
+            $ws_header_tab = "ws_tem_header"
+            $ws_line_tab = "ws_tem_line"
+
+            $header_prefix = "th"
+            $line_prefix = "tl"
+        }
+		
         "Scripts" {
             $oo_type_key = 3
             $ws_header_tab = "ws_scr_header"
@@ -153,13 +189,17 @@ foreach($folder in $folders) {
 
             try {
 
+                $objectName = $($object.Name.Split("."))[0]
+                #-- Skip Powershell Templates
+                if($objectName -match 'pscript' -eq 'True'){
+                continue  
+				}
+
                 $trans = $conn.BeginTransaction()
 
                 $command = New-Object System.Data.Odbc.OdbcCommand
                 $command.Connection = $conn
                 $command.Transaction = $trans
-
-                $objectName = $($object.Name.Split("."))[0]
                 $objectPath = $object.FullName
 
                 $ws_obj_object_ss1 = "SELECT count(oo_name) FROM dbo.ws_obj_object WHERE oo_name = '$objectName'"
