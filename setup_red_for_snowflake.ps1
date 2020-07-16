@@ -56,7 +56,6 @@ $dfsSF=".\Database Function Sets\Snowflake Function Set.xml"
 $extProFile=".\Extended Properties\Snowflake.extprop"
 $templatesFile=".\install_templates.ps1"
 $optionsFile=".\Options.xml"
-$sfDsn="Snowflake"
 $red="WhereScape RED"
 $redVersion="8.5.100"
 $redLoc="C:\Program Files\WhereScape\RED\"
@@ -67,7 +66,7 @@ if ($loc -ne $redLoc) {
   Write-Warning "Please Select RED Version $redVersion"
   Exit
 }
-#Checking Redcli Files exist or not.
+#Checking Redcli Files exists or not.
 if (!(Test-Path $dtmSFFile)) {
   Write-Warning "Please Check DTM SNOWFLAKE from File does not exist"
   Exit
@@ -219,7 +218,7 @@ foreach ($cmd in $cmds.replace("`r`n", "`n").split("`n")) {
 
 & "$templatesFile"
 
-#Connections commands
+#Create Connections commands
 $conCmds=@"
 connection rename --force --new-name "Runtime Connection for Scripts" --old-name "windows"
 connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --default-load-type "Script based load" --def-odbc-user Extract --admin-user-id $sfUser --admin-pwd $sfPwd
@@ -263,28 +262,28 @@ ext-prop-value modify --object-name $sfDsn --value-data 10 --value-name RANGE_MA
 ext-prop-value modify --object-name $sfDsn --value-data 4 --value-name RANGE_THREAD_COUNT
 ext-prop-value modify --object-name $sfDsn --value-data TRUE --value-name RANGE_UNLOAD_GZIP
 ext-prop-value modify --object-name $sfDsn --value-data 3 --value-name RANGE_UPLOAD_MAX_RETRIES
-connection set-default-template --connection-name $sfDsn --obj-type "Stage" --obj-sub-type "Stage" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_stage"
-connection set-default-template --connection-name $sfDsn --obj-type "Stage" --obj-sub-type "DataVaultStage" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_stage"
-connection set-default-template --connection-name $sfDsn --obj-type "Stage" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_stage"
-connection set-default-template --connection-name $sfDsn --obj-type "ods" --obj-sub-type "DataStore" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "ods" --obj-sub-type "History" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_hist"
-connection set-default-template --connection-name $sfDsn --obj-type "HUB" --obj-sub-type "Detail" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Link" --obj-sub-type "Detail" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Satellite" --obj-sub-type "History" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Normal" --obj-sub-type "Normalized" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Normal" --obj-sub-type "History" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_hist"
-connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "ChangingDimension" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_hist"
-connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "Dimension" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "PreviousDimension" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "RangedDimension" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "TimeDimension" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "MappingTable" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Fact" --obj-sub-type "Detail" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Agg" --obj-sub-type "Aggregate" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $sfDsn --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --tem-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Stage" --obj-sub-type "Stage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_stage"
+connection set-default-template --connection-name $sfDsn --obj-type "Stage" --obj-sub-type "DataVaultStage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_stage"
+connection set-default-template --connection-name $sfDsn --obj-type "Stage" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_stage"
+connection set-default-template --connection-name $sfDsn --obj-type "ods" --obj-sub-type "DataStore" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "ods" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
+connection set-default-template --connection-name $sfDsn --obj-type "HUB" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Link" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Satellite" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Normal" --obj-sub-type "Normalized" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Normal" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
+connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "ChangingDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
+connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "Dimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "PreviousDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "RangedDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "TimeDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "MappingTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Dim" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Fact" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Agg" --obj-sub-type "Aggregate" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name $sfDsn --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
 options import -f ".\Options.xml"
 deployment deploy --app-number SFDATEDIM --app-version 0001 --app-directory ".\Deployment Applications\Date Dimension" --continue-ver-mismatch
 deployment deploy --app-number SFFILEFMT --app-version 0001 --app-directory ".\Deployment Applications\File Formats" --continue-ver-mismatch
@@ -478,15 +477,10 @@ WHERE  mn_object   = 'custom2_key'
 ;
 UPDATE ws_table_attributes
 SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Update~;Minus_Update:;Update_Hint:TABLOCK~;Insert~;Minus_Insert:;Insert_Hint:TABLOCK~;HISNullSupport=TRUE;'
-WHERE ta_obj_key IN (-6,-5,-26,-27,-31,-32)
+WHERE ta_obj_key IN (-6,-5,-26,-27,-28,-29,-30,-31,-32)
 AND    ta_type      = 'M' 
 ;
-UPDATE ws_table_attributes
-SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Update~;Minus_Update:;Update_Hint:TABLOCK~;Insert~;Minus_Insert:;Insert_Hint:TABLOCK~;HISNullSupport=TRUE;'
-WHERE ta_obj_key IN (-28,-29,-30)
-AND    ta_type      = 'M' 
-;
-INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES (60,13,37,5)
+INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES (59,13,37,5)
 ;
 UPDATE ws_dbc_connect
 SET dc_attributes = 'DefLoad~=0013;Database link;DefLoadScriptCon~=0030;Runtime Connection for Scripts;DefUpdateScriptCon~=0030;Runtime Connection for Scripts;DefPreLoadAct~=0008;Truncate;DisplayDataSQL~=0053;SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS);RowCountSQL~=0030;SELECT COUNT(*) FROM `$OBJECT`$ ;DropTableSQL~=0019;DROP TABLE `$OBJECT`$;DropViewSQL~=0018;DROP VIEW `$OBJECT`$;TruncateSQL~=0023;TRUNCATE TABLE `$OBJECT`$;OdbcDsnArch~=2;64;DefSch~=053;$schemaLoad,$schemaStage,$schemaEdw,$schemaDV;'
@@ -523,6 +517,28 @@ WHERE  dc_name = 'Windows Pipe Sep Files'
 UPDATE ws_dbc_connect
 SET dc_attributes = 'DefLoad~=0017;Script based load;'
 WHERE  dc_name = 'Windows XML Files' 
+;
+UPDATE dbo.ws_table_attributes 
+SET ta_ind_1 = 4, 
+      ta_val_1 = 39
+WHERE ta_obj_key IN (60,3,62,63,64,65,66)
+AND ta_type = 'L'
+;
+UPDATE dbo.ws_table_attributes 
+SET ta_ind_1 = 3,
+    ta_ind_2 = 4,
+	ta_ind_3 = 6,
+	ta_ind_4 = 9,
+	ta_val_2 = 39,
+    ta_val_3 = 33,
+	ta_val_4 = 28
+WHERE ta_obj_key = 59
+AND ta_type = 'L'
+;
+UPDATE dbo.ws_table_attributes 
+SET ta_val_1 = 70
+WHERE ta_obj_key = 59
+AND ta_type = 'E'
 ;
 "@
 
