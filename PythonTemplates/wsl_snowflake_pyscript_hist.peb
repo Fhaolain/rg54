@@ -241,8 +241,10 @@ if status==1:
   {%br%}
 {%br%}
 {%- endif %}
-
-{%- if settings.batchProcessingField != "" %}
+{%- if settings.batchProcessingField != ""   %}
+ {%- if dssDeleteTimePresent or dssDeleteFlagPresent  %}
+	 {%- error "Batch delete is not supported with logical delete for history tables" -%}
+ {%- endif %}
   {%- set batchIndent = "  " %}
 {%- else %}
   {%- set batchIndent = "" %}
@@ -292,10 +294,10 @@ if status==1:
   {%- from table.columns as currFlag where currFlag.currentFlag %}{{ table.name }}.{{ currFlag.name }} = 'Y'{% br %}{% endfrom %}
   {#- WHERE SLOWLY CHANGING ROWS HAVE CHANGED #}
   {{- addType2TrackedWhere ( indent = "    " + batchIndent, whereType = "AND", compareOperator = "<>", compareType = "OR ", nullSupport = settings.nullSupport ) }}
-  {%- if dssDeleteTimePresent and dssDeleteFlagPresent -%}   
+  {%- if dssDeleteTimePresent and dssDeleteFlagPresent -%}
     {{batchIndent}}    OR ( {{table.name}}.{{dssDeleteFlag}} = 'Y'{%  br -%}
     {{batchIndent}}      AND {{table.name}}.{{dssDeleteTime}} IS NOT NULL {%  br -%}
-    {{batchIndent}}      AND {{table.name}}.dss_version = ( {%-  br -%}       
+    {{batchIndent}}      AND {{table.name}}.dss_version = ( {%-  br -%}
     {{batchIndent}}        SELECT MAX( maxversion.dss_version ) {%-  br -%}
     {{batchIndent}}        FROM [TABLEOWNER].[{{table.name}}] AS maxversion {%-  br -%}
     {{batchIndent}}        {{addWhereJoinToTargetMaxVersion()}} )
