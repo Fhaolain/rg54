@@ -1,1 +1,2 @@
-50;2067;Initialize Snowsql for Scheduler Account;;
+3;50;snowflake_init_sched_user_snowsql;;
+50;2;Initialize Snowsql for Scheduler Account;;
