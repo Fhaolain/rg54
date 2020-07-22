@@ -166,6 +166,7 @@ def GzipFile({%br%}
 
 def LoadData(runMode):{%br%}
   try:
+    #Set variables from extended properties{%br%}
     os.environ["DEBUG"]              = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
     os.environ["ACCESS_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_ACCESS_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
     os.environ["SECRET_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_SECRET_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
@@ -188,6 +189,7 @@ def LoadData(runMode):{%br%}
     os.environ["AZ_ENCRYPTION_TYPE"] = WslPythonCommon.GetExtendedProperty("SF_AZURE_ENCRYPTION_TYPE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
     os.environ["AZ_ENCRYPTION_KEY"]  = WslPythonCommon.GetExtendedProperty("SF_AZURE_ENCRYPTION_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
 
+    #Set defaults to variables if not set from extended properties{%br%}
     if os.environ["UNICODE_SUPPORT"]!="TRUE":{%br%}
         os.environ["UNICODE_SUPPORT"] = "FALSE"{%br%}
 
@@ -225,6 +227,7 @@ def LoadData(runMode):{%br%}
     else:{% br %}
       splitThresholdCount=int(str(os.getenv('SPLIT_THRESHOLD'))){% br %}
 
+    #Set environment variables for snowflake credentials{%br%}
     os.environ["SNOWSQL_USER"] = os.environ["WSL_TGT_USER"]{%br%}
     os.environ["SNOWSQL_PWD"]  = os.environ["WSL_TGT_PWD"]{%br%}
 
@@ -240,6 +243,9 @@ def LoadData(runMode):{%br%}
     auditLog=str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+".txt"{%br%}
     logStream = open(os.path.join(filePath,auditLog), 'a+'){%br%}
 
+  except Exception as exceptionError:{%br%}
+   raise{%br%}
+  try:
     if str(os.getenv('DEBUG'))== "TRUE":{%br%}
          logStream.write("=================== LOAD OPTIONS ===================\n"){%br%}
          logStream.write("Specified Load Table:        " + str(os.environ["WSL_LOAD_TABLE"])+'\n'){%br%}
@@ -349,7 +355,7 @@ def LoadData(runMode):{%br%}
        logStream.write("END create of data file from source system: "+str(datetime.now())+'\n'){% br %}
 
 
-
+    #For multiple input files add file name to list
     dataFiles = []{% br %}
     for f in glob.iglob(os.path.join(filePath,fileDat)+'*.txt'): {% br %}
         dataFiles.append(f){% br %}
