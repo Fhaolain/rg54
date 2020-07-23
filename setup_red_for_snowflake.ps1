@@ -14,7 +14,7 @@ param (
   [string]$snowflakeUser=$( if(!$help) {Read-Host -Prompt "Enter Snowflake User or 'enter' for none"} ),
   [string]$snowflakePwd=$( if(!$help) {Read-Host -Prompt "Enter Snowflake Pwd or 'enter' for none"}  ),
   [string]$sfSnowsqlAcc=$snowflakeUser,
-  [string]$snowflakeDataWarehouse="snowflakeDataWarehouse",
+  [string]$snowflakeDataWarehouse=$( if(!$help) {Read-Host -Prompt "Enter Snowflake DataWarehouse"}  ),
   [int]$startAtStep=100
 )
 
@@ -64,7 +64,7 @@ Available Parameters:
 
 $logLevel=5
 $outputMode="json"
-$dstDir="c:\temp\"
+$dstDir="C:\temp\"
 $schedulerName="WIN0001"
 $wslSchedLog="C:\ProgramData\WhereScape\Scheduler\WslSched_${metaDsn}_${schedulerName}.log"
 $defBrowserSchema="dbo"
@@ -83,6 +83,8 @@ $dfsSF=".\Database Function Sets\Snowflake Function Set.xml"
 $extProFile=".\Extended Properties\Snowflake.extprop"
 $templatesFile=".\install_templates.ps1"
 $optionsFile=".\Options.xml"
+$wsLoc="C:\ProgramData\WhereScape\"
+
 
 # Check for a correct RED Version
 $redLoc="C:\Program Files\WhereScape\RED\"
@@ -101,6 +103,7 @@ $redCliPath=Join-Path -Path $redLoc -ChildPath "RedCli.exe"
 $defDtmDir=Join-Path -Path $redLoc -ChildPath "Administrator\Data Type Mappings"
 $defDfsDir=Join-Path -Path $redLoc -ChildPath "Administrator\Function Sets"
 $wslSched=Join-Path -Path $redLoc -ChildPath "WslSched.exe"
+$wsFSLoc=Join-Path -Path $wsLoc -ChildPath "FieldSolutions"
 
 # Check Snowflake Connectivity
 $conn = New-Object Data.Odbc.OdbcConnection
@@ -114,6 +117,11 @@ try {
   Write-Host $_.Exception.Message
   Write-Warning "Failed to establish a connection to Snowflake, please check your Snowflake DSN and credentials"
   Exit
+}
+
+#Check or Copy the folder FieldSolutions to WhereScape
+if (!(Test-Path $wsFSLoc)) {
+  Copy-Item -Path '.\FieldSolutions\' -Destination $wsLoc
 }
 
 # common RedCli arguments
@@ -166,7 +174,7 @@ ext-prop-value modify --object-name "Database Source System" --value-data "+" --
 connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --def-pre-load-action Truncate --def-browser-schema $defBrowserSchema --def-odbc-user Extract
 target add --connection-name "Range Table Location" --name RangeTables --database RANGE_WORK_DB --schema $defBrowserSchema --tree-colour #ff57ff
 connection rename --force --new-name Repository --old-name "DataWarehouse"
-connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaBase --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --notes "This connection points back to the data warehouse and is used during drag and drop operations." --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract
+connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaBase --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract --extract-user-id "$metaUser" --extract-pwd "$metaPwd"
 connection add --name "Windows Comma Sep Files" --con-type Windows --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File"
 ext-prop-value modify --object-name "Windows Comma Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_COMMA" --value-name "SF_FILE_FORMAT"
 connection add --name "Windows Fixed Width" --con-type Windows  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE"
@@ -188,7 +196,7 @@ ext-prop-value modify --object-name $snowflakeDsn --value-data 1000000 --value-n
 ext-prop-value modify --object-name $snowflakeDsn --value-data 1 --value-name "SF_SPLIT_COUNT"
 ext-prop-value modify --object-name $snowflakeDsn --value-data FALSE --value-name "SF_UNICODE_SUPPORT"
 ext-prop-value modify --object-name $snowflakeDsn --value-data | --value-name SF_UNLOAD_DELIMITER
-ext-prop-value modify --object-name $snowflakeDsn --value-data "''" --value-name "SF_UNLOAD_ENCLOSED_BY"
+ext-prop-value modify --object-name $snowflakeDsn --value-data \" --value-name "SF_UNLOAD_ENCLOSED_BY"
 ext-prop-value modify --object-name $snowflakeDsn --value-data # --value-name SF_UNLOAD_ESCAPE_CHAR
 ext-prop-value modify --object-name $snowflakeDsn --value-data ASCII --value-name RANGE_EXTRACT_CHARSET
 ext-prop-value modify --object-name $snowflakeDsn --value-data FALSE --value-name RANGE_FAIL_ON_THREAD_FAILURE
@@ -287,8 +295,13 @@ for($i=0; $i -lt $cmdArray.Count; $i++) {
 
 # Install Templates, Scripts and Procedures
 $installStep=300
-if ($installStep -ge $startAtStep) {
+if ($installStep -ge $startAtStep) { 
+
+  if( ([string]::IsNullOrEmpty($metaUser) -and [string]::IsNullOrEmpty($metaPwd)) -or ([string]::IsNullorWhitespace($metaUser) -and [string]::IsNullorWhitespace($metaPwd))) {
+   & powershell -ExecutionPolicy RemoteSigned -file "$templatesFile" -metaDsn "$metaDsn"
+  }else{
   & powershell -ExecutionPolicy RemoteSigned -file "$templatesFile" -metaDsn "$metaDsn" -metaUser "$metaUser" -metaPwd "$metaPwd"
+  }
   if( $LASTEXITCODE -eq 0 ) {
     Write-Output "Templates, Scripts and Procedures updated successfully"
   } else {
@@ -364,7 +377,7 @@ if ($installStep -ge $startAtStep) {
   $sql = @"
 UPDATE ws_obj_type 
 SET ot_options = SUBSTRING(CAST(ot_options AS VARCHAR(4000)),1,CHARINDEX('OBJTGTKEY=',CAST(ot_options AS VARCHAR(4000)))-1)+'OBJTGTKEY='+(SELECT CAST(dt_target_key AS VARCHAR(10)) FROM ws_dbc_target WHERE dt_name = 'load')+';'+SUBSTRING(CAST(ot_options AS VARCHAR(4000)),CHARINDEX('OBJTGTKEY=',CAST(ot_options AS VARCHAR(4000)))+CHARINDEX(';',SUBSTRING(CAST(ot_options AS VARCHAR(4000)),CHARINDEX('OBJTGTKEY=',CAST(ot_options AS VARCHAR(4000))),100)),1000) 
-WHERE ot_type_key IN (8,31,32)
+WHERE ot_type_key IN (select ot_type_key from dbo.ws_obj_type where ot_description in ('Load Table','File Format','Extensions'))
 ;
 UPDATE ws_obj_type
 SET  ot_pre_fix   = 'DIM_' 
@@ -444,10 +457,10 @@ WHERE  mn_object   = 'sat_key'
 ;
 UPDATE ws_table_attributes
 SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Update~;Minus_Update:;Update_Hint:TABLOCK~;Insert~;Minus_Insert:;Insert_Hint:TABLOCK~;HISNullSupport=TRUE;'
-WHERE ta_obj_key IN (-6,-5,-26,-27,-28,-29,-30,-31,-32)
+WHERE ta_obj_key IN (select -1 * ot_type_key from dbo.ws_obj_type where ot_description in ('Dimension','Fact Table','Data Store','EDW 3NF','Hub','Satellite','Link','File Format','Extensions'))
 AND    ta_type      = 'M' 
 ;
-INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES (59,13,37,5)
+INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES ((select oo_obj_key from dbo.ws_obj_object where oo_name = 'Snowflake'),(select ot_type_key from dbo.ws_obj_type where ot_description = 'Export'),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_export' and oo_type_key = 4),5)
 ;
 UPDATE ws_dbc_connect
 SET dc_attributes = 'DefLoad~=0013;Database link;DefLoadScriptCon~=0030;Runtime Connection for Scripts;DefUpdateScriptCon~=0030;Runtime Connection for Scripts;DefPreLoadAct~=0008;Truncate;DisplayDataSQL~=0053;SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS);RowCountSQL~=0030;SELECT COUNT(*) FROM `$OBJECT`$ ;DropTableSQL~=0019;DROP TABLE `$OBJECT`$;DropViewSQL~=0018;DROP VIEW `$OBJECT`$;TruncateSQL~=0023;TRUNCATE TABLE `$OBJECT`$;OdbcDsnArch~=2;64;DefSch~=053;$tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema;'
@@ -469,25 +482,23 @@ UPDATE dbo.ws_table_attributes
 SET ta_ind_1 = 4, 
     ta_val_1 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_load' and oo_type_key = 4)
 WHERE ta_obj_key IN (
-    select oo_obj_key from dbo.ws_obj_object where oo_name in ('$snowflakeDsn','Runtime Connection for Scripts','Windows Comma Sep Files','Windows Fixed Width','Windows JSON Files','Windows Pipe Sep Files','Windows XML Files') 
+    select oo_obj_key from dbo.ws_obj_object where oo_name in ('Database Source System','Runtime Connection for Scripts','Windows Comma Sep Files','Windows Fixed Width','Windows JSON Files','Windows Pipe Sep Files','Windows XML Files') 
   )
 AND ta_type = 'L'
 ;
 UPDATE dbo.ws_table_attributes 
 SET ta_ind_1 = 3,
     ta_ind_2 = 4,
-  ta_ind_3 = 6,
-  ta_ind_4 = 9,
-  ta_val_2 = 39,
-    ta_val_3 = 33,
-  ta_val_4 = 28
-WHERE ta_obj_key = 59
+	ta_ind_3 = 6,
+	ta_ind_4 = 9,
+	ta_val_1 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_create_table' and oo_type_key = 4),
+	ta_val_2 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_load' and oo_type_key = 4),
+    ta_val_3 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_create_view' and oo_type_key = 4),
+	ta_val_4 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_alter_ddl' and oo_type_key = 4)
+WHERE ta_obj_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'Snowflake')
 AND ta_type = 'L'
 ;
-UPDATE dbo.ws_table_attributes 
-SET ta_val_1 = 70
-WHERE ta_obj_key = 59
-AND ta_type = 'E'
+INSERT INTO ws_table_attributes (ta_obj_key,ta_type,ta_text_1,ta_text_2,ta_text_3,ta_text_4,ta_text_5,ta_text_6,ta_text_7,ta_text_8,ta_val_1,ta_val_2,ta_val_3,ta_val_4,ta_val_5,ta_val_6,ta_val_7,ta_val_8) VALUES (0,'R','Add Transforms to a Fixed Width Stage Table','Create New Range Tables','Pause a Ranged Table','Restart a Ranged Table','Retrofit Fivetran Tables','Parse JSON  load->stage','Job Versioning','Job Maintenance',(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_fixed_width_setup' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_create_range_table' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_pause' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_restart' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_retrofit_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_parse_json_load_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_versioning_extensions' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_maintenance_extensions' and oo_type_key = 3))
 ;
 "@
 
