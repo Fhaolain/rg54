@@ -458,17 +458,19 @@ foreach($folder in $folders) {
                         $script_conn_key_ss1 = @"
                           SELECT script_conn.dc_obj_key
                           FROM (
-                            SELECT CASE CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))
-                                     WHEN 0 THEN 'Runtime Connection for Scripts'
-                                     ELSE SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))+25,CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000))) + 20,4) AS INTEGER))
-                                   END script_conn_name
-                                 , dc_obj_key
+                          SELECT COALESCE (
+                            ( SELECT TOP 1 CASE CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))
+                            WHEN 0 THEN NULL
+                            ELSE SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))+25,CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000))) + 20,4) AS INTEGER))
+                            END dc_name
                             FROM ws_dbc_connect  
-                            WHERE dc_db_type_ind = 13  
+                            WHERE dc_db_type_ind = 13 ), 
+                            ( select dc_name from ws_dbc_connect where dc_name = 'Runtime Connection for Scripts' ),
+                            ( select dc_name from ws_dbc_connect where dc_name = 'Windows')
+                          ) as script_conn_name
                           ) tgt_conn
                           JOIN ws_dbc_connect script_conn
                           ON script_conn.dc_name = tgt_conn.script_conn_name
-                          ORDER BY tgt_conn.dc_obj_key
 "@
                         $command.CommandText = $script_conn_key_ss1
                         $script_conn_key = $command.ExecuteScalar()

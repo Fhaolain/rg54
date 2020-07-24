@@ -228,6 +228,14 @@ connection set-default-template --connection-name $snowflakeDsn --obj-type "Agg"
 connection set-default-template --connection-name $snowflakeDsn --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
 "@
 
+# RED Application deployments
+$applicationDeploymentCmds = @"
+deployment deploy --app-number SFDATEDIM --app-version 0001 --app-directory ".\Deployment Applications\Date Dimension" --continue-ver-mismatch
+deployment deploy --app-number SFFILEFMT --app-version 0001 --app-directory ".\Deployment Applications\File Formats" --continue-ver-mismatch
+deployment deploy --app-number SFEXTENSIONS --app-version 0001 --app-directory ".\Deployment Applications\Extensions" --continue-ver-mismatch
+deployment deploy --app-number SFJOBS --app-version 0001 --app-directory ".\Deployment Applications\Jobs" --continue-ver-mismatch
+"@
+
 Function Execute-Command ($commandTitle, $commandPath, $commandArguments)
 {
     Try {
@@ -335,40 +343,14 @@ scheduler add --service-name $metaDsn --scheduler-name $schedulerName --exe-path
 "@
   Execute-RedCli-Command $addSchedCmd
 }
-# Deploy Dim Date for Snowflake
-$installStep=710
-if ($installStep -ge $startAtStep) {
-  $deployCmd = @"
-deployment deploy --app-number SFDATEDIM --app-version 0001 --app-directory ".\Deployment Applications\Date Dimension" --continue-ver-mismatch
-"@
-  Execute-RedCli-Command $deployCmd $commonRedCliArgs
-}
-
-# Deploy File Formats for Snowflake
-$installStep=720
-if ($installStep -ge $startAtStep) {
-  $deployCmd = @"
-deployment deploy --app-number SFFILEFMT --app-version 0001 --app-directory ".\Deployment Applications\File Formats" --continue-ver-mismatch
-"@
-  Execute-RedCli-Command $deployCmd $commonRedCliArgs
-}
-
-# Deploy Snowflake Extension Objects
-$installStep=730
-if ($installStep -ge $startAtStep) {
-  $deployCmd = @"
-deployment deploy --app-number SFEXTENSIONS --app-version 0001 --app-directory ".\Deployment Applications\Extensions" --continue-ver-mismatch
-"@
-  Execute-RedCli-Command $deployCmd $commonRedCliArgs
-}
-
-# Deploy Scheduler Job to inititalize SnowSQL
-$installStep=740
-if ($installStep -ge $startAtStep) {
-  $deployCmd = @"
-deployment deploy --app-number SFJOBS --app-version 0001 --app-directory ".\Deployment Applications\Jobs" --continue-ver-mismatch
-"@
-  Execute-RedCli-Command $deployCmd $commonRedCliArgs
+# Deploy RED Applications
+$installStep=700
+$cmdArray = $applicationDeploymentCmds.replace("`r`n", "`n").split("`n")  
+for($i=0; $i -lt $cmdArray.Count; $i++) {
+  $global:installStep++
+  if ($installStep -ge $startAtStep) {
+    Execute-RedCli-Command $cmdArray[$i] $commonRedCliArgs
+  }
 }
 
 #Update Options Tool with Sql commands
@@ -460,11 +442,11 @@ SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Upda
 WHERE ta_obj_key IN (select -1 * ot_type_key from dbo.ws_obj_type where ot_description in ('Dimension','Fact Table','Data Store','EDW 3NF','Hub','Satellite','Link','File Format','Extensions'))
 AND    ta_type      = 'M' 
 ;
-INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES ((select oo_obj_key from dbo.ws_obj_object where oo_name = 'Snowflake'),(select ot_type_key from dbo.ws_obj_type where ot_description = 'Export'),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_export' and oo_type_key = 4),5)
+INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES ((select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn'),(select ot_type_key from dbo.ws_obj_type where ot_description = 'Export'),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_export' and oo_type_key = 4),5)
 ;
 UPDATE ws_dbc_connect
 SET dc_attributes = 'DefLoad~=0013;Database link;DefLoadScriptCon~=0030;Runtime Connection for Scripts;DefUpdateScriptCon~=0030;Runtime Connection for Scripts;DefPreLoadAct~=0008;Truncate;DisplayDataSQL~=0053;SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS);RowCountSQL~=0030;SELECT COUNT(*) FROM `$OBJECT`$ ;DropTableSQL~=0019;DROP TABLE `$OBJECT`$;DropViewSQL~=0018;DROP VIEW `$OBJECT`$;TruncateSQL~=0023;TRUNCATE TABLE `$OBJECT`$;OdbcDsnArch~=2;64;DefSch~=053;$tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema;'
-WHERE  dc_name = 'Snowflake' 
+WHERE  dc_name = '$snowflakeDsn' 
 ;
 UPDATE ws_dbc_connect
 SET dc_attributes = 'DefLoad~=0017;Script based load;DefLoadScriptCon~=0030;Runtime Connection for Scripts;OdbcDsnArch~=2;64;DefSch~=053;SET THIS VALUE'
@@ -495,7 +477,7 @@ SET ta_ind_1 = 3,
 	ta_val_2 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_load' and oo_type_key = 4),
     ta_val_3 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_create_view' and oo_type_key = 4),
 	ta_val_4 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_alter_ddl' and oo_type_key = 4)
-WHERE ta_obj_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'Snowflake')
+WHERE ta_obj_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn')
 AND ta_type = 'L'
 ;
 INSERT INTO ws_table_attributes (ta_obj_key,ta_type,ta_text_1,ta_text_2,ta_text_3,ta_text_4,ta_text_5,ta_text_6,ta_text_7,ta_text_8,ta_val_1,ta_val_2,ta_val_3,ta_val_4,ta_val_5,ta_val_6,ta_val_7,ta_val_8) VALUES (0,'R','Add Transforms to a Fixed Width Stage Table','Create New Range Tables','Pause a Ranged Table','Restart a Ranged Table','Retrofit Fivetran Tables','Parse JSON  load->stage','Job Versioning','Job Maintenance',(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_fixed_width_setup' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_create_range_table' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_pause' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_restart' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_retrofit_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_parse_json_load_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_versioning_extensions' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_maintenance_extensions' and oo_type_key = 3))
