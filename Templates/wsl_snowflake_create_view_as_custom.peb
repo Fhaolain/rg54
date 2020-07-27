@@ -1,13 +1,13 @@
-{# -- TemplateVersion:003 MinVersion:8010 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Block                                                  -- #}
+{# -- TemplateVersion:003 MinVersion:8510 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Block                                                  -- #}
 {# --                                                                                                                                                       -- #}
-{# --    (c) WhereScape Ltd 2019. WhereScape Ltd permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
+{# --    (c) WhereScape Inc 2020. WhereScape Inc permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
 {# --                                                                                                                                                       -- #}
 {# -- DBMS Name          : SNOWFLAKE                                                                                                                        -- #}
 {# -- Template Name      : wsl_snowflake_create_view_as_custom                                                                                              -- #}
-{# -- RED Version        : 8.3.1.0                                                                                                                          -- #}
+{# -- RED Version        : 8.5.1.0                                                                                                                          -- #}
 {# -- Description        : This template creates a Snowflake database view                                                                                  -- #}
 {# --                                                                                                                                                       -- #}
 {# -- =============================================================================                                                                         -- #}
