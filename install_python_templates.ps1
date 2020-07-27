@@ -135,7 +135,7 @@ Catch
     Break
 }
 
-$folders = @("PythonTemplates","Templates")
+$folders = @("PythonTemplates","Templates","Scripts")
 
 foreach($folder in $folders) {
 
