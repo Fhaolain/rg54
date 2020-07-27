@@ -310,13 +310,13 @@ if status==1:
   {{batchIndent}}){%br%}
   {{batchIndent}};{%br%}
 """
-   SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed data merge into table {{table.name}} step'+ str(step)  , '',step)
-   mergeCount = mergeCount + SnowflakeResult[2]{%br%}
-   status=SnowflakeResult[1]{%br%}
-   if status<1:{%br%}
-     returnMsg = str(SnowflakeResult[3]){%br%}
-   else:{%br%}
-     returnMsg = str(SnowflakeResult[2]){%br%}
+ {{batchIndent}}SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed data merge into table {{table.name}} step'+ str(step)  , '',step)
+ {{batchIndent}}mergeCount = mergeCount + SnowflakeResult[2]{%br%}
+ {{batchIndent}}status=SnowflakeResult[1]{%br%}
+ {{batchIndent}}if status<1:{%br%}
+ {{batchIndent}}    returnMsg = str(SnowflakeResult[3]){%br%}
+ {{batchIndent}}else:{%br%}
+ {{batchIndent}}    returnMsg = str(SnowflakeResult[2]){%br%}
 {{batchIndent}} {%br%}
 {%- if settings.batchProcessingField != "" %}
 {%br%}
