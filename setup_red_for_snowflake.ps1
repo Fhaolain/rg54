@@ -1,21 +1,22 @@
 param (
+  $unmatchedParameter,
   [switch]$help=$false,
-  [string]$metaDsn=$( if(!$help) {Read-Host -Prompt "Enter RED MetaRepo DSN"} ),
-  [string]$metaDsnArch="64",
-  [string]$metaUser=$( if(!$help) {Read-Host -Prompt "Enter RED MetaRepo User or 'enter' for none"} ),
-  [string]$metaPwd=$( if(!$help) {Read-Host -Prompt "Enter RED MetaRepo Pwd or 'enter' for none"} ),
-  [string]$metaBase=$( if(!$help) {Read-Host -Prompt "Enter RED MetaRepo DB"} ),
-  [string]$snowflakeDB=$( if(!$help) {Read-Host -Prompt "Enter Snowflake DB"} ),
-  [string]$tgtLoadSchema =$( if(!$help) {Read-Host -Prompt "Enter Snowflake Load Target Schema"} ),
-  [string]$tgtStageSchema=$( if(!$help) {Read-Host -Prompt "Enter Snowflake Stage Target Schema"} ),
-  [string]$tgtEdwSchema=$( if(!$help) {Read-Host -Prompt "Enter Snowflake EDW Target Schema"} ),
-  [string]$tgtDvSchema=$( if(!$help) {Read-Host -Prompt "Enter Snowflake Data Vault Target Schema"} ),
-  [string]$snowflakeDsn=$( if(!$help) {Read-Host -Prompt "Enter Snowflake DSN"} ),
-  [string]$snowflakeUser=$( if(!$help) {Read-Host -Prompt "Enter Snowflake User or 'enter' for none"} ),
-  [string]$snowflakePwd=$( if(!$help) {Read-Host -Prompt "Enter Snowflake Pwd or 'enter' for none"}  ),
-  [string]$sfSnowsqlAcc=$snowflakeUser,
-  [string]$snowflakeDataWarehouse=$( if(!$help) {Read-Host -Prompt "Enter Snowflake DataWarehouse"}  ),
-  [int]$startAtStep=100
+  [string]$metaDsn,
+  [string]$metaDsnArch='64',
+  [string]$metaUser='',
+  [string]$metaPwd='',
+  [string]$metaBase,
+  [string]$snowflakeDB,
+  [string]$tgtLoadSchema,
+  [string]$tgtStageSchema,
+  [string]$tgtEdwSchema,
+  [string]$tgtDvSchema,
+  [string]$snowflakeDsn,
+  [string]$snowflakeUser='',
+  [string]$snowflakePwd='',
+  [string]$sfSnowsqlAcc,
+  [string]$snowflakeDataWarehouse,
+  [int]$startAtStep=1
 )
 
 #--==============================================================================
@@ -26,14 +27,18 @@ param (
 #-- Notes / History
 #-- MME v 1.0.0 2020-07-21 First Version
 
-if ( $help ) {
+# Print script help msg
+Function Print-Help {
   $helpMsg = @"
-This WhereScape Enablement Pack install script must be run as admininstrator.
 
-Pre-requisites before running this script: 
+This WhereScape Enablement Pack install script must be run as administrator.
+
+Prerequisites before running this script: 
   1. Valid install of WhereScape RED with License key entered and accepted
   2. An empty SQL Server Database with a DSN to connect to it
   3. An empty Snowflake Database with a DSN to connect to it
+   - Your Snowflake DB should have at least one dedicated schema available for use in creating RED Data Warehouse Targets
+   - Both Snowflake ODBC Driver and SnowSQL are required
 
 Any required paramters will be prompted for at run-time, otherwise enter each named paramter as arguments:  
 
@@ -43,8 +48,8 @@ Available Parameters:
   -help                   "Displays this help message"
   -metaDsn                "RED MetaRepo DSN"                [REQUIRED]
   -metaDsnArch            "64 or 32"                        [DEFAULT = 64]
-  -metaUser               "RED MetaRepo User"               [EMPTY STRING FOR WINDOWS AUTH]
-  -metaPwd                "RED MetaRepo PW"                 [EMPTY STRING FOR WINDOWS AUTH]
+  -metaUser               "RED MetaRepo User"               [OMITTED FOR WINDOWS AUTH]
+  -metaPwd                "RED MetaRepo PW"                 [OMITTED FOR WINDOWS AUTH]
   -metaBase               "RED MetaRepo DB"                 [REQUIRED]
   -snowflakeDB            "Snowflake DB"                    [REQUIRED]
   -tgtLoadSchema          "Snowflake Load Target Schema"    [REQUIRED]
@@ -52,14 +57,47 @@ Available Parameters:
   -tgtEdwSchema           "Snowflake Load Target Schema"    [REQUIRED]
   -tgtDvSchema            "Snowflake Load Target Schema"    [REQUIRED]
   -snowflakeDsn           "Snowflake DSN"                   [REQUIRED]
-  -snowflakeUser          "Snowflake User"                  [EMPTY STRING FOR WINDOWS AUTH]
-  -snowflakePwd           "Snowflake Password"              [EMPTY STRING FOR WINDOWS AUTH] 
+  -snowflakeUser          "Snowflake User"                  [OMITTED FOR WINDOWS AUTH]
+  -snowflakePwd           "Snowflake Password"              [OMITTED FOR WINDOWS AUTH] 
   -sfSnowsqlAcc           "Defaults to snowflakeUser value" [DEFAULT = snowflakeUser parameter]
   -snowflakeDataWarehouse "Snowflake Data Warehouse"        [REQUIRED]
-  -startAtStep            "Defaults to first step, used to resume script from a certain step" [DEFAULT = 100]
+  -startAtStep            "Defaults to first step, used to resume script from a certain step" [DEFAULT = 1]
 "@
-  Write-Host $helpMsg 
+  Write-Host $helpMsg
+}
+
+# Validate Script Parameters
+if ( $help -or $unmatchedParameter -or ( $Args.Count -gt 0 )) {
+  Print-Help 
   Exit
+} 
+else {
+  # Prompt for any required paramaters
+  if([string]::IsNullOrEmpty($metaDsn))                 {$metaDsn = Read-Host -Prompt "Enter RED MetaRepo DSN"}
+  if($PSBoundParameters.count -eq 0)                    {$metaUser = Read-Host -Prompt "Enter RED MetaRepo User or 'enter' for none"}
+  if(![string]::IsNullOrEmpty($metaUser) -and [string]::IsNullOrEmpty($metaPwd)) {
+    $metaPwdSecureString = Read-Host -Prompt "Enter RED MetaRepo Pwd" -AsSecureString
+    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($metaPwdSecureString)
+    $metaPwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+  }
+  if([string]::IsNullOrEmpty($metaBase))                {$metaBase = Read-Host -Prompt "Enter RED MetaRepo DB"}
+  if([string]::IsNullOrEmpty($snowflakeDB))             {$snowflakeDB = Read-Host -Prompt "Enter Snowflake DB"}
+  if([string]::IsNullOrEmpty($tgtLoadSchema))           {$tgtLoadSchema = Read-Host -Prompt "Enter Snowflake 'Load' Target Schema (the vaule entered will be the default for following schemas)" | %{if([string]::IsNullOrEmpty($_)){'DEV_LOAD'}else{$_}} }
+  if([string]::IsNullOrEmpty($tgtStageSchema))          {$tgtStageSchema = Read-Host -Prompt "Enter Snowflake 'Stage' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_}} }
+  if([string]::IsNullOrEmpty($tgtEdwSchema))            {$tgtEdwSchema = Read-Host -Prompt "Enter Snowflake 'EDW' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_}} }
+  if([string]::IsNullOrEmpty($tgtDvSchema))             {$tgtDvSchema = Read-Host -Prompt "Enter Snowflake 'Data Vault' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_}} }
+  if([string]::IsNullOrEmpty($snowflakeDsn))            {$snowflakeDsn = Read-Host -Prompt "Enter Snowflake DSN"}
+  if($PSBoundParameters.count -eq 0)                    {$snowflakeUser = Read-Host -Prompt "Enter Snowflake User or 'enter' for none"}
+  if(![string]::IsNullOrEmpty($snowflakeUser) -and [string]::IsNullOrEmpty($snowflakePwd) ) {
+    $snowflakePwdSecureString = Read-Host -Prompt "Enter Snowflake Pwd" -AsSecureString
+    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($snowflakePwdSecureString)
+    $snowflakePwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+  }
+  if([string]::IsNullOrEmpty($snowflakeDataWarehouse))  {$snowflakeDataWarehouse = Read-Host -Prompt "Enter Snowflake DataWarehouse"}
+  $sfSnowsqlAcc = @($snowflakeUser,'')[0]
+  
+  # Output the command line used to the host (passwords replced with '***')
+  Write-Host "`nINFO: Run Parameters: -metaDsn '$metaDsn' -metaDsnArch '$metaDsnArch' $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser '$metaUser' -metaPwd '***' "})-metaBase '$metaBase' -snowflakeDB '$snowflakeDB' -tgtLoadSchema '$tgtLoadSchema' -tgtStageSchema '$tgtStageSchema' -tgtEdwSchema '$tgtEdwSchema' -tgtDvSchema '$tgtDvSchema' -snowflakeDsn '$snowflakeDsn' $( if(![string]::IsNullOrEmpty($snowflakeUser)){"-snowflakeUser '$snowflakeUser' -snowflakePwd '***' "})-snowflakeDataWarehouse 'SnowflakeDataWarehouse' $(if(![string]::IsNullOrEmpty($sfSnowsqlAcc)){"-sfSnowsqlAcc '$sfSnowsqlAcc' "})-startAtStep $startAtStep`n"
 }
 
 $logLevel=5
@@ -85,6 +123,8 @@ $templatesFile=".\install_templates.ps1"
 $optionsFile=".\Options.xml"
 $wsLoc="C:\ProgramData\WhereScape\"
 
+# Print the starting step
+if ($startAtStep -ne 1) { Write-Host "Starting from Step = $startAtStep" }
 
 # Check for a correct RED Version
 $redLoc="C:\Program Files\WhereScape\RED\"
@@ -99,6 +139,8 @@ if ($getRedVersion -isnot [array] -and $getRedVersion -ne $null) {
   Write-Warning "Could not find a compatible RED Version Installed - Please install WhereScape RED 8.5.1.0 or greater to continue."
   Exit
 }
+
+# Build required file and folder paths
 $redCliPath=Join-Path -Path $redLoc -ChildPath "RedCli.exe"
 $defDtmDir=Join-Path -Path $redLoc -ChildPath "Administrator\Data Type Mappings"
 $defDfsDir=Join-Path -Path $redLoc -ChildPath "Administrator\Function Sets"
@@ -106,19 +148,22 @@ $wslSched=Join-Path -Path $redLoc -ChildPath "WslSched.exe"
 $wsFSLoc=Join-Path -Path $wsLoc -ChildPath "FieldSolutions"
 
 # Check Snowflake Connectivity
-$conn = New-Object Data.Odbc.OdbcConnection
-$conn.ConnectionString= "dsn=$snowflakeDsn;uid=$snowflakeUser;pwd=$snowflakePwd;"
-try { 
-  if (($conn.open()) -eq $true) { 
-    $conn.Close() 
-    $true 
+$installStep=1
+if ($installStep -ge $startAtStep) {
+  $conn = New-Object Data.Odbc.OdbcConnection
+  $conn.ConnectionString= "dsn=$snowflakeDsn;uid=$snowflakeUser;pwd=$snowflakePwd;"
+  try { 
+    if (($conn.open()) -eq $true) { 
+      $conn.Close() 
+      $true 
+    }
+  } catch { 
+    Write-Host $_.Exception.Message
+    Write-Warning "Failed to establish a connection to Snowflake, please check your Snowflake DSN and credentials"
+    Write-Output "Failed at step = $installStep"
+    Exit
   }
-} catch { 
-  Write-Host $_.Exception.Message
-  Write-Warning "Failed to establish a connection to Snowflake, please check your Snowflake DSN and credentials"
-  Exit
 }
-
 #Check or Copy the folder FieldSolutions to WhereScape
 if (!(Test-Path $wsFSLoc)) {
   Copy-Item -Path '.\FieldSolutions\' -Destination $wsLoc
@@ -174,7 +219,7 @@ ext-prop-value modify --object-name "Database Source System" --value-data "+" --
 connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --def-pre-load-action Truncate --def-browser-schema $defBrowserSchema --def-odbc-user Extract
 target add --connection-name "Range Table Location" --name RangeTables --database RANGE_WORK_DB --schema $defBrowserSchema --tree-colour #ff57ff
 connection rename --force --new-name Repository --old-name "DataWarehouse"
-connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaBase --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract --extract-user-id "$metaUser" --extract-pwd "$metaPwd"
+connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaDsn --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract --extract-user-id "$metaUser" --extract-pwd "$metaPwd"
 connection add --name "Windows Comma Sep Files" --con-type Windows --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File"
 ext-prop-value modify --object-name "Windows Comma Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_COMMA" --value-name "SF_FILE_FORMAT"
 connection add --name "Windows Fixed Width" --con-type Windows  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE"
@@ -236,6 +281,17 @@ deployment deploy --app-number SFEXTENSIONS --app-version 0001 --app-directory "
 deployment deploy --app-number SFJOBS --app-version 0001 --app-directory ".\Deployment Applications\Jobs" --continue-ver-mismatch
 "@
 
+Function Remove-Passwords ($stringWithPwds) { 
+  $stringWithPwdsRemoved = $stringWithPwds
+  if (![string]::IsNullOrEmpty($metaPwd)){ 
+    $stringWithPwdsRemoved = $stringWithPwdsRemoved -replace "(`"|`'| ){1}$metaPwd(`"|`'| ){1}",'$1***$2'
+  } 
+  if (![string]::IsNullOrEmpty($snowflakePwd)){ 
+    $stringWithPwdsRemoved = $stringWithPwdsRemoved -replace "(`"|`'| ){1}$snowflakePwd(`"|`'| ){1}",'$1***$2' 
+  } 
+  $stringWithPwdsRemoved 
+}
+
 Function Execute-Command ($commandTitle, $commandPath, $commandArguments)
 {
     Try {
@@ -266,7 +322,7 @@ Function Execute-RedCli-Command ( $commandArguments, $commonArguments="" ) {
   $cmdReturn = Execute-Command "RedCli CMD" $redCliPath "$commandArguments $commonArguments"
   $progressEnd = ($cmdReturn.stdout -split "`n" | Select-String -Pattern ',"Progress End":.+"}').Line
   if ($cmdReturn.stderr.Trim() -ne '' -or $progressEnd -notmatch 'Error Message":"","Progress End"') {
-      Write-Output "Failure executing cmd: $commandArguments"
+      Write-Output "Failure executing cmd: $(Remove-Passwords $commandArguments)"
       Write-Output "Failed at step = $installStep"
       if ($cmdReturn.stderr.Trim() -ne '') { Write-Output $cmdReturn.stderr }
       Write-Output $( $progressEnd -replace '.+?"Progress End":".+?\}(.+?)','$1' )
@@ -275,7 +331,7 @@ Function Execute-RedCli-Command ( $commandArguments, $commonArguments="" ) {
   else {
       $batchJson = ($cmdReturn.stdout -split "`n" | Select-String -Pattern '^{"Batch":\[').Line.Trim().TrimEnd("Content-Type: application/json; charset=utf-8")
       $cmdResult = ($batchJson | ConvertFrom-Json).Batch[0].Result
-      Write-Output "Result: $cmdResult Cmd: $commandArguments"
+      Write-Output "Result: $cmdResult Cmd: $(Remove-Passwords $commandArguments)"
   }
 }
 
@@ -284,7 +340,6 @@ Function Execute-RedCli-Command ( $commandArguments, $commonArguments="" ) {
 #             MAIN INSTALLER PROGRAM BEGINS
 #
 # ---------------------------------------------------------------------------------------------------
-if ($startAtStep -ne 100) { Write-Host "Starting from Step = $startAtStep" }
 
 # Create RED Metadata Repository
 $installStep=100
@@ -338,7 +393,7 @@ if ($installStep -ge $startAtStep) {
 # Create a RED Scheduler
 $installStep=600
 if ($installStep -ge $startAtStep) {
-  $addSchedCmd = @" 
+  $addSchedCmd =  @" 
 scheduler add --service-name $metaDsn --scheduler-name $schedulerName --exe-path-name "$wslSched" --sched-log-level 2 --log-file-name "$wslSchedLog" --sched-meta-dsn-arch $metaDsnArch --sched-meta-dsn $metaDsn --sched-meta-user-name $metaUser --sched-meta-password $metaPwd --login-mode LocalSystemAccount --ip-service tcp --host-name ${env:COMPUTERNAME} --output-mode json
 "@
   Execute-RedCli-Command $addSchedCmd
