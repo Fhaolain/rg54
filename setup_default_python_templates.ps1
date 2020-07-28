@@ -6,7 +6,7 @@ param (
   [string]$metaUser='',
   [string]$metaPwd='',
   [string]$metaBase,
-  [string]$snowflakeDsn,
+  [string]$snowflakeConnectionName,
   [int]$startAtStep=1
 )
 
@@ -22,23 +22,25 @@ param (
 Function Print-Help {
   $helpMsg = @"
 
-This Update Default Python Templates script must be run as admininstrator.
+This script updates the RED connection level defaults for python based templates.
 
-Pre-requisites before running this script: 
-  1. WhereScape Enablement Pack install script should be installed.
+Prerequisites before running this script: 
+  1. A Valid WhereScape RED metadata repository including a Snowflake Target Connection
+  2. The full set of WhereScape provided Python Templates must already be installed
+    - Run .\install_python_templates.ps1 to apply these templates to your repository
 
-Any required paramters will be prompted for at run-time, otherwise enter each named paramter as arguments:  
+Any required parameters will be prompted for at run-time, otherwise enter each named parameter as arguments:  
 
-Example:.\setup_default_python_templates.ps1 -metaDsn "REDMetaRepoDSN" -metaUser "REDMetaRepoUser" -metaPwd "REDMetaRepoPwd" -metaBase "REDMetaRepoDB" -snowflakeDsn "SnowflakeDSN"
+Example:.\setup_default_python_templates.ps1 -metaDsn "REDMetaRepoDSN" -metaUser "REDMetaRepoUser" -metaPwd "REDMetaRepoPwd" -metaBase "REDMetaRepoDB" -snowflakeConnectionName "snowflakeConnectionName"
 
 Available Parameters:
-  -help                   "Displays this help message"
-  -metaDsn                "RED MetaRepo DSN"                [REQUIRED]
-  -metaDsnArch            "64 or 32"                        [DEFAULT = 64]
-  -metaUser               "RED MetaRepo User"               [OMITTED FOR WINDOWS AUTH]
-  -metaPwd                "RED MetaRepo PW"                 [OMITTED FOR WINDOWS AUTH]
-  -metaBase               "RED MetaRepo DB"                 [REQUIRED]
-  -snowflakeDsn           "Snowflake DSN"                   [REQUIRED]
+  -help                       "Displays this help message"
+  -metaDsn                    "RED MetaRepo DSN"                  [REQUIRED]
+  -metaDsnArch                "64 or 32"                          [DEFAULT = 64]
+  -metaUser                   "RED MetaRepo User"                 [OMITTED FOR WINDOWS AUTH]
+  -metaPwd                    "RED MetaRepo PW"                   [OMITTED FOR WINDOWS AUTH]
+  -metaBase                   "RED MetaRepo DB"                   [REQUIRED]
+  -snowflakeConnectionName    "Snowflake Connection Name in RED"  [REQUIRED]
   -startAtStep            "Defaults to first step, used to resume script from a certain step" [DEFAULT = 1]
 "@
   Write-Host $helpMsg
@@ -59,9 +61,9 @@ else {
     $metaPwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   }
   if([string]::IsNullOrEmpty($metaBase))                {$metaBase = Read-Host -Prompt "Enter RED MetaRepo DB"}
-  if([string]::IsNullOrEmpty($snowflakeDsn))            {$snowflakeDsn = Read-Host -Prompt "Enter Snowflake Connection Name"}
+  if([string]::IsNullOrEmpty($snowflakeConnectionName))            {$snowflakeConnectionName = Read-Host -Prompt "Enter Snowflake Connection Name"}
   # Output the command line used to the host (passwords replced with '***')
-  Write-Host "`nINFO: Run Parameters: -metaDsn '$metaDsn' -metaDsnArch '$metaDsnArch' $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser '$metaUser' -metaPwd '***' "})-metaBase '$metaBase' -snowflakeDsn '$snowflakeDsn' -startAtStep $startAtStep`n"
+  Write-Host "`nINFO: Run Parameters: -metaDsn '$metaDsn' -metaDsnArch '$metaDsnArch' $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser '$metaUser' -metaPwd '***' "})-metaBase '$metaBase' -snowflakeConnectionName '$snowflakeConnectionName' -startAtStep $startAtStep`n"
 }
 
 
@@ -94,28 +96,28 @@ $commonRedCliArgs = @"
 "@
 
 $pyDefTempSetupCmds=@"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Stage" --obj-sub-type "Stage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_stage"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Stage" --obj-sub-type "DataVaultStage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_stage"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Stage" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_stage"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "ods" --obj-sub-type "DataStore" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "ods" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_hist"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "HUB" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Link" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Satellite" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Normal" --obj-sub-type "Normalized" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Normal" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_hist"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "ChangingDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_hist"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "Dimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "PreviousDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "RangedDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "TimeDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "MappingTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Fact" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Agg" --obj-sub-type "Aggregate" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Stage" --obj-sub-type "Stage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_stage"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Stage" --obj-sub-type "DataVaultStage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_stage"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Stage" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_stage"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "ods" --obj-sub-type "DataStore" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "ods" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_hist"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "HUB" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Link" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Satellite" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Normal" --obj-sub-type "Normalized" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Normal" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_hist"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Dim" --obj-sub-type "ChangingDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_hist"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Dim" --obj-sub-type "Dimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Dim" --obj-sub-type "PreviousDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Dim" --obj-sub-type "RangedDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Dim" --obj-sub-type "TimeDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Dim" --obj-sub-type "MappingTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Dim" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Fact" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Agg" --obj-sub-type "Aggregate" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_dv_perm"
+connection set-default-template --connection-name $snowflakeConnectionName --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pyscript_perm"
 "@
 
 Function Remove-Passwords ($stringWithPwds) { 
@@ -204,7 +206,7 @@ AND ta_type = 'L'
 ;
 UPDATE dbo.ws_table_attributes 
 SET ta_val_2 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pyscript_load' and oo_type_key = 4)
-WHERE ta_obj_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn')
+WHERE ta_obj_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeConnectionName')
 AND ta_type = 'L'
 ;
 "@
