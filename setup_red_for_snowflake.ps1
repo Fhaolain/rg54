@@ -497,7 +497,18 @@ SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Upda
 WHERE ta_obj_key IN (select -1 * ot_type_key from dbo.ws_obj_type where ot_description in ('Dimension','Fact Table','Data Store','EDW 3NF','Hub','Satellite','Link','File Format','Extensions'))
 AND    ta_type      = 'M' 
 ;
-INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES ((select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn'),(select ot_type_key from dbo.ws_obj_type where ot_description = 'Export'),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_export' and oo_type_key = 4),5)
+-- set default Export template 
+MERGE INTO ws_dbc_default_template AS dt
+USING (select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn') AS new_dt
+      ON dt.ddt_connect_key = new_dt.oo_obj_key AND dt.ddt_table_type_key = 13  
+WHEN MATCHED THEN 
+UPDATE SET dt.ddt_connect_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn'),
+           dt.ddt_table_type_key = 13,
+           dt.ddt_template_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_export' and oo_type_key = 4),
+           ddt_operation_type = 5
+WHEN NOT MATCHED THEN
+INSERT (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) 
+VALUES ((select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn'),13,(select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_export' and oo_type_key = 4),5)
 ;
 -- set DefLoadScriptCon on Snowflake 
 UPDATE ws_dbc_connect
@@ -571,6 +582,7 @@ SET dc_attributes = (CASE
                     END)
 WHERE  dc_name IN ('Runtime Connection for Scripts','Windows Comma Sep Files','Windows Fixed Width','Windows JSON Files','Windows Pipe Sep Files','Windows XML Files') 
 ;
+-- set default load script templates
 UPDATE dbo.ws_table_attributes 
 SET ta_ind_1 = 4, 
     ta_val_1 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_load' and oo_type_key = 4)
@@ -579,19 +591,45 @@ WHERE ta_obj_key IN (
   )
 AND ta_type = 'L'
 ;
+-- set Snowflake template defaults
 UPDATE dbo.ws_table_attributes 
 SET ta_ind_1 = 3,
-    ta_ind_2 = 4,
+  ta_ind_2 = 4,
 	ta_ind_3 = 6,
 	ta_ind_4 = 9,
 	ta_val_1 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_create_table' and oo_type_key = 4),
 	ta_val_2 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_load' and oo_type_key = 4),
-    ta_val_3 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_create_view' and oo_type_key = 4),
+  ta_val_3 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_create_view' and oo_type_key = 4),
 	ta_val_4 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_alter_ddl' and oo_type_key = 4)
 WHERE ta_obj_key = (select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn')
 AND ta_type = 'L'
 ;
-INSERT INTO ws_table_attributes (ta_obj_key,ta_type,ta_text_1,ta_text_2,ta_text_3,ta_text_4,ta_text_5,ta_text_6,ta_text_7,ta_text_8,ta_val_1,ta_val_2,ta_val_3,ta_val_4,ta_val_5,ta_val_6,ta_val_7,ta_val_8) VALUES (0,'R','Add Transforms to a Fixed Width Stage Table','Create New Range Tables','Pause a Ranged Table','Restart a Ranged Table','Retrofit Fivetran Tables','Parse JSON  load->stage','Job Versioning','Job Maintenance',(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_fixed_width_setup' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_create_range_table' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_pause' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_restart' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_retrofit_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_parse_json_load_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_versioning_extensions' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_maintenance_extensions' and oo_type_key = 3))
+-- set the Script Launcher Menu items
+MERGE INTO ws_table_attributes AS ta
+USING (select 0 as ta_obj_key) as new_ta
+  ON ta.ta_obj_key = new_ta.ta_obj_key and ta.ta_type = 'R'
+WHEN MATCHED THEN
+UPDATE SET ta_obj_key = 0,
+  ta_type = 'R',
+  ta_text_1 = 'Add Transforms to a Fixed Width Stage Table',
+  ta_text_2 = 'Create New Range Tables',
+  ta_text_3 = 'Pause a Ranged Table',
+  ta_text_4 = 'Restart a Ranged Table',
+  ta_text_5 = 'Retrofit Fivetran Tables',
+  ta_text_6 = 'Parse JSON  load->stage',
+  ta_text_7 = 'Job Versioning',
+  ta_text_8 = 'Job Maintenance',
+  ta_val_1 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_fixed_width_setup' and oo_type_key = 3),
+  ta_val_2 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_create_range_table' and oo_type_key = 3),
+  ta_val_3 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_pause' and oo_type_key = 3),
+  ta_val_4 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_restart' and oo_type_key = 3),
+  ta_val_5 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_retrofit_tables' and oo_type_key = 3),
+  ta_val_6 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_parse_json_load_tables' and oo_type_key = 3),
+  ta_val_7 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_versioning_extensions' and oo_type_key = 3),
+  ta_val_8 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_maintenance_extensions' and oo_type_key = 3)
+WHEN NOT MATCHED THEN
+INSERT (ta_obj_key,ta_type,ta_text_1,ta_text_2,ta_text_3,ta_text_4,ta_text_5,ta_text_6,ta_text_7,ta_text_8,ta_val_1,ta_val_2,ta_val_3,ta_val_4,ta_val_5,ta_val_6,ta_val_7,ta_val_8) 
+  VALUES (0,'R','Add Transforms to a Fixed Width Stage Table','Create New Range Tables','Pause a Ranged Table','Restart a Ranged Table','Retrofit Fivetran Tables','Parse JSON  load->stage','Job Versioning','Job Maintenance',(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_fixed_width_setup' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_create_range_table' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_pause' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_restart' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_retrofit_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_parse_json_load_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_versioning_extensions' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_maintenance_extensions' and oo_type_key = 3))
 ;
 "@
 
