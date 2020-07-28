@@ -1,14 +1,16 @@
+param (
+  [string]$metaDsn='',
+  [string]$metaUser='',
+  [string]$metaPwd=''
+)
+
 #--==============================================================================
 #-- Script Name      :    install_python_templates.ps1
-#-- Description      :    Load all templates scripts and procedures into a RED Repository
-#-- Author           :    Tom Kelly, WhereScape
+#-- Description      :    Load all python templates into a RED Repository
+#-- Author           :    WhereScape Inc
 #--==============================================================================
 #-- Notes / History
-#-- TK  v 1.0.0 2018-07-24 First Version
-#-- TK  v 2.0.0 2018-11-11 Now also handle scripts and procedures (not just templates)
-#-- TK  v 3.0.0 2019-03-28 64 bit template and script support
-#-- TK  v 4.0.0 2019-05-15 Better handling of upgrades
-
+#-- MME v 1.0.0 2020-07-21 First Version
 
 $gitProj = $PSScriptRoot
 
@@ -20,23 +22,27 @@ if([string]::IsNullOrEmpty($gitProj)) {
 $objectConfig = "$gitProj\objects_to_install.txt"
 $connectConfig = "$gitProj\connect_info.txt"
 
-if( ! (Test-Path $connectConfig) ) {
-    $dsn = Read-Host -Prompt "DSN"
-    $dsn | Set-Content $connectConfig
+if( ! (Test-Path $connectConfig) -or ! [string]::IsNullOrEmpty($metaDsn) ) {
+    $dsn = if ([string]::IsNullOrEmpty($metaDsn)) { Read-Host -Prompt "Enter RED Metadata DSN" } else { $metaDsn }
+    $dsn | Set-Content $connectConfig -Force
     
-    $uid = Read-Host -Prompt "Username"
+    $uid = if ([string]::IsNullOrEmpty($metaUser) -and [string]::IsNullOrEmpty($metaDsn)) { Read-Host -Prompt "Enter RED Username" } else { $metaUser }
     if( ! [string]::IsNullOrEmpty($uid)) {
         $uid | Add-Content $connectConfig
-
-        $secPwd = Read-Host -Prompt "Password" -AsSecureString
-        $outFmt = ConvertFrom-SecureString -SecureString $secPwd
+        if ([string]::IsNullOrEmpty($metaPwd)) { 
+          $secPwd = Read-Host -Prompt "Enter Password" -AsSecureString
+          $outFmt = ConvertFrom-SecureString -SecureString $secPwd
+        } else {
+          $secPwd = $metaPwd | ConvertTo-SecureString -AsPlainText -Force
+          $outFmt = ConvertFrom-SecureString -SecureString $secPwd
+        }
         $outFmt | Add-Content $connectConfig
-
     }
 
-    Write-Output  "Connect information has been saved to '$connectConfig'"
+    Write-Output  "Connection information has been saved to '$connectConfig'"
     Write-Warning "You will not be prompted again"
     Write-Output  "Delete '$connectConfig' if you wish to be prompted for connection information"
+    Write-Output  "OR overwrite the Connection information file by providing cmdline args"
 }
 
 $connInfo = @(Get-Content $connectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
@@ -526,17 +532,19 @@ foreach($folder in $folders) {
                         $script_conn_key_ss1 = @"
                           SELECT script_conn.dc_obj_key
                           FROM (
-                            SELECT CASE CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))
-                                     WHEN 0 THEN NULL
-                                     ELSE SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))+25,CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000))) + 20,4) AS INTEGER))
-                                   END script_conn_name
-                                 , dc_obj_key
+                          SELECT COALESCE (
+                            ( SELECT TOP 1 CASE CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))
+                            WHEN 0 THEN NULL
+                            ELSE SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000)))+25,CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)),CHARINDEX('DefUpdateScriptCon',CAST(dc_attributes AS VARCHAR(4000))) + 20,4) AS INTEGER))
+                            END dc_name
                             FROM ws_dbc_connect  
-                            WHERE dc_db_type_ind = 13  
+                            WHERE dc_db_type_ind = 13 ), 
+                            ( select dc_name from ws_dbc_connect where dc_name = 'Runtime Connection for Scripts' ),
+                            ( select dc_name from ws_dbc_connect where dc_name = 'Windows')
+                          ) as script_conn_name
                           ) tgt_conn
                           JOIN ws_dbc_connect script_conn
                           ON script_conn.dc_name = tgt_conn.script_conn_name
-                          ORDER BY tgt_conn.dc_obj_key
 "@
                         $command.CommandText = $script_conn_key_ss1
                         $script_conn_key = $command.ExecuteScalar()
@@ -825,8 +833,6 @@ foreach($folder in $folders) {
                 $command.CommandText = $ws_header_tab_us1
                 $ws_header_tab_ur1 = $command.ExecuteScalar()
 
-                 
-
                 $trans.Commit()
             }
             catch {
@@ -841,4 +847,8 @@ foreach($folder in $folders) {
 }
 $conn.Close()
 
-pause
+if ($error.count -gt 0) {
+  Exit 1
+} else {
+  Exit $LASTEXITCODE
+}
