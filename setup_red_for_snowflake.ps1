@@ -40,7 +40,7 @@ Prerequisites before running this script:
    - Your Snowflake DB should have at least one dedicated schema available for use in creating RED Data Warehouse Targets
    - Both Snowflake ODBC Driver and SnowSQL are required
 
-Any required paramters will be prompted for at run-time, otherwise enter each named paramter as arguments:  
+Any required parameters will be prompted for at run-time, otherwise enter each named paramter as arguments:  
 
 Example:.\setup_red_for_snowflake.ps1 -metaDsn "REDMetaRepoDSN" -metaUser "REDMetaRepoUser" -metaPwd "REDMetaRepoPwd" -metaBase "REDMetaRepoDB" -snowflakeDB "SnowflakeDB" -tgtLoadSchema "dev_load" -tgtStageSchema "dev_stage" -tgtEdwSchema "dev_edw" -tgtDvSchema "dev_dv" -snowflakeDsn "SnowflakeDSN" -snowflakeUser "SnowflakeUser" -snowflakePwd "SnowflakePwd" -snowflakeDataWarehouse "SnowflakeDataWarehouse"
 
@@ -284,10 +284,10 @@ deployment deploy --app-number SFJOBS --app-version 0001 --app-directory ".\Depl
 Function Remove-Passwords ($stringWithPwds) { 
   $stringWithPwdsRemoved = $stringWithPwds
   if (![string]::IsNullOrEmpty($metaPwd)){ 
-    $stringWithPwdsRemoved = $stringWithPwdsRemoved -replace "(`"|`'| ){1}$metaPwd(`"|`'| ){1}",'$1***$2'
+    $stringWithPwdsRemoved = $stringWithPwdsRemoved -replace "(`"|`'| ){1}$metaPwd(`"|`'| |$){1}",'$1***$2'
   } 
   if (![string]::IsNullOrEmpty($snowflakePwd)){ 
-    $stringWithPwdsRemoved = $stringWithPwdsRemoved -replace "(`"|`'| ){1}$snowflakePwd(`"|`'| ){1}",'$1***$2' 
+    $stringWithPwdsRemoved = $stringWithPwdsRemoved -replace "(`"|`'| ){1}$snowflakePwd(`"|`'| |$){1}",'$1***$2' 
   } 
   $stringWithPwdsRemoved 
 }
@@ -499,20 +499,76 @@ AND    ta_type      = 'M'
 ;
 INSERT INTO ws_dbc_default_template (ddt_connect_key, ddt_table_type_key,ddt_template_key,ddt_operation_type) VALUES ((select oo_obj_key from dbo.ws_obj_object where oo_name = '$snowflakeDsn'),(select ot_type_key from dbo.ws_obj_type where ot_description = 'Export'),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'wsl_snowflake_pscript_export' and oo_type_key = 4),5)
 ;
+-- set DefLoadScriptCon on Snowflake 
 UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0013;Database link;DefLoadScriptCon~=0030;Runtime Connection for Scripts;DefUpdateScriptCon~=0030;Runtime Connection for Scripts;DefPreLoadAct~=0008;Truncate;DisplayDataSQL~=0053;SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS);RowCountSQL~=0030;SELECT COUNT(*) FROM `$OBJECT`$ ;DropTableSQL~=0019;DROP TABLE `$OBJECT`$;DropViewSQL~=0018;DROP VIEW `$OBJECT`$;TruncateSQL~=0023;TRUNCATE TABLE `$OBJECT`$;OdbcDsnArch~=2;64;DefSch~=053;$tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema;'
+SET dc_attributes = (CASE 
+                      WHEN CHARINDEX('DefLoadScriptCon~=', CAST(dc_attributes AS VARCHAR(4000))) > 0 THEN 
+                        SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), 1, CHARINDEX('DefLoadScriptCon~=', CAST(dc_attributes AS VARCHAR(4000))) - 1) 
+                        + 'DefLoadScriptCon~=0030;Runtime Connection for Scripts;' 
+                        + SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoadScriptCon~=') + ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~='))) - (CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~=')) ) + 1 + CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=', CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoadScriptCon~='), ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~='))) - (CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~=')) )) AS int) + 1, LEN(CAST(dc_attributes AS VARCHAR(4000)))) 
+                      ELSE 
+                        CAST(dc_attributes AS VARCHAR(4000)) + 'DefLoadScriptCon~=0030;Runtime Connection for Scripts;' 
+                    END)
 WHERE  dc_name = '$snowflakeDsn' 
 ;
+-- set DefLoad on Snowflake   
 UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;DefLoadScriptCon~=0030;Runtime Connection for Scripts;OdbcDsnArch~=2;64;DefSch~=053;SET THIS VALUE'
+SET dc_attributes = (CASE 
+                      WHEN CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) > 0 THEN 
+                        SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), 1, CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) - 1) 
+                        + 'DefLoad~=0013;Database link;' 
+                        + SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~=') + ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) ) + 1 + CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~='), ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) )) AS int) + 1, LEN(CAST(dc_attributes AS VARCHAR(4000)))) 
+                      ELSE 
+                        CAST(dc_attributes AS VARCHAR(4000)) + 'DefLoad~=0013;Database link;' 
+                    END)
+WHERE  dc_name = '$snowflakeDsn' 
+;
+-- set DefLoadScriptCon on 'Database Source System' 
+UPDATE ws_dbc_connect
+SET dc_attributes = (CASE 
+                      WHEN CHARINDEX('DefLoadScriptCon~=', CAST(dc_attributes AS VARCHAR(4000))) > 0 THEN 
+                        SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), 1, CHARINDEX('DefLoadScriptCon~=', CAST(dc_attributes AS VARCHAR(4000))) - 1) 
+                        + 'DefLoadScriptCon~=0030;Runtime Connection for Scripts;' 
+                        + SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoadScriptCon~=') + ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~='))) - (CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~=')) ) + 1 + CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=', CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoadScriptCon~='), ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~='))) - (CHARINDEX('DefLoadScriptCon~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoadScriptCon~=')) )) AS int) + 1, LEN(CAST(dc_attributes AS VARCHAR(4000)))) 
+                      ELSE 
+                        CAST(dc_attributes AS VARCHAR(4000)) + 'DefLoadScriptCon~=0030;Runtime Connection for Scripts;' 
+                    END)
 WHERE  dc_name = 'Database Source System'
 ;
+-- set DefLoad on 'Database Source System'   
 UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0009;ODBC load;OdbcDsnArch~=2;64;'
+SET dc_attributes = (CASE 
+                      WHEN CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) > 0 THEN 
+                        SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), 1, CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) - 1) 
+                        + 'DefLoad~=0017;Script based load;' 
+                        + SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~=') + ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) ) + 1 + CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~='), ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) )) AS int) + 1, LEN(CAST(dc_attributes AS VARCHAR(4000)))) 
+                      ELSE 
+                        CAST(dc_attributes AS VARCHAR(4000)) + 'DefLoad~=0017;Script based load;' 
+                    END)
+WHERE  dc_name = 'Database Source System' 
+;
+-- set DefLoad on 'Range Table Location'   
+UPDATE ws_dbc_connect
+SET dc_attributes = (CASE 
+                      WHEN CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) > 0 THEN 
+                        SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), 1, CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) - 1) 
+                        + 'DefLoad~=0009;ODBC load;' 
+                        + SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~=') + ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) ) + 1 + CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~='), ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) )) AS int) + 1, LEN(CAST(dc_attributes AS VARCHAR(4000)))) 
+                      ELSE 
+                        CAST(dc_attributes AS VARCHAR(4000)) + 'DefLoad~=0009;ODBC load;' 
+                    END)
 WHERE  dc_name = 'Range Table Location' 
 ;
+-- set DefLoad on Windows Connections   
 UPDATE ws_dbc_connect
-SET dc_attributes = 'DefLoad~=0017;Script based load;'
+SET dc_attributes = (CASE 
+                      WHEN CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) > 0 THEN 
+                        SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), 1, CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) - 1) 
+                        + 'DefLoad~=0017;Script based load;' 
+                        + SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~=') + ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) ) + 1 + CAST(SUBSTRING(CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=', CAST(dc_attributes AS VARCHAR(4000))) + LEN('DefLoad~='), ( (CHARINDEX(';', CAST(dc_attributes AS VARCHAR(4000)), CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~='))) - (CHARINDEX('DefLoad~=',CAST(dc_attributes AS VARCHAR(4000)))+LEN('DefLoad~=')) )) AS int) + 1, LEN(CAST(dc_attributes AS VARCHAR(4000)))) 
+                      ELSE 
+                        CAST(dc_attributes AS VARCHAR(4000)) + 'DefLoad~=0017;Script based load;' 
+                    END)
 WHERE  dc_name IN ('Runtime Connection for Scripts','Windows Comma Sep Files','Windows Fixed Width','Windows JSON Files','Windows Pipe Sep Files','Windows XML Files') 
 ;
 UPDATE dbo.ws_table_attributes 
