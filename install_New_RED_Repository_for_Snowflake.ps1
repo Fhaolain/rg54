@@ -120,7 +120,7 @@ $dtmSFTD=".\Data Type Mappings\SNOWFLAKE from Teradata.xml"
 $dfsSF=".\Database Function Sets\Snowflake Function Set.xml"
 $extProFile=".\Extended Properties\Snowflake.extprop"
 $templatesFile=".\install_powershell_templates.ps1"
-$optionsFile=".\Options.xml"
+$optionsFile=".\Options\Options.xml"
 $wsLoc="C:\ProgramData\WhereScape\"
 
 # Print the starting step
