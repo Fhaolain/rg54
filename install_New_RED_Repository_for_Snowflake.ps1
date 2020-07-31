@@ -119,7 +119,7 @@ $dtmSFRedShift=".\Data Type Mappings\SNOWFLAKE from Redshift.xml"
 $dtmSFTD=".\Data Type Mappings\SNOWFLAKE from Teradata.xml"
 $dfsSF=".\Database Function Sets\Snowflake Function Set.xml"
 $extProFile=".\Extended Properties\Snowflake.extprop"
-$templatesFile=".\install_powershell_templates.ps1"
+$templatesFile=".\import_powershell_templates.ps1"
 $optionsFile=".\Options\Options.xml"
 $wsLoc="C:\ProgramData\WhereScape\"
 
