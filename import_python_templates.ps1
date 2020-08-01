@@ -55,11 +55,6 @@ if($connInfo.Length -gt 1) {
     $pwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
 }
 
-$conn = New-Object System.Data.Odbc.OdbcConnection
-$conn.ConnectionString = "DSN=$Dsn"
-if( ! [string]::IsNullOrWhiteSpace($uid)) { $conn.ConnectionString += ";UID=$uid" }
-if( ! [string]::IsNullOrWhiteSpace($pwd)) { $conn.ConnectionString += ";PWD=$pwd" }
-
 if( ! (Test-Path $objectConfig) ) {
     Write-Output "Enter full or partial names of templates you wish to install"
     Write-Output "wsl_%"
@@ -81,65 +76,57 @@ if( ! (Test-Path $objectConfig) ) {
     Write-Output  "Delete '$objectConfig' if you wish to be prompted for template names"
 }
 
-$conn.open()
-#-- Search Python Path
-$vars=[Environment]::GetEnvironmentVariable("path").split(";")
-foreach ($line in  $vars) 
-{
-    if($line.IndexOf("Python") -gt 0)
-    {
-    $pythonpath=$line.Replace("Scripts","")
-    }
-}
-$pythonpath ='"' + $pythonpath +'"'
-$pythonpath +='python.exe $SCRIPT_NAME$'
 $objectsToInstall = @(Get-Content $objectConfig | Where { ! [String]::IsNullOrWhiteSpace($_) })
 
-#-- Add Python Script to RED
-Try 
-     {
-                $wsAddPythonScript="Select count(*) from [dbo].[ws_script_language] where [sl_name] like '%python%' or [sl_file_extension] ='py'"
-                $command = New-Object System.Data.Odbc.OdbcCommand
-                $command.Connection = $conn
-                $command.Transaction = $trans
-                $command.CommandText = $wsAddPythonScript
-                $ws_obj_object_sr1 = $command.ExecuteScalar()
+$conn = New-Object System.Data.Odbc.OdbcConnection
+$conn.ConnectionString = "DSN=$Dsn"
+if( ! [string]::IsNullOrWhiteSpace($uid)) { $conn.ConnectionString += ";UID=$uid" }
+if( ! [string]::IsNullOrWhiteSpace($pwd)) { $conn.ConnectionString += ";PWD=$pwd" }
 
-               if( $ws_obj_object_sr1 -eq 0)
-               {
-                 $wsAddPythonScript=@"
-                 INSERT INTO [dbo].[ws_script_language]
-                  ([sl_name]
-                 ,[sl_description]
-                 ,[sl_file_extension]
-                 ,[sl_command])
-                 VALUES
-                 ('Python'
-                 ,'Python Language'
-                 ,'py'
-                 ,'$pythonpath')
-           
-"@
-                $command = New-Object System.Data.Odbc.OdbcCommand
-                $command.Connection = $conn
-                $command.Transaction = $trans
-                $command.CommandText = $wsAddPythonScript
-                $ws_obj_object_sr1 = $command.ExecuteScalar() 
-              }
-              else 
-              {
-                 Write-Warning "Python Script already exists. Skipping"
-              }               
-
+Try {
+  $conn.open()
 }
 Catch
 {
-    $ErrorMessage = $_.Exception.Message
-    $FailedItem = $_.Exception.ItemName
-    Write-Warning $ErrorMessage
-    $conn.Close()
-    Break
+  $ErrorMessage = $_.Exception.Message
+  Write-Error $ErrorMessage
+  Write-Output "Failed to establish an ODBC connection to your RED Metadata Repository using DSN:$Dsn`nPlease check your DSN and credentials"
+  $conn.Close()
+  Exit 1
 }
+
+#-- Add Python Script Language Definition to RED
+$wsAddPythonScript="Select count(*) from [dbo].[ws_script_language] where [sl_name] like '%python%' or [sl_file_extension] ='py'"
+$command = New-Object System.Data.Odbc.OdbcCommand
+$command.Connection = $conn
+$command.Transaction = $trans
+$command.CommandText = $wsAddPythonScript
+$ws_obj_object_sr1 = $command.ExecuteScalar()
+
+if( $ws_obj_object_sr1 -eq 0) {
+  $wsAddPythonScript=@"
+    INSERT INTO [dbo].[ws_script_language]
+      ([sl_name]
+      ,[sl_description]
+      ,[sl_file_extension]
+      ,[sl_command])
+    VALUES
+      ('Python'
+      ,'Python Language'
+      ,'py'
+      ,'python.exe $SCRIPT_NAME$')
+
+"@
+  $command = New-Object System.Data.Odbc.OdbcCommand
+  $command.Connection = $conn
+  $command.Transaction = $trans
+  $command.CommandText = $wsAddPythonScript
+  $ws_obj_object_sr1 = $command.ExecuteScalar() 
+}
+else 
+{
+  Write-Warning "Python Script already exists. Skipping"
+}  
 
 $folders = @("PythonTemplates","Templates","Scripts")
 
@@ -198,8 +185,8 @@ foreach($folder in $folders) {
                 $objectName = $($object.Name.Split("."))[0]
                 #-- Skip Powershell Templates
                 if($objectName -match 'pscript' -eq 'True'){
-                continue  
-				}
+                  continue  
+                }
 
                 $trans = $conn.BeginTransaction()
 
