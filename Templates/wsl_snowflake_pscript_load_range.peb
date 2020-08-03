@@ -1,4 +1,4 @@
-{# -- TemplateVersion:003 MinVersion:8510 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Powershell64                                           -- #}
+{# -- TemplateVersion:003 MinVersion:8310 MaxVersion:* TargetType:Snowflake ModelType:* TemplateType:Powershell64                                           -- #}
 {# --                                                                                                                                                       -- #}
 {# --    (c) Wherescape Inc 2020. WhereScape Inc permits you to copy this Template solely for use with the RED software, and to modify this Template        -- #}
 {# --    for the purposes of using that modified Template with the RED software, but does not permit copying or modification for any other purpose.         -- #}
@@ -624,7 +624,7 @@ function MAIN { {%- br %}
                 break
             }
             elseif((Get-Job -State 'Running').Count -lt $THREAD_COUNT) {
-                $job = Start-Job -ScriptBlock $jobScript -Arg @($batch, $id)
+                $job = Start-Job -Name "BatchNum-$($batch.batch_number)" -ScriptBlock $jobScript -Arg @($batch, $id)
                 break
             }
             else {
@@ -637,27 +637,35 @@ function MAIN { {%- br %}
         }
     }{% br %}
     {%- else %}
-    $job = Start-Job -ScriptBlock $jobScript{% br %}
+    $job = Start-Job -Name 'NoPilotTable_batch' -ScriptBlock $jobScript{% br %}
     {%- endif %}
     $jobs = Get-Job | Wait-Job
     $retCode = 1
     foreach($j in $jobs) {
         $jobRes = $j | Receive-Job
-        $jobStatus = $jobRes[0]
-        $jobAud = $jobRes[1]
-        $jobErr = $jobRes[2]
-
-        $audReader = New-Object System.IO.StreamReader($jobAud)
-        while( ! $audReader.EndOfStream) { {%- br %}
+        if ($jobRes -ne $null) {          
+          $jobStatus = $jobRes[0]
+          $jobAud = $jobRes[1]
+          $jobErr = $jobRes[2]
+          
+          $audReader = New-Object System.IO.StreamReader($jobAud)
+          while( ! $audReader.EndOfStream) { {%- br %}
             $logStream.WriteLine($audReader.ReadLine()){%- br %}
-        }{%- br %}
-        $audReader.Close()
+          }{%- br %}
+          $audReader.Close()
 
-        $errReader = New-Object System.IO.StreamReader($jobErr)
-        while( ! $errReader.EndOfStream) { {%- br %}
-            $errStream.WriteLine($errReader.ReadLine()){%- br %}
-        }{%- br %}
-        $errReader.Close()
+          $errReader = New-Object System.IO.StreamReader($jobErr)
+          while( ! $errReader.EndOfStream) { {%- br %}
+              $errStream.WriteLine($errReader.ReadLine()){%- br %}
+          }{%- br %}
+          $errReader.Close()
+        }
+        else {
+          $jobStatus = -2
+          $jobAud = "Range Load job $($j.Name)"
+          $logStream.WriteLine("Range Load job $($j.Name) had no output from 'Receive-Job' command, check that the batch job ran scucessfully")
+          $errStream.WriteLine("Range Load job $($j.Name) failed or run status could not be determined, try turning on debugging for more detail")       
+        }        
 
         if($jobStatus -gt -2) {
             $jobRows = $jobRes[3]
@@ -670,7 +678,7 @@ function MAIN { {%- br %}
         else {
             $logStream.WriteLine("Thread failure: $jobAud"){% br %}
             {%- if PilotTable != "" %}
-            if($THREAD_FAIL_ACTION -eq "TRUE") { {% br %}
+            if($THREAD_FAIL_ACTION -eq "TRUE" -or $jobStatus -eq -2) { {% br %}
                 $retCode = -2 {% br %}
             } {% br %}
             else { {% br %}
