@@ -663,7 +663,7 @@ function MAIN { {%- br %}
         else {
           $jobStatus = -2
           $jobAud = "Range Load job $($j.Name)"
-          $logStream.WriteLine("Range Load job $($j.Name) had no output from 'Receive-Job' command, check that the batch job ran scucessfully")
+          $logStream.WriteLine("Range Load job $($j.Name) had no output from 'Receive-Job' command, check that the batch job ran successfully")
           $errStream.WriteLine("Range Load job $($j.Name) failed or run status could not be determined, try turning on debugging for more detail")       
         }        
 
