@@ -503,6 +503,7 @@ function MAIN { {%- br %}
 
     {%- br %}
     if(${env:DEBUG} -eq "TRUE") { {%- br %}
+        $errStream.WriteLine("Powerhshell version:              $($PSVersionTable.PSVersion.ToString())") 
         $errStream.WriteLine("=================== LOAD OPTIONS ==================="){%- br %}
         $errStream.WriteLine("Specified Load Table:             " + ${env:WSL_LOAD_TABLE}){%- br %}
         $errStream.WriteLine("Specified Work Dir:               " + ${env:WSL_WORKDIR}){%- br %}
@@ -679,7 +680,7 @@ function MAIN { {%- br %}
             $jobStatus = -2
             $jobAud = "Range Load job $($j.Name)"
             $logStream.WriteLine("Range Load job $($j.Name) had no output from 'Receive-Job' command, check that the batch job ran successfully")
-            $errStream.WriteLine("Range Load job $($j.Name) failed or run status could not be determined, try turning on debugging for more detail")       
+            $errStream.WriteLine("Range Load job $($j.Name) failed or run status could not be determined, errors: $($j.ChildJobs[0].Error)")           
           }       
         
         if ($jobStatus -gt -2) {
