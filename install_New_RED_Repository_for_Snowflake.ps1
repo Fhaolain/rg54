@@ -96,8 +96,11 @@ else {
   if([string]::IsNullOrEmpty($snowflakeDataWarehouse))  {$snowflakeDataWarehouse = Read-Host -Prompt "Enter Snowflake DataWarehouse"}
   $sfSnowsqlAcc = @($snowflakeUser,'')[0]
   
-  # Output the command line used to the host (passwords replced with '***')
-  Write-Host "`nINFO: Run Parameters: -metaDsn '$metaDsn' -metaDsnArch '$metaDsnArch' $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser '$metaUser' -metaPwd '***' "})-metaBase '$metaBase' -snowflakeDB '$snowflakeDB' -tgtLoadSchema '$tgtLoadSchema' -tgtStageSchema '$tgtStageSchema' -tgtEdwSchema '$tgtEdwSchema' -tgtDvSchema '$tgtDvSchema' -snowflakeDsn '$snowflakeDsn' $( if(![string]::IsNullOrEmpty($snowflakeUser)){"-snowflakeUser '$snowflakeUser' -snowflakePwd '***' "})-snowflakeDataWarehouse 'SnowflakeDataWarehouse' $(if(![string]::IsNullOrEmpty($sfSnowsqlAcc)){"-sfSnowsqlAcc '$sfSnowsqlAcc' "})-startAtStep $startAtStep`n"
+  # Output the command line used to the host (passwords removed)
+  $cmdLineArgs = @"
+"$PSScriptRoot\install_New_RED_Repository_for_Snowflake.ps1" -metaDsn "$metaDsn" -metaDsnArch "$metaDsnArch" $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser ""$metaUser"" "})-metaBase "$metaBase" -snowflakeDB "$snowflakeDB" -tgtLoadSchema "$tgtLoadSchema" -tgtStageSchema "$tgtStageSchema" -tgtEdwSchema "$tgtEdwSchema" -tgtDvSchema "$tgtDvSchema" -snowflakeDsn "$snowflakeDsn" $( if(![string]::IsNullOrEmpty($snowflakeUser)){"-snowflakeUser ""$snowflakeUser"" "})-snowflakeDataWarehouse "SnowflakeDataWarehouse" $(if(![string]::IsNullOrEmpty($sfSnowsqlAcc)){"-sfSnowsqlAcc ""$sfSnowsqlAcc"" "})-startAtStep $startAtStep
+"@
+  Write-Host "`nINFO: Script command line executed (passwords removed): $cmdLineArgs`n"
 }
 
 $logLevel=5
@@ -106,21 +109,21 @@ $dstDir="C:\temp\"
 $schedulerName="WIN0001"
 $wslSchedLog="C:\ProgramData\WhereScape\Scheduler\WslSched_${metaDsn}_${schedulerName}.log"
 $defBrowserSchema="dbo"
-$dtmSFFile=".\Data Type Mappings\SNOWFLAKE from File.xml"
-$dtmSFFWF=".\Data Type Mappings\SNOWFLAKE from FIXED WIDTH FILE.xml"
-$dtmSFXmlJson=".\Data Type Mappings\SNOWFLAKE from XML and JSON.xml"
-$dtmSFSF=".\Data Type Mappings\SNOWFLAKE from SNOWFLAKE.xml"
-$dtmSFSql=".\Data Type Mappings\SNOWFLAKE from SQL Server.xml"
-$dtmSFDb2=".\Data Type Mappings\SNOWFLAKE from DB2.xml"
-$dtmSFOra=".\Data Type Mappings\SNOWFLAKE from Oracle.xml"
-$dtmSFO=".\Data Type Mappings\SNOWFLAKE from Other.xml"
-$dtmSFPsql=".\Data Type Mappings\SNOWFLAKE from PostgreSQL.xml"
-$dtmSFRedShift=".\Data Type Mappings\SNOWFLAKE from Redshift.xml"
-$dtmSFTD=".\Data Type Mappings\SNOWFLAKE from Teradata.xml"
-$dfsSF=".\Database Function Sets\Snowflake Function Set.xml"
-$extProFile=".\Extended Properties\Snowflake.extprop"
-$templatesFile=".\import_powershell_templates.ps1"
-$optionsFile=".\Options\Options.xml"
+$dtmSFFile="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from File.xml"
+$dtmSFFWF="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from FIXED WIDTH FILE.xml"
+$dtmSFXmlJson="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from XML and JSON.xml"
+$dtmSFSF="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from SNOWFLAKE.xml"
+$dtmSFSql="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from SQL Server.xml"
+$dtmSFDb2="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from DB2.xml"
+$dtmSFOra="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from Oracle.xml"
+$dtmSFO="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from Other.xml"
+$dtmSFPsql="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from PostgreSQL.xml"
+$dtmSFRedShift="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from Redshift.xml"
+$dtmSFTD="$PSScriptRoot\Data Type Mappings\SNOWFLAKE from Teradata.xml"
+$dfsSF="$PSScriptRoot\Database Function Sets\Snowflake Function Set.xml"
+$extProFile="$PSScriptRoot\Extended Properties\Snowflake.extprop"
+$templatesFile="$PSScriptRoot\import_powershell_templates.ps1"
+$optionsFile="$PSScriptRoot\Options\Options.xml"
 $wsLoc="C:\ProgramData\WhereScape\"
 
 # Print the starting step
@@ -166,7 +169,7 @@ if ($installStep -ge $startAtStep) {
 }
 #Check or Copy the folder FieldSolutions to WhereScape
 if (!(Test-Path $wsFSLoc)) {
-  Copy-Item -Path '.\FieldSolutions\' -Destination $wsLoc
+  Copy-Item -Path '$PSScriptRoot\FieldSolutions\' -Destination $wsLoc
 }
 
 # common RedCli arguments
@@ -209,11 +212,11 @@ parameter add --name TIMEZONE --comments "Used to specify the timezone in DAILY_
 $connectionSetupCmds=@"
 connection rename --force --new-name "Runtime Connection for Scripts" --old-name "windows"
 connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --default-load-type "Script based load" 
-connection add --name $snowflakeDsn --con-type "Database" --db-id $snowflakeDB --odbc-source $snowflakeDsn --odbc-source-arch $metaDsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $snowflakeUser --extract-pwd $snowflakePwd
-target add --connection-name $snowflakeDsn --name load --database $snowflakeDB --schema $tgtLoadSchema --tree-colour #ff0000
-target add --connection-name $snowflakeDsn --name stage --database $snowflakeDB --schema $tgtStageSchema --tree-colour #4e00c0
-target add --connection-name $snowflakeDsn --name edw --database $snowflakeDB --schema $tgtEdwSchema --tree-colour #008054
-target add --connection-name $snowflakeDsn --name data_vault --database $snowflakeDB --schema $tgtDvSchema --tree-colour #c08000
+connection add --name "$snowflakeDsn" --con-type "Database" --db-id $snowflakeDB --odbc-source "$snowflakeDsn" --odbc-source-arch $metaDsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $snowflakeUser --extract-pwd $snowflakePwd
+target add --connection-name "$snowflakeDsn" --name load --database $snowflakeDB --schema $tgtLoadSchema --tree-colour #ff0000
+target add --connection-name "$snowflakeDsn" --name stage --database $snowflakeDB --schema $tgtStageSchema --tree-colour #4e00c0
+target add --connection-name "$snowflakeDsn" --name edw --database $snowflakeDB --schema $tgtEdwSchema --tree-colour #008054
+target add --connection-name "$snowflakeDsn" --name data_vault --database $snowflakeDB --schema $tgtDvSchema --tree-colour #c08000
 connection add --name "Database Source System" --con-type ODBC --odbc-source "SET THIS VALUE" --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --dtm-set-name "SNOWFLAKE from SQL Server" --def-pre-load-action "Truncate" --def-browser-schema "SET THIS VALUE" --def-odbc-user Extract
 ext-prop-value modify --object-name "Database Source System" --value-data "+" --value-name "RANGE_CONCATWORD"
 connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --def-pre-load-action Truncate --def-browser-schema $defBrowserSchema --def-odbc-user Extract
@@ -230,55 +233,55 @@ connection add --name "Windows Pipe Sep Files" --con-type Windows --work-dir $ds
 ext-prop-value modify --object-name "Windows Pipe Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_PIPE" --value-name "SF_FILE_FORMAT"
 connection add --name "Windows XML Files" --con-type Windows --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON"
 ext-prop-value modify --object-name "Windows XML Files" --value-data "FMT_RED_XML_GZIP" --value-name "SF_FILE_FORMAT"
-ext-prop-value modify --object-name $snowflakeDsn --value-data "+" --value-name "RANGE_CONCATWORD"
-ext-prop-value modify --object-name $snowflakeDsn --value-data False --value-name "SF_DEBUG_MODE"
-ext-prop-value modify --object-name $snowflakeDsn --value-data $sfSnowsqlAcc --value-name "SF_SNOWSQL_ACCOUNT"
-ext-prop-value modify --object-name $snowflakeDsn --value-data $snowflakeDB --value-name "SF_SNOWSQL_DATABASE"
-ext-prop-value modify --object-name $snowflakeDsn --value-data $snowflakeDataWarehouse --value-name "SF_SNOWSQL_WAREHOUSE"
-ext-prop-value modify --object-name $snowflakeDsn --value-data "FMT_RED_CSV_NOSKIP_GZIP_PIPE" --value-name "SF_FILE_FORMAT"
-ext-prop-value modify --object-name $snowflakeDsn --value-data "TRUE" --value-name "SF_SEND_FILES_ZIPPED"
-ext-prop-value modify --object-name $snowflakeDsn --value-data 1000000 --value-name "SF_SPLIT_THRESHOLD"
-ext-prop-value modify --object-name $snowflakeDsn --value-data 1 --value-name "SF_SPLIT_COUNT"
-ext-prop-value modify --object-name $snowflakeDsn --value-data FALSE --value-name "SF_UNICODE_SUPPORT"
-ext-prop-value modify --object-name $snowflakeDsn --value-data | --value-name SF_UNLOAD_DELIMITER
-ext-prop-value modify --object-name $snowflakeDsn --value-data \" --value-name "SF_UNLOAD_ENCLOSED_BY"
-ext-prop-value modify --object-name $snowflakeDsn --value-data # --value-name SF_UNLOAD_ESCAPE_CHAR
-ext-prop-value modify --object-name $snowflakeDsn --value-data ASCII --value-name RANGE_EXTRACT_CHARSET
-ext-prop-value modify --object-name $snowflakeDsn --value-data FALSE --value-name RANGE_FAIL_ON_THREAD_FAILURE
-ext-prop-value modify --object-name $snowflakeDsn --value-data 10 --value-name RANGE_MAX_THREAD_FAILURES
-ext-prop-value modify --object-name $snowflakeDsn --value-data 4 --value-name RANGE_THREAD_COUNT
-ext-prop-value modify --object-name $snowflakeDsn --value-data TRUE --value-name RANGE_UNLOAD_GZIP
-ext-prop-value modify --object-name $snowflakeDsn --value-data 3 --value-name RANGE_UPLOAD_MAX_RETRIES
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Stage" --obj-sub-type "Stage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_stage"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Stage" --obj-sub-type "DataVaultStage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_stage"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Stage" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_stage"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "ods" --obj-sub-type "DataStore" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "ods" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "HUB" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Link" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Satellite" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Normal" --obj-sub-type "Normalized" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Normal" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "ChangingDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "Dimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "PreviousDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "RangedDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "TimeDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "MappingTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Dim" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Fact" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Agg" --obj-sub-type "Aggregate" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
-connection set-default-template --connection-name $snowflakeDsn --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data "+" --value-name "RANGE_CONCATWORD"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data False --value-name "SF_DEBUG_MODE"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data $sfSnowsqlAcc --value-name "SF_SNOWSQL_ACCOUNT"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data $snowflakeDB --value-name "SF_SNOWSQL_DATABASE"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data $snowflakeDataWarehouse --value-name "SF_SNOWSQL_WAREHOUSE"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data "FMT_RED_CSV_NOSKIP_GZIP_PIPE" --value-name "SF_FILE_FORMAT"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data "TRUE" --value-name "SF_SEND_FILES_ZIPPED"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data 1000000 --value-name "SF_SPLIT_THRESHOLD"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data 1 --value-name "SF_SPLIT_COUNT"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data FALSE --value-name "SF_UNICODE_SUPPORT"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data | --value-name SF_UNLOAD_DELIMITER
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data \" --value-name "SF_UNLOAD_ENCLOSED_BY"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data # --value-name SF_UNLOAD_ESCAPE_CHAR
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data ASCII --value-name RANGE_EXTRACT_CHARSET
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data FALSE --value-name RANGE_FAIL_ON_THREAD_FAILURE
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data 10 --value-name RANGE_MAX_THREAD_FAILURES
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data 4 --value-name RANGE_THREAD_COUNT
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data TRUE --value-name RANGE_UNLOAD_GZIP
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data 3 --value-name RANGE_UPLOAD_MAX_RETRIES
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Stage" --obj-sub-type "Stage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_stage"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Stage" --obj-sub-type "DataVaultStage" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_stage"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Stage" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_stage"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "ods" --obj-sub-type "DataStore" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "ods" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "HUB" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Link" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Satellite" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Normal" --obj-sub-type "Normalized" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Normal" --obj-sub-type "History" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Dim" --obj-sub-type "ChangingDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_hist"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Dim" --obj-sub-type "Dimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Dim" --obj-sub-type "PreviousDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Dim" --obj-sub-type "RangedDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Dim" --obj-sub-type "TimeDimension" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Dim" --obj-sub-type "MappingTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Dim" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Fact" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Agg" --obj-sub-type "Aggregate" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Agg" --obj-sub-type "Summary" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Agg" --obj-sub-type "WorkTable" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_dv_perm"
+connection set-default-template --connection-name "$snowflakeDsn" --obj-type "Custom2" --obj-sub-type "Detail" --op-type "UpdateRoutine" --template-name "wsl_snowflake_pscript_perm"
 "@
 
 # RED Application deployments
 $applicationDeploymentCmds = @"
-deployment deploy --app-number SFDATEDIM --app-version 0001 --app-directory ".\Deployment Applications\Date Dimension" --continue-ver-mismatch
-deployment deploy --app-number SFFILEFMT --app-version 0001 --app-directory ".\Deployment Applications\File Formats" --continue-ver-mismatch
-deployment deploy --app-number SFEXTENSIONS --app-version 0001 --app-directory ".\Deployment Applications\Extensions" --continue-ver-mismatch
-deployment deploy --app-number SFJOBS --app-version 0001 --app-directory ".\Deployment Applications\Jobs" --continue-ver-mismatch
+deployment deploy --app-number SFDATEDIM --app-version 0001 --app-directory "$PSScriptRoot\Deployment Applications\Date Dimension" --continue-ver-mismatch --default-load-script-connection "Runtime Connection for Scripts" --dest-connection-name "$snowflakeDsn" --dest-target-name "load"
+deployment deploy --app-number SFFILEFMT --app-version 0001 --app-directory "$PSScriptRoot\Deployment Applications\File Formats" --continue-ver-mismatch --default-load-script-connection "Runtime Connection for Scripts" --dest-connection-name "$snowflakeDsn" --dest-target-name "load" 
+deployment deploy --app-number SFEXTENSIONS --app-version 0001 --app-directory "$PSScriptRoot\Deployment Applications\Extensions" --continue-ver-mismatch --default-load-script-connection "Runtime Connection for Scripts" --dest-connection-name "Repository"
+deployment deploy --app-number SFJOBS --app-version 0001 --app-directory "$PSScriptRoot\Deployment Applications\Jobs" --continue-ver-mismatch --default-load-script-connection "Runtime Connection for Scripts" --dest-connection-name "$snowflakeDsn" --dest-target-name "load"
 "@
 
 Function Remove-Passwords ($stringWithPwds) { 
@@ -387,7 +390,10 @@ for($i=0; $i -lt $cmdArray.Count; $i++) {
 # Setup RED Options
 $installStep=500
 if ($installStep -ge $startAtStep) {
-  Execute-RedCli-Command "options import -f $optionsFile" $commonRedCliArgs
+  $importOptionsCmd =  @"
+options import -f "$optionsFile"
+"@
+  Execute-RedCli-Command $importOptionsCmd $commonRedCliArgs
 }
 
 # Create a RED Scheduler
@@ -404,6 +410,7 @@ $cmdArray = $applicationDeploymentCmds.replace("`r`n", "`n").split("`n")
 for($i=0; $i -lt $cmdArray.Count; $i++) {
   $global:installStep++
   if ($installStep -ge $startAtStep) {
+    Write-Host "Deploying Application for Step $installStep, please wait..."
     Execute-RedCli-Command $cmdArray[$i] $commonRedCliArgs
   }
 }
