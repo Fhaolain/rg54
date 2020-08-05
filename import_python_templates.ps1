@@ -114,7 +114,7 @@ if( $ws_obj_object_sr1 -eq 0) {
       ('Python'
       ,'Python Language'
       ,'py'
-      ,'python.exe $SCRIPT_NAME$')
+      ,'python.exe `$SCRIPT_NAME`$')
 
 "@
   $command = New-Object System.Data.Odbc.OdbcCommand
