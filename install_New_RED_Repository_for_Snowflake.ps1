@@ -396,16 +396,8 @@ options import -f "$optionsFile"
   Execute-RedCli-Command $importOptionsCmd $commonRedCliArgs
 }
 
-# Create a RED Scheduler
-$installStep=600
-if ($installStep -ge $startAtStep) {
-  $addSchedCmd =  @" 
-scheduler add --service-name $metaDsn --scheduler-name $schedulerName --exe-path-name "$wslSched" --sched-log-level 2 --log-file-name "$wslSchedLog" --sched-meta-dsn-arch $metaDsnArch --sched-meta-dsn $metaDsn --sched-meta-user-name $metaUser --sched-meta-password $metaPwd --login-mode LocalSystemAccount --ip-service tcp --host-name ${env:COMPUTERNAME} --output-mode json
-"@
-  Execute-RedCli-Command $addSchedCmd
-}
 # Deploy RED Applications
-$installStep=700
+$installStep=600
 $cmdArray = $applicationDeploymentCmds.replace("`r`n", "`n").split("`n")  
 for($i=0; $i -lt $cmdArray.Count; $i++) {
   $global:installStep++
@@ -416,7 +408,7 @@ for($i=0; $i -lt $cmdArray.Count; $i++) {
 }
 
 #Update Options Tool with Sql commands
-$installStep=800
+$installStep=700
 if ($installStep -ge $startAtStep) {
   $sql = @"
 UPDATE ws_obj_type 
@@ -652,3 +644,15 @@ INSERT (ta_obj_key,ta_type,ta_text_1,ta_text_2,ta_text_3,ta_text_4,ta_text_5,ta_
   [void]$command.ExecuteNonQuery()
   $redOdbc.Close()
 }
+
+# Create a RED Scheduler
+$installStep=800
+if ($installStep -ge $startAtStep) {
+  Write-Output "`nFinal step: Installing the RED Scheduler, if this step fails you can manually install the RED Scheduler through RED Setup Administrator (ADM.exe)`n"
+  $addSchedCmd =  @" 
+scheduler add --service-name "$metaDsn" --scheduler-name "$schedulerName" --exe-path-name "$wslSched" --sched-log-level 2 --log-file-name "$wslSchedLog" --sched-meta-dsn-arch "$metaDsnArch" --sched-meta-dsn "$metaDsn" --sched-meta-user-name "$metaUser" --sched-meta-password "$metaPwd" --login-mode "LocalSystemAccount" --ip-service tcp --host-name "${env:COMPUTERNAME}" --output-mode json
+"@
+  Execute-RedCli-Command $addSchedCmd
+}
+
+Write-Output "`nINFO: Installation Complete, run RED to continue"
