@@ -59,7 +59,7 @@ Available Parameters:
   -snowflakeDsn           "Snowflake DSN"                   [REQUIRED]
   -snowflakeUser          "Snowflake User"                  [OMITTED FOR WINDOWS AUTH]
   -snowflakePwd           "Snowflake Password"              [OMITTED FOR WINDOWS AUTH] 
-  -sfSnowsqlAcc           "Defaults to snowflakeUser value" [DEFAULT = snowflakeUser parameter]
+  -sfSnowsqlAcc           "Snowflake Account, usually your server name with '.snowflakecomputing.com' removed" [REQUIRED]
   -snowflakeDataWarehouse "Snowflake Data Warehouse"        [REQUIRED]
   -startAtStep            "Defaults to first step, used to resume script from a certain step" [DEFAULT = 1]
 "@
@@ -82,10 +82,10 @@ else {
   }
   if([string]::IsNullOrEmpty($metaBase))                {$metaBase = Read-Host -Prompt "Enter RED MetaRepo DB"}
   if([string]::IsNullOrEmpty($snowflakeDB))             {$snowflakeDB = Read-Host -Prompt "Enter Snowflake DB"}
-  if([string]::IsNullOrEmpty($tgtLoadSchema))           {$tgtLoadSchema = Read-Host -Prompt "Enter Snowflake 'Load' Target Schema (the vaule entered will be the default for following schemas)" | %{if([string]::IsNullOrEmpty($_)){'DEV_LOAD'}else{$_}} }
-  if([string]::IsNullOrEmpty($tgtStageSchema))          {$tgtStageSchema = Read-Host -Prompt "Enter Snowflake 'Stage' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_}} }
-  if([string]::IsNullOrEmpty($tgtEdwSchema))            {$tgtEdwSchema = Read-Host -Prompt "Enter Snowflake 'EDW' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_}} }
-  if([string]::IsNullOrEmpty($tgtDvSchema))             {$tgtDvSchema = Read-Host -Prompt "Enter Snowflake 'Data Vault' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_}} }
+  if([string]::IsNullOrEmpty($tgtLoadSchema))           {$tgtLoadSchema = Read-Host -Prompt "Enter Snowflake 'Load' Target Schema (the vaule entered will be the default for following schemas)" | %{if([string]::IsNullOrEmpty($_)){'DEV_LOAD'}else{$_.ToUpper()}} }
+  if([string]::IsNullOrEmpty($tgtStageSchema))          {$tgtStageSchema = Read-Host -Prompt "Enter Snowflake 'Stage' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
+  if([string]::IsNullOrEmpty($tgtEdwSchema))            {$tgtEdwSchema = Read-Host -Prompt "Enter Snowflake 'EDW' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
+  if([string]::IsNullOrEmpty($tgtDvSchema))             {$tgtDvSchema = Read-Host -Prompt "Enter Snowflake 'Data Vault' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
   if([string]::IsNullOrEmpty($snowflakeDsn))            {$snowflakeDsn = Read-Host -Prompt "Enter Snowflake DSN"}
   if($PSBoundParameters.count -eq 0)                    {$snowflakeUser = Read-Host -Prompt "Enter Snowflake User or 'enter' for none"}
   if(![string]::IsNullOrEmpty($snowflakeUser) -and [string]::IsNullOrEmpty($snowflakePwd) ) {
@@ -94,11 +94,11 @@ else {
     $snowflakePwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   }
   if([string]::IsNullOrEmpty($snowflakeDataWarehouse))  {$snowflakeDataWarehouse = Read-Host -Prompt "Enter Snowflake DataWarehouse"}
-  $sfSnowsqlAcc = @($snowflakeUser,'')[0]
+  if([string]::IsNullOrEmpty($sfSnowsqlAcc))            {$sfSnowsqlAcc = Read-Host -Prompt "Enter Snowflake Account, usually your server name with '.snowflakecomputing.com' removed"}
   
   # Output the command line used to the host (passwords removed)
   $cmdLineArgs = @"
-"$PSScriptRoot\install_New_RED_Repository_for_Snowflake.ps1" -metaDsn "$metaDsn" -metaDsnArch "$metaDsnArch" $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser ""$metaUser"" "})-metaBase "$metaBase" -snowflakeDB "$snowflakeDB" -tgtLoadSchema "$tgtLoadSchema" -tgtStageSchema "$tgtStageSchema" -tgtEdwSchema "$tgtEdwSchema" -tgtDvSchema "$tgtDvSchema" -snowflakeDsn "$snowflakeDsn" $( if(![string]::IsNullOrEmpty($snowflakeUser)){"-snowflakeUser ""$snowflakeUser"" "})-snowflakeDataWarehouse "SnowflakeDataWarehouse" $(if(![string]::IsNullOrEmpty($sfSnowsqlAcc)){"-sfSnowsqlAcc ""$sfSnowsqlAcc"" "})-startAtStep $startAtStep
+"$PSScriptRoot\install_New_RED_Repository_for_Snowflake.ps1" -metaDsn "$metaDsn" -metaDsnArch "$metaDsnArch" $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser ""$metaUser"" "})-metaBase "$metaBase" -snowflakeDB "$snowflakeDB" -tgtLoadSchema "$tgtLoadSchema" -tgtStageSchema "$tgtStageSchema" -tgtEdwSchema "$tgtEdwSchema" -tgtDvSchema "$tgtDvSchema" -snowflakeDsn "$snowflakeDsn" $( if(![string]::IsNullOrEmpty($snowflakeUser)){"-snowflakeUser ""$snowflakeUser"" "})-snowflakeDataWarehouse "$SnowflakeDataWarehouse" -sfSnowsqlAcc "$sfSnowsqlAcc" -startAtStep $startAtStep
 "@
   Write-Host "`nINFO: Script command line executed (passwords removed): $cmdLineArgs`n"
 }
@@ -212,7 +212,7 @@ parameter add --name TIMEZONE --comments "Used to specify the timezone in DAILY_
 $connectionSetupCmds=@"
 connection rename --force --new-name "Runtime Connection for Scripts" --old-name "windows"
 connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --default-load-type "Script based load" 
-connection add --name "$snowflakeDsn" --con-type "Database" --db-id $snowflakeDB --odbc-source "$snowflakeDsn" --odbc-source-arch $metaDsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $snowflakeUser --extract-pwd $snowflakePwd
+connection add --name "$snowflakeDsn" --con-type "Database" --db-id $snowflakeDB --odbc-source "$snowflakeDsn" --odbc-source-arch $metaDsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$($(@($tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema) | Sort-Object | Get-Unique) -join ',')" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $snowflakeUser --extract-pwd $snowflakePwd
 target add --connection-name "$snowflakeDsn" --name load --database $snowflakeDB --schema $tgtLoadSchema --tree-colour #ff0000
 target add --connection-name "$snowflakeDsn" --name stage --database $snowflakeDB --schema $tgtStageSchema --tree-colour #4e00c0
 target add --connection-name "$snowflakeDsn" --name edw --database $snowflakeDB --schema $tgtEdwSchema --tree-colour #008054
