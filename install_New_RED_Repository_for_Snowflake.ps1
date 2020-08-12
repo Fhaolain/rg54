@@ -124,6 +124,7 @@ $dfsSF="$PSScriptRoot\Database Function Sets\Snowflake Function Set.xml"
 $extProFile="$PSScriptRoot\Extended Properties\Snowflake.extprop"
 $templatesFile="$PSScriptRoot\import_powershell_templates.ps1"
 $optionsFile="$PSScriptRoot\Options\Options.xml"
+$FSLoc="$PSScriptRoot\FieldSolutions\"
 $wsLoc="C:\ProgramData\WhereScape\"
 
 # Print the starting step
@@ -167,9 +168,20 @@ if ($installStep -ge $startAtStep) {
     Exit
   }
 }
+
 #Check or Copy the folder FieldSolutions to WhereScape
 if (!(Test-Path $wsFSLoc)) {
-  Copy-Item -Path '$PSScriptRoot\FieldSolutions\' -Destination $wsLoc
+  Copy-Item -Path $FSLoc -Destination $wsLoc -Recurse
+}
+else {
+  Write-Warning "FieldSolutions Folder Already Exists"
+  $confirmation = Read-Host "Do you want to overwrite it? [y/n]"
+  if ( $confirmation -match "[yY]" ) {
+     Copy-Item -Path $FSLoc -Destination $wsLoc -Force -Recurse
+  }
+  else {
+     Write-Host 'cancelled'
+  }
 }
 
 # common RedCli arguments
@@ -210,6 +222,7 @@ parameter add --name TIMEZONE --comments "Used to specify the timezone in DAILY_
 
 #Create Connections commands
 $connectionSetupCmds=@"
+connection delete --force --name "Tutorial (OLTP)"
 connection rename --force --new-name "Runtime Connection for Scripts" --old-name "windows"
 connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --default-load-type "Script based load" 
 connection add --name "$snowflakeDsn" --con-type "Database" --db-id $snowflakeDB --odbc-source "$snowflakeDsn" --odbc-source-arch $metaDsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$($(@($tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema) | Sort-Object | Get-Unique) -join ',')" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $snowflakeUser --extract-pwd $snowflakePwd
