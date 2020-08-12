@@ -124,7 +124,6 @@ $dfsSF="$PSScriptRoot\Database Function Sets\Snowflake Function Set.xml"
 $extProFile="$PSScriptRoot\Extended Properties\Snowflake.extprop"
 $templatesFile="$PSScriptRoot\import_powershell_templates.ps1"
 $optionsFile="$PSScriptRoot\Options\Options.xml"
-$FSLoc="$PSScriptRoot\FieldSolutions\"
 $wsLoc="C:\ProgramData\WhereScape\"
 
 # Print the starting step
@@ -166,21 +165,6 @@ if ($installStep -ge $startAtStep) {
     Write-Warning "Failed to establish a connection to Snowflake, please check your Snowflake DSN and credentials"
     Write-Output "Failed at step = $installStep"
     Exit
-  }
-}
-
-#Check or Copy the folder FieldSolutions to WhereScape
-if (!(Test-Path $wsFSLoc)) {
-  Copy-Item -Path $FSLoc -Destination $wsLoc -Recurse
-}
-else {
-  Write-Warning "FieldSolutions Folder Already Exists"
-  $confirmation = Read-Host "Do you want to overwrite it? [y/n]"
-  if ( $confirmation -match "[yY]" ) {
-     Copy-Item -Path $FSLoc -Destination $wsLoc -Force -Recurse
-  }
-  else {
-     Write-Host 'cancelled'
   }
 }
 
@@ -420,89 +404,25 @@ for($i=0; $i -lt $cmdArray.Count; $i++) {
   }
 }
 
-#Update Options Tool with Sql commands
+#Update Remaining Options which were not set with RedCli commands
 $installStep=700
 if ($installStep -ge $startAtStep) {
   $sql = @"
-UPDATE ws_obj_type 
-SET ot_options = SUBSTRING(CAST(ot_options AS VARCHAR(4000)),1,CHARINDEX('OBJTGTKEY=',CAST(ot_options AS VARCHAR(4000)))-1)+'OBJTGTKEY='+(SELECT CAST(dt_target_key AS VARCHAR(10)) FROM ws_dbc_target WHERE dt_name = 'load')+';'+SUBSTRING(CAST(ot_options AS VARCHAR(4000)),CHARINDEX('OBJTGTKEY=',CAST(ot_options AS VARCHAR(4000)))+CHARINDEX(';',SUBSTRING(CAST(ot_options AS VARCHAR(4000)),CHARINDEX('OBJTGTKEY=',CAST(ot_options AS VARCHAR(4000))),100)),1000) 
-WHERE ot_type_key IN (select ot_type_key from dbo.ws_obj_type where ot_description in ('Load Table','File Format','Extensions'))
+UPDATE dbo.ws_obj_type
+SET ot_pre_fix = UPPER(ot_pre_fix)
+WHERE ot_pre_fix is not NULL and ot_pre_fix != '' 
 ;
-UPDATE ws_obj_type
-SET  ot_pre_fix   = 'DIM_' 
-WHERE  ot_type_key   = 6
+UPDATE dbo.ws_meta_names 
+SET mn_name = UPPER(mn_name)
+WHERE mn_name like 'dss%'
 ;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_CHANGE_HASH' 
-WHERE  mn_object   = 'dss_change_hash' 
+UPDATE dbo.ws_meta_names 
+SET mn_prefix = UPPER(mn_prefix)
+WHERE mn_prefix is not NULL and mn_prefix != ''
 ;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_CREATE_TIME' 
-WHERE  mn_object   = 'dss_create_time' 
-;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_CURRENT_FLAG'
-WHERE  mn_object   = 'dss_current_flag' 
-;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_END_DATE' 
-WHERE  mn_object   = 'dss_end_date' 
-;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_LOAD_DATE' 
-WHERE  mn_object   = 'dss_load_date' 
-;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_RECORD_SOURCE' 
-WHERE  mn_object   = 'dss_record_source' 
-;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_START_DATE' 
-WHERE  mn_object   = 'dss_start_date' 
-;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_UPDATE_TIME' 
-WHERE  mn_object   = 'dss_update_time' 
-;
-UPDATE ws_meta_names
-SET    mn_name   = 'DSS_VERSION'
-WHERE  mn_object   = 'dss_version' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'Short name' 
-     , mn_postfix   = '_KEY' 
-WHERE  mn_object   = 'dim_key' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'Short name' 
-     , mn_postfix   = '_KEY' 
-WHERE  mn_object   = 'fact_key' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = 'HK_' 
-     , mn_name   = 'Full table name' 
-     , mn_postfix   = '' 
-WHERE  mn_object   = 'hub_key' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = 'HK_' 
-     , mn_name   = 'Full table name' 
-     , mn_postfix   = '' 
-WHERE  mn_object   = 'lnk_key' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = '' 
-     , mn_name   = 'Short name' 
-     , mn_postfix   = '_KEY' 
-WHERE  mn_object   = 'ods_key' 
-;
-UPDATE ws_meta_names
-SET    mn_prefix   = 'HK_' 
-     , mn_name   = 'Full table name' 
-     , mn_postfix   = '' 
-WHERE  mn_object   = 'sat_key'
+UPDATE dbo.ws_meta_names 
+SET mn_postfix = UPPER(mn_postfix)
+WHERE mn_postfix is not NULL and mn_postfix != ''
 ;
 UPDATE ws_table_attributes
 SET    ta_text_1   = 'Version=08010;sbtype=Set;sansijoin=TRUE;Select_Hint:~;Update~;Minus_Update:;Update_Hint:TABLOCK~;Insert~;Minus_Insert:;Insert_Hint:TABLOCK~;HISNullSupport=TRUE;'

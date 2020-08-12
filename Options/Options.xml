@@ -879,7 +879,7 @@
 					</Default_Sub_Type_for_Dimension_Objects>
 					<Default_Sub_Type_for_Stage_Table_Objects Type="WideStringList" Name="Default Sub Type for Stage Table Objects">
 						<DefaultValue>Data Vault Stage</DefaultValue>
-						<CurrentValue>Stage</CurrentValue>
+						<CurrentValue>Data Vault Stage</CurrentValue>
 					</Default_Sub_Type_for_Stage_Table_Objects>
 					<Default_Sub_Type_for_Aggregate_Objects Type="WideStringList" Name="Default Sub Type for Aggregate Objects">
 						<DefaultValue>Aggregate</DefaultValue>
@@ -903,7 +903,7 @@
 					</Default_Sub_Type_for_Retro_Copy_Objects>
 					<Default_Sub_Type_for_Data_Store_Objects Type="WideStringList" Name="Default Sub Type for Data Store Objects">
 						<DefaultValue>Data Store</DefaultValue>
-						<CurrentValue>History</CurrentValue>
+						<CurrentValue>Data Store</CurrentValue>
 					</Default_Sub_Type_for_Data_Store_Objects>
 					<Default_Sub_Type_for_EDW_3NF_Objects Type="WideStringList" Name="Default Sub Type for EDW 3NF Objects">
 						<DefaultValue>Normalized</DefaultValue>
@@ -1013,7 +1013,7 @@
 					<Cube>
 						<Cube_Prefix Type="WideString" Name="Cube Prefix">
 							<DefaultValue></DefaultValue>
-							<CurrentValue>cube_</CurrentValue>
+							<CurrentValue>CUBE_</CurrentValue>
 						</Cube_Prefix>
 						<Cube_Suffix Type="WideString" Name="Cube Suffix">
 							<DefaultValue></DefaultValue>
@@ -1031,7 +1031,7 @@
 					<Retro>
 						<Retro_Prefix Type="WideString" Name="Retro Prefix">
 							<DefaultValue>retro_</DefaultValue>
-							<CurrentValue>retro_</CurrentValue>
+							<CurrentValue>RETRO_</CurrentValue>
 						</Retro_Prefix>
 						<Retro_Suffix Type="WideString" Name="Retro Suffix">
 							<DefaultValue></DefaultValue>
@@ -1040,7 +1040,7 @@
 					<Retro_Copy>
 						<Retro_Copy_Prefix Type="WideString" Name="Retro Copy Prefix">
 							<DefaultValue>retro_copy_</DefaultValue>
-							<CurrentValue>retro_</CurrentValue>
+							<CurrentValue>RETRO_</CurrentValue>
 						</Retro_Copy_Prefix>
 						<Retro_Copy_Suffix Type="WideString" Name="Retro Copy Suffix">
 							<DefaultValue></DefaultValue>
@@ -1288,7 +1288,7 @@
 						</Fact_Table_Index_Name_Type>
 						<Fact_Table_Index_Suffix Type="WideString" Name="Fact Table Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Fact_Table_Index_Suffix>
 					</Fact_Table>
 					<Dimension>
@@ -1301,7 +1301,7 @@
 						</Dimension_Index_Name_Type>
 						<Dimension_Index_Suffix Type="WideString" Name="Dimension Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Dimension_Index_Suffix>
 					</Dimension>
 					<Stage_Table>
@@ -1314,7 +1314,7 @@
 						</Stage_Table_Index_Name_Type>
 						<Stage_Table_Index_Suffix Type="WideString" Name="Stage Table Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Stage_Table_Index_Suffix>
 					</Stage_Table>
 					<Aggregate>
@@ -1327,7 +1327,7 @@
 						</Aggregate_Index_Name_Type>
 						<Aggregate_Index_Suffix Type="WideString" Name="Aggregate Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Aggregate_Index_Suffix>
 					</Aggregate>
 					<Data_Store>
@@ -1340,7 +1340,7 @@
 						</Data_Store_Index_Name_Type>
 						<Data_Store_Index_Suffix Type="WideString" Name="Data Store Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Data_Store_Index_Suffix>
 					</Data_Store>
 					<EDW_3NF>
@@ -1353,7 +1353,7 @@
 						</EDW_3NF_Index_Name_Type>
 						<EDW_3NF_Index_Suffix Type="WideString" Name="EDW 3NF Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</EDW_3NF_Index_Suffix>
 					</EDW_3NF>
 					<Hub>
@@ -1366,7 +1366,7 @@
 						</Hub_Index_Name_Type>
 						<Hub_Index_Suffix Type="WideString" Name="Hub Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Hub_Index_Suffix>
 					</Hub>
 					<Satellite>
@@ -1379,7 +1379,7 @@
 						</Satellite_Index_Name_Type>
 						<Satellite_Index_Suffix Type="WideString" Name="Satellite Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Satellite_Index_Suffix>
 					</Satellite>
 					<Link>
@@ -1392,7 +1392,7 @@
 						</Link_Index_Name_Type>
 						<Link_Index_Suffix Type="WideString" Name="Link Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Link_Index_Suffix>
 					</Link>
 					<Custom1>
@@ -1405,7 +1405,7 @@
 						</Custom1_Index_Name_Type>
 						<Custom1_Index_Suffix Type="WideString" Name="Custom1 Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Custom1_Index_Suffix>
 					</Custom1>
 					<Custom2>
@@ -1418,7 +1418,7 @@
 						</Custom2_Index_Name_Type>
 						<Custom2_Index_Suffix Type="WideString" Name="Custom2 Index Suffix">
 							<DefaultValue>_idx</DefaultValue>
-							<CurrentValue>_idx</CurrentValue>
+							<CurrentValue>_IDX</CurrentValue>
 						</Custom2_Index_Suffix>
 					</Custom2>
 				</Global_Naming_of_Indexes>
@@ -1490,7 +1490,7 @@
 						</EDW_3NF_Key_Name_Type>
 						<EDW_3NF_Suffix Type="WideString" Name="EDW 3NF Suffix">
 							<DefaultValue>_key</DefaultValue>
-							<CurrentValue>_key</CurrentValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</EDW_3NF_Suffix>
 					</EDW_3NF>
 					<Hub>
@@ -1558,7 +1558,7 @@
 						</Custom1_Key_Name_Type>
 						<Custom1_Suffix Type="WideString" Name="Custom1 Suffix">
 							<DefaultValue>_key</DefaultValue>
-							<CurrentValue>_key</CurrentValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Custom1_Suffix>
 					</Custom1>
 					<Custom2>
@@ -1575,7 +1575,7 @@
 						</Custom2_Key_Name_Type>
 						<Custom2_Suffix Type="WideString" Name="Custom2 Suffix">
 							<DefaultValue>_key</DefaultValue>
-							<CurrentValue>_key</CurrentValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Custom2_Suffix>
 					</Custom2>
 				</Global_Naming_of_Key_Columns>
@@ -1651,6 +1651,7 @@
 						</Fact_Table_Custom_Procedure_Suffix>
 						<Fact_Table_Get_Procedure_Prefix Type="WideString" Name="Fact Table Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Fact_Table_Get_Procedure_Prefix>
 						<Fact_Table_Get_Procedure_Name_Type Type="Enumeration" Name="Fact Table Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -1658,6 +1659,7 @@
 						</Fact_Table_Get_Procedure_Name_Type>
 						<Fact_Table_Get_Procedure_Suffix Type="WideString" Name="Fact Table Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Fact_Table_Get_Procedure_Suffix>
 					</Fact_Table>
 					<Dimension>
@@ -1693,6 +1695,7 @@
 						</Dimension_Custom_Procedure_Suffix>
 						<Dimension_Get_Procedure_Prefix Type="WideString" Name="Dimension Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Dimension_Get_Procedure_Prefix>
 						<Dimension_Get_Procedure_Name_Type Type="Enumeration" Name="Dimension Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -1700,6 +1703,7 @@
 						</Dimension_Get_Procedure_Name_Type>
 						<Dimension_Get_Procedure_Suffix Type="WideString" Name="Dimension Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Dimension_Get_Procedure_Suffix>
 					</Dimension>
 					<Stage_Table>
@@ -1829,6 +1833,7 @@
 						</Dimension_View_Custom_Procedure_Name_Type>
 						<Dimension_View_Get_Procedure_Prefix Type="WideString" Name="Dimension View Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Dimension_View_Get_Procedure_Prefix>
 						<Dimension_View_Get_Procedure_Name_Type Type="Enumeration" Name="Dimension View Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -1836,6 +1841,7 @@
 						</Dimension_View_Get_Procedure_Name_Type>
 						<Dimension_View_Get_Procedure_Suffix Type="WideString" Name="Dimension View Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Dimension_View_Get_Procedure_Suffix>
 					</Dimension_View>
 					<Export>
@@ -1914,7 +1920,7 @@
 						</Retro_Update_Script_Name_Type>
 						<Retro_Update_Procedure_Prefix Type="WideString" Name="Retro Update Procedure Prefix">
 							<DefaultValue>update_</DefaultValue>
-							<CurrentValue>update_</CurrentValue>
+							<CurrentValue>UPDATE_</CurrentValue>
 						</Retro_Update_Procedure_Prefix>
 						<Retro_Update_Procedure_Name_Type Type="Enumeration" Name="Retro Update Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -1925,7 +1931,7 @@
 						</Retro_Update_Procedure_Suffix>
 						<Retro_Custom_Procedure_Prefix Type="WideString" Name="Retro Custom Procedure Prefix">
 							<DefaultValue>custom_</DefaultValue>
-							<CurrentValue>custom_</CurrentValue>
+							<CurrentValue>CUSTOM_</CurrentValue>
 						</Retro_Custom_Procedure_Prefix>
 						<Retro_Custom_Procedure_Name_Type Type="Enumeration" Name="Retro Custom Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -1950,7 +1956,7 @@
 						</Retro_Copy_Update_Script_Name_Type>
 						<Retro_Copy_Update_Procedure_Prefix Type="WideString" Name="Retro Copy Update Procedure Prefix">
 							<DefaultValue>update_</DefaultValue>
-							<CurrentValue>update_</CurrentValue>
+							<CurrentValue>UPDATE_</CurrentValue>
 						</Retro_Copy_Update_Procedure_Prefix>
 						<Retro_Copy_Update_Procedure_Name_Type Type="Enumeration" Name="Retro Copy Update Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -1961,7 +1967,7 @@
 						</Retro_Copy_Update_Procedure_Suffix>
 						<Retro_Copy_Custom_Procedure_Prefix Type="WideString" Name="Retro Copy Custom Procedure Prefix">
 							<DefaultValue>custom_</DefaultValue>
-							<CurrentValue>custom_</CurrentValue>
+							<CurrentValue>CUSTOM_</CurrentValue>
 						</Retro_Copy_Custom_Procedure_Prefix>
 						<Retro_Copy_Custom_Procedure_Name_Type Type="Enumeration" Name="Retro Copy Custom Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2008,6 +2014,7 @@
 						</Data_Store_Custom_Procedure_Suffix>
 						<Data_Store_Get_Procedure_Prefix Type="WideString" Name="Data Store Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Data_Store_Get_Procedure_Prefix>
 						<Data_Store_Get_Procedure_Name_Type Type="Enumeration" Name="Data Store Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2015,6 +2022,7 @@
 						</Data_Store_Get_Procedure_Name_Type>
 						<Data_Store_Get_Procedure_Suffix Type="WideString" Name="Data Store Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Data_Store_Get_Procedure_Suffix>
 					</Data_Store>
 					<EDW_3NF>
@@ -2050,6 +2058,7 @@
 						</EDW_3NF_Custom_Procedure_Suffix>
 						<EDW_3NF_Get_Procedure_Prefix Type="WideString" Name="EDW 3NF Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</EDW_3NF_Get_Procedure_Prefix>
 						<EDW_3NF_Get_Procedure_Name_Type Type="Enumeration" Name="EDW 3NF Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2057,6 +2066,7 @@
 						</EDW_3NF_Get_Procedure_Name_Type>
 						<EDW_3NF_Get_Procedure_Suffix Type="WideString" Name="EDW 3NF Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</EDW_3NF_Get_Procedure_Suffix>
 					</EDW_3NF>
 					<Hub>
@@ -2092,6 +2102,7 @@
 						</Hub_Custom_Procedure_Suffix>
 						<Hub_Get_Procedure_Prefix Type="WideString" Name="Hub Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Hub_Get_Procedure_Prefix>
 						<Hub_Get_Procedure_Name_Type Type="Enumeration" Name="Hub Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2099,6 +2110,7 @@
 						</Hub_Get_Procedure_Name_Type>
 						<Hub_Get_Procedure_Suffix Type="WideString" Name="Hub Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Hub_Get_Procedure_Suffix>
 					</Hub>
 					<Satellite>
@@ -2134,6 +2146,7 @@
 						</Satellite_Custom_Procedure_Suffix>
 						<Satellite_Get_Procedure_Prefix Type="WideString" Name="Satellite Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Satellite_Get_Procedure_Prefix>
 						<Satellite_Get_Procedure_Name_Type Type="Enumeration" Name="Satellite Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2141,6 +2154,7 @@
 						</Satellite_Get_Procedure_Name_Type>
 						<Satellite_Get_Procedure_Suffix Type="WideString" Name="Satellite Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Satellite_Get_Procedure_Suffix>
 					</Satellite>
 					<Link>
@@ -2176,6 +2190,7 @@
 						</Link_Custom_Procedure_Suffix>
 						<Link_Get_Procedure_Prefix Type="WideString" Name="Link Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Link_Get_Procedure_Prefix>
 						<Link_Get_Procedure_Name_Type Type="Enumeration" Name="Link Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2183,6 +2198,7 @@
 						</Link_Get_Procedure_Name_Type>
 						<Link_Get_Procedure_Suffix Type="WideString" Name="Link Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Link_Get_Procedure_Suffix>
 					</Link>
 					<Custom1>
@@ -2218,6 +2234,7 @@
 						</Custom1_Custom_Procedure_Suffix>
 						<Custom1_Get_Procedure_Prefix Type="WideString" Name="Custom1 Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Custom1_Get_Procedure_Prefix>
 						<Custom1_Get_Procedure_Name_Type Type="Enumeration" Name="Custom1 Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2225,6 +2242,7 @@
 						</Custom1_Get_Procedure_Name_Type>
 						<Custom1_Get_Procedure_Suffix Type="WideString" Name="Custom1 Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Custom1_Get_Procedure_Suffix>
 					</Custom1>
 					<Custom2>
@@ -2260,6 +2278,7 @@
 						</Custom2_Custom_Procedure_Suffix>
 						<Custom2_Get_Procedure_Prefix Type="WideString" Name="Custom2 Get Procedure Prefix">
 							<DefaultValue>get_</DefaultValue>
+							<CurrentValue>GET_</CurrentValue>
 						</Custom2_Get_Procedure_Prefix>
 						<Custom2_Get_Procedure_Name_Type Type="Enumeration" Name="Custom2 Get Procedure Name Type">
 							<DefaultValue>Short name</DefaultValue>
@@ -2267,6 +2286,7 @@
 						</Custom2_Get_Procedure_Name_Type>
 						<Custom2_Get_Procedure_Suffix Type="WideString" Name="Custom2 Get Procedure Suffix">
 							<DefaultValue>_key</DefaultValue>
+							<CurrentValue>_KEY</CurrentValue>
 						</Custom2_Get_Procedure_Suffix>
 					</Custom2>
 				</Global_Naming_of_ProceduresScripts>
@@ -2285,7 +2305,7 @@
 				<Tables>
 					<dss_batch Type="WideString" Name="dss_batch">
 						<DefaultValue>dss_batch_table</DefaultValue>
-						<CurrentValue>dss_batch</CurrentValue>
+						<CurrentValue>DSS_BATCH</CurrentValue>
 					</dss_batch>
 					<dss_source_system Type="WideString" Name="dss_source_system">
 						<DefaultValue>dss_source_system</DefaultValue>
@@ -2293,7 +2313,7 @@
 					</dss_source_system>
 					<dss_fact_table Type="WideString" Name="dss_fact_table">
 						<DefaultValue>dss_fact_table</DefaultValue>
-						<CurrentValue>dss_fact_table</CurrentValue>
+						<CurrentValue>DSS_FACT_TABLE</CurrentValue>
 					</dss_fact_table>
 				</Tables>
 			</DSS_Tables_to_Include_and_Naming>
@@ -3539,11 +3559,11 @@
 				</AutoVersion_before_Index_Delete>
 				<AutoVersion_before_Template_Delete Type="Boolean" Name="Auto-Version before Template Delete">
 					<DefaultValue>false</DefaultValue>
-					<CurrentValue>false</CurrentValue>
+					<CurrentValue>true</CurrentValue>
 				</AutoVersion_before_Template_Delete>
 				<AutoVersion_before_Template_Save Type="Boolean" Name="Auto-Version before Template Save">
 					<DefaultValue>false</DefaultValue>
-					<CurrentValue>false</CurrentValue>
+					<CurrentValue>true</CurrentValue>
 				</AutoVersion_before_Template_Save>
 			</Metadata_Versioning>
 		</Metadata_Versioning>
@@ -6804,9 +6824,11 @@
 				<Stage_Table_Documentation_Field_7>
 					<Stage_Table_Documentation_7_Name Type="WideString" Name="Stage Table Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Stage_Table_Documentation_7_Name>
 					<Stage_Table_Documentation_7_Label Type="WideString" Name="Stage Table Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Stage_Table_Documentation_7_Label>
 					<Stage_Table_Documentation_7_User Type="Boolean" Name="Stage Table Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -6828,11 +6850,9 @@
 				<Stage_Table_Documentation_Field_8>
 					<Stage_Table_Documentation_8_Name Type="WideString" Name="Stage Table Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Stage_Table_Documentation_8_Name>
 					<Stage_Table_Documentation_8_Label Type="WideString" Name="Stage Table Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Stage_Table_Documentation_8_Label>
 					<Stage_Table_Documentation_8_User Type="Boolean" Name="Stage Table Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -7216,11 +7236,9 @@
 				<Stage_Table_Documentation_Field_8>
 					<Stage_Table_Column_Documentation_8_Name Type="WideString" Name="Stage Table Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Stage_Table_Column_Documentation_8_Name>
 					<Stage_Table_Column_Documentation_8_Label Type="WideString" Name="Stage Table Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Stage_Table_Column_Documentation_8_Label>
 					<Stage_Table_Column_Documentation_8_User Type="Boolean" Name="Stage Table Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -7580,9 +7598,11 @@
 				<Load_Table_Documentation_Field_7>
 					<Load_Table_Documentation_7_Name Type="WideString" Name="Load Table Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Load_Table_Documentation_7_Name>
 					<Load_Table_Documentation_7_Label Type="WideString" Name="Load Table Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Load_Table_Documentation_7_Label>
 					<Load_Table_Documentation_7_User Type="Boolean" Name="Load Table Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -7604,11 +7624,9 @@
 				<Load_Table_Documentation_Field_8>
 					<Load_Table_Documentation_8_Name Type="WideString" Name="Load Table Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Load_Table_Documentation_8_Name>
 					<Load_Table_Documentation_8_Label Type="WideString" Name="Load Table Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Load_Table_Documentation_8_Label>
 					<Load_Table_Documentation_8_User Type="Boolean" Name="Load Table Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -7992,11 +8010,9 @@
 				<Load_Table_Documentation_Field_8>
 					<Load_Table_Column_Documentation_8_Name Type="WideString" Name="Load Table Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Load_Table_Column_Documentation_8_Name>
 					<Load_Table_Column_Documentation_8_Label Type="WideString" Name="Load Table Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Load_Table_Column_Documentation_8_Label>
 					<Load_Table_Column_Documentation_8_User Type="Boolean" Name="Load Table Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -9776,11 +9792,11 @@
 				<Export_Documentation_Field_1>
 					<Export_Documentation_1_Name Type="WideString" Name="Export Documentation 1 Name">
 						<DefaultValue>Concept</DefaultValue>
-						<CurrentValue>Purpose</CurrentValue>
+						<CurrentValue>Concept</CurrentValue>
 					</Export_Documentation_1_Name>
 					<Export_Documentation_1_Label Type="WideString" Name="Export Documentation 1 Label">
 						<DefaultValue>Concept</DefaultValue>
-						<CurrentValue>Purpose</CurrentValue>
+						<CurrentValue>Concept</CurrentValue>
 					</Export_Documentation_1_Label>
 					<Export_Documentation_1_User Type="Boolean" Name="Export Documentation 1 User">
 						<DefaultValue>true</DefaultValue>
@@ -9802,11 +9818,11 @@
 				<Export_Documentation_Field_2>
 					<Export_Documentation_2_Name Type="WideString" Name="Export Documentation 2 Name">
 						<DefaultValue>Data Grain</DefaultValue>
-						<CurrentValue>Concept</CurrentValue>
+						<CurrentValue>Data Grain</CurrentValue>
 					</Export_Documentation_2_Name>
 					<Export_Documentation_2_Label Type="WideString" Name="Export Documentation 2 Label">
 						<DefaultValue>Grain</DefaultValue>
-						<CurrentValue>Concept</CurrentValue>
+						<CurrentValue>Grain</CurrentValue>
 					</Export_Documentation_2_Label>
 					<Export_Documentation_2_User Type="Boolean" Name="Export Documentation 2 User">
 						<DefaultValue>true</DefaultValue>
@@ -9828,11 +9844,11 @@
 				<Export_Documentation_Field_3>
 					<Export_Documentation_3_Name Type="WideString" Name="Export Documentation 3 Name">
 						<DefaultValue>Query Examples</DefaultValue>
-						<CurrentValue>Data Grain</CurrentValue>
+						<CurrentValue>Query Examples</CurrentValue>
 					</Export_Documentation_3_Name>
 					<Export_Documentation_3_Label Type="WideString" Name="Export Documentation 3 Label">
 						<DefaultValue>Examples</DefaultValue>
-						<CurrentValue>Grain</CurrentValue>
+						<CurrentValue>Examples</CurrentValue>
 					</Export_Documentation_3_Label>
 					<Export_Documentation_3_User Type="Boolean" Name="Export Documentation 3 User">
 						<DefaultValue>true</DefaultValue>
@@ -9854,11 +9870,11 @@
 				<Export_Documentation_Field_4>
 					<Export_Documentation_4_Name Type="WideString" Name="Export Documentation 4 Name">
 						<DefaultValue>Usage Tips</DefaultValue>
-						<CurrentValue>Query Examples</CurrentValue>
+						<CurrentValue>Usage Tips</CurrentValue>
 					</Export_Documentation_4_Name>
 					<Export_Documentation_4_Label Type="WideString" Name="Export Documentation 4 Label">
 						<DefaultValue>Usage</DefaultValue>
-						<CurrentValue>Examples</CurrentValue>
+						<CurrentValue>Usage</CurrentValue>
 					</Export_Documentation_4_Label>
 					<Export_Documentation_4_User Type="Boolean" Name="Export Documentation 4 User">
 						<DefaultValue>true</DefaultValue>
@@ -9866,7 +9882,7 @@
 					</Export_Documentation_4_User>
 					<Export_Documentation_4_Before_Columns Type="Boolean" Name="Export Documentation 4 Before Columns">
 						<DefaultValue>true</DefaultValue>
-						<CurrentValue>false</CurrentValue>
+						<CurrentValue>true</CurrentValue>
 					</Export_Documentation_4_Before_Columns>
 					<Export_Documentation_4_Order Type="UnsignedInt32" Name="Export Documentation 4 Order">
 						<DefaultValue>4</DefaultValue>
@@ -9880,15 +9896,13 @@
 				<Export_Documentation_Field_5>
 					<Export_Documentation_5_Name Type="WideString" Name="Export Documentation 5 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Usage Tips</CurrentValue>
 					</Export_Documentation_5_Name>
 					<Export_Documentation_5_Label Type="WideString" Name="Export Documentation 5 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Usage</CurrentValue>
 					</Export_Documentation_5_Label>
 					<Export_Documentation_5_User Type="Boolean" Name="Export Documentation 5 User">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Documentation_5_User>
 					<Export_Documentation_5_Before_Columns Type="Boolean" Name="Export Documentation 5 Before Columns">
 						<DefaultValue>false</DefaultValue>
@@ -9930,17 +9944,19 @@
 				<Export_Documentation_Field_7>
 					<Export_Documentation_7_Name Type="WideString" Name="Export Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Export_Documentation_7_Name>
 					<Export_Documentation_7_Label Type="WideString" Name="Export Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Export_Documentation_7_Label>
 					<Export_Documentation_7_User Type="Boolean" Name="Export Documentation 7 User">
 						<DefaultValue>true</DefaultValue>
-						<CurrentValue>false</CurrentValue>
+						<CurrentValue>true</CurrentValue>
 					</Export_Documentation_7_User>
 					<Export_Documentation_7_Before_Columns Type="Boolean" Name="Export Documentation 7 Before Columns">
 						<DefaultValue>true</DefaultValue>
-						<CurrentValue>false</CurrentValue>
+						<CurrentValue>true</CurrentValue>
 					</Export_Documentation_7_Before_Columns>
 					<Export_Documentation_7_Order Type="UnsignedInt32" Name="Export Documentation 7 Order">
 						<DefaultValue>7</DefaultValue>
@@ -9954,11 +9970,9 @@
 				<Export_Documentation_Field_8>
 					<Export_Documentation_8_Name Type="WideString" Name="Export Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Export_Documentation_8_Name>
 					<Export_Documentation_8_Label Type="WideString" Name="Export Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Export_Documentation_8_Label>
 					<Export_Documentation_8_User Type="Boolean" Name="Export Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -10174,19 +10188,17 @@
 				<Export_Documentation_Field_1>
 					<Export_Column_Documentation_1_Name Type="WideString" Name="Export Column Documentation 1 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Purpose</CurrentValue>
 					</Export_Column_Documentation_1_Name>
 					<Export_Column_Documentation_1_Label Type="WideString" Name="Export Column Documentation 1 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Purpose</CurrentValue>
 					</Export_Column_Documentation_1_Label>
 					<Export_Column_Documentation_1_User Type="Boolean" Name="Export Column Documentation 1 User">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_1_User>
 					<Export_Column_Documentation_1_Before_Columns Type="Boolean" Name="Export Column Documentation 1 Before Columns">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_1_Before_Columns>
 					<Export_Column_Documentation_1_Order Type="UnsignedInt32" Name="Export Column Documentation 1 Order">
 						<DefaultValue>1</DefaultValue>
@@ -10200,19 +10212,17 @@
 				<Export_Documentation_Field_2>
 					<Export_Column_Documentation_2_Name Type="WideString" Name="Export Column Documentation 2 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Concept</CurrentValue>
 					</Export_Column_Documentation_2_Name>
 					<Export_Column_Documentation_2_Label Type="WideString" Name="Export Column Documentation 2 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Concept</CurrentValue>
 					</Export_Column_Documentation_2_Label>
 					<Export_Column_Documentation_2_User Type="Boolean" Name="Export Column Documentation 2 User">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_2_User>
 					<Export_Column_Documentation_2_Before_Columns Type="Boolean" Name="Export Column Documentation 2 Before Columns">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_2_Before_Columns>
 					<Export_Column_Documentation_2_Order Type="UnsignedInt32" Name="Export Column Documentation 2 Order">
 						<DefaultValue>2</DefaultValue>
@@ -10226,19 +10236,17 @@
 				<Export_Documentation_Field_3>
 					<Export_Column_Documentation_3_Name Type="WideString" Name="Export Column Documentation 3 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Data Grain</CurrentValue>
 					</Export_Column_Documentation_3_Name>
 					<Export_Column_Documentation_3_Label Type="WideString" Name="Export Column Documentation 3 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Grain</CurrentValue>
 					</Export_Column_Documentation_3_Label>
 					<Export_Column_Documentation_3_User Type="Boolean" Name="Export Column Documentation 3 User">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_3_User>
 					<Export_Column_Documentation_3_Before_Columns Type="Boolean" Name="Export Column Documentation 3 Before Columns">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_3_Before_Columns>
 					<Export_Column_Documentation_3_Order Type="UnsignedInt32" Name="Export Column Documentation 3 Order">
 						<DefaultValue>3</DefaultValue>
@@ -10252,15 +10260,13 @@
 				<Export_Documentation_Field_4>
 					<Export_Column_Documentation_4_Name Type="WideString" Name="Export Column Documentation 4 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Query Examples</CurrentValue>
 					</Export_Column_Documentation_4_Name>
 					<Export_Column_Documentation_4_Label Type="WideString" Name="Export Column Documentation 4 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Examples</CurrentValue>
 					</Export_Column_Documentation_4_Label>
 					<Export_Column_Documentation_4_User Type="Boolean" Name="Export Column Documentation 4 User">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_4_User>
 					<Export_Column_Documentation_4_Before_Columns Type="Boolean" Name="Export Column Documentation 4 Before Columns">
 						<DefaultValue>false</DefaultValue>
@@ -10278,15 +10284,13 @@
 				<Export_Documentation_Field_5>
 					<Export_Column_Documentation_5_Name Type="WideString" Name="Export Column Documentation 5 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Usage Tips</CurrentValue>
 					</Export_Column_Documentation_5_Name>
 					<Export_Column_Documentation_5_Label Type="WideString" Name="Export Column Documentation 5 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Usage</CurrentValue>
 					</Export_Column_Documentation_5_Label>
 					<Export_Column_Documentation_5_User Type="Boolean" Name="Export Column Documentation 5 User">
 						<DefaultValue>false</DefaultValue>
-						<CurrentValue>true</CurrentValue>
+						<CurrentValue>false</CurrentValue>
 					</Export_Column_Documentation_5_User>
 					<Export_Column_Documentation_5_Before_Columns Type="Boolean" Name="Export Column Documentation 5 Before Columns">
 						<DefaultValue>false</DefaultValue>
@@ -10352,11 +10356,9 @@
 				<Export_Documentation_Field_8>
 					<Export_Column_Documentation_8_Name Type="WideString" Name="Export Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Export_Column_Documentation_8_Name>
 					<Export_Column_Documentation_8_Label Type="WideString" Name="Export Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Export_Column_Documentation_8_Label>
 					<Export_Column_Documentation_8_User Type="Boolean" Name="Export Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -19284,9 +19286,11 @@
 				<Data_Store_Documentation_Field_7>
 					<Data_Store_Documentation_7_Name Type="WideString" Name="Data Store Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Data_Store_Documentation_7_Name>
 					<Data_Store_Documentation_7_Label Type="WideString" Name="Data Store Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Data_Store_Documentation_7_Label>
 					<Data_Store_Documentation_7_User Type="Boolean" Name="Data Store Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -19308,11 +19312,9 @@
 				<Data_Store_Documentation_Field_8>
 					<Data_Store_Documentation_8_Name Type="WideString" Name="Data Store Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Data_Store_Documentation_8_Name>
 					<Data_Store_Documentation_8_Label Type="WideString" Name="Data Store Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Data_Store_Documentation_8_Label>
 					<Data_Store_Documentation_8_User Type="Boolean" Name="Data Store Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -19696,11 +19698,9 @@
 				<Data_Store_Documentation_Field_8>
 					<Data_Store_Column_Documentation_8_Name Type="WideString" Name="Data Store Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Data_Store_Column_Documentation_8_Name>
 					<Data_Store_Column_Documentation_8_Label Type="WideString" Name="Data Store Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Data_Store_Column_Documentation_8_Label>
 					<Data_Store_Column_Documentation_8_User Type="Boolean" Name="Data Store Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -20834,9 +20834,11 @@
 				<Hub_Documentation_Field_7>
 					<Hub_Documentation_7_Name Type="WideString" Name="Hub Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Hub_Documentation_7_Name>
 					<Hub_Documentation_7_Label Type="WideString" Name="Hub Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Hub_Documentation_7_Label>
 					<Hub_Documentation_7_User Type="Boolean" Name="Hub Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -20858,11 +20860,9 @@
 				<Hub_Documentation_Field_8>
 					<Hub_Documentation_8_Name Type="WideString" Name="Hub Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Hub_Documentation_8_Name>
 					<Hub_Documentation_8_Label Type="WideString" Name="Hub Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Hub_Documentation_8_Label>
 					<Hub_Documentation_8_User Type="Boolean" Name="Hub Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -21246,11 +21246,9 @@
 				<Hub_Documentation_Field_8>
 					<Hub_Column_Documentation_8_Name Type="WideString" Name="Hub Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Hub_Column_Documentation_8_Name>
 					<Hub_Column_Documentation_8_Label Type="WideString" Name="Hub Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Hub_Column_Documentation_8_Label>
 					<Hub_Column_Documentation_8_User Type="Boolean" Name="Hub Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -21610,9 +21608,11 @@
 				<Satellite_Documentation_Field_7>
 					<Satellite_Documentation_7_Name Type="WideString" Name="Satellite Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Satellite_Documentation_7_Name>
 					<Satellite_Documentation_7_Label Type="WideString" Name="Satellite Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Satellite_Documentation_7_Label>
 					<Satellite_Documentation_7_User Type="Boolean" Name="Satellite Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -21634,11 +21634,9 @@
 				<Satellite_Documentation_Field_8>
 					<Satellite_Documentation_8_Name Type="WideString" Name="Satellite Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Satellite_Documentation_8_Name>
 					<Satellite_Documentation_8_Label Type="WideString" Name="Satellite Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Satellite_Documentation_8_Label>
 					<Satellite_Documentation_8_User Type="Boolean" Name="Satellite Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -22022,11 +22020,9 @@
 				<Satellite_Documentation_Field_8>
 					<Satellite_Column_Documentation_8_Name Type="WideString" Name="Satellite Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Satellite_Column_Documentation_8_Name>
 					<Satellite_Column_Documentation_8_Label Type="WideString" Name="Satellite Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Satellite_Column_Documentation_8_Label>
 					<Satellite_Column_Documentation_8_User Type="Boolean" Name="Satellite Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -22386,9 +22382,11 @@
 				<Link_Documentation_Field_7>
 					<Link_Documentation_7_Name Type="WideString" Name="Link Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Link_Documentation_7_Name>
 					<Link_Documentation_7_Label Type="WideString" Name="Link Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Link_Documentation_7_Label>
 					<Link_Documentation_7_User Type="Boolean" Name="Link Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -22410,11 +22408,9 @@
 				<Link_Documentation_Field_8>
 					<Link_Documentation_8_Name Type="WideString" Name="Link Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Link_Documentation_8_Name>
 					<Link_Documentation_8_Label Type="WideString" Name="Link Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Link_Documentation_8_Label>
 					<Link_Documentation_8_User Type="Boolean" Name="Link Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -22798,11 +22794,9 @@
 				<Link_Documentation_Field_8>
 					<Link_Column_Documentation_8_Name Type="WideString" Name="Link Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Link_Column_Documentation_8_Name>
 					<Link_Column_Documentation_8_Label Type="WideString" Name="Link Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Link_Column_Documentation_8_Label>
 					<Link_Column_Documentation_8_User Type="Boolean" Name="Link Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -23162,9 +23156,11 @@
 				<Custom1_Documentation_Field_7>
 					<Custom1_Documentation_7_Name Type="WideString" Name="Custom1 Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Custom1_Documentation_7_Name>
 					<Custom1_Documentation_7_Label Type="WideString" Name="Custom1 Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Custom1_Documentation_7_Label>
 					<Custom1_Documentation_7_User Type="Boolean" Name="Custom1 Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -23186,11 +23182,9 @@
 				<Custom1_Documentation_Field_8>
 					<Custom1_Documentation_8_Name Type="WideString" Name="Custom1 Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom1_Documentation_8_Name>
 					<Custom1_Documentation_8_Label Type="WideString" Name="Custom1 Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom1_Documentation_8_Label>
 					<Custom1_Documentation_8_User Type="Boolean" Name="Custom1 Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -23574,11 +23568,9 @@
 				<Custom1_Documentation_Field_8>
 					<Custom1_Column_Documentation_8_Name Type="WideString" Name="Custom1 Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom1_Column_Documentation_8_Name>
 					<Custom1_Column_Documentation_8_Label Type="WideString" Name="Custom1 Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom1_Column_Documentation_8_Label>
 					<Custom1_Column_Documentation_8_User Type="Boolean" Name="Custom1 Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -23938,9 +23930,11 @@
 				<Custom2_Documentation_Field_7>
 					<Custom2_Documentation_7_Name Type="WideString" Name="Custom2 Documentation 7 Name">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Custom2_Documentation_7_Name>
 					<Custom2_Documentation_7_Label Type="WideString" Name="Custom2 Documentation 7 Label">
 						<DefaultValue>Notes</DefaultValue>
+						<CurrentValue>Notes</CurrentValue>
 					</Custom2_Documentation_7_Label>
 					<Custom2_Documentation_7_User Type="Boolean" Name="Custom2 Documentation 7 User">
 						<DefaultValue>false</DefaultValue>
@@ -23962,11 +23956,9 @@
 				<Custom2_Documentation_Field_8>
 					<Custom2_Documentation_8_Name Type="WideString" Name="Custom2 Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom2_Documentation_8_Name>
 					<Custom2_Documentation_8_Label Type="WideString" Name="Custom2 Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom2_Documentation_8_Label>
 					<Custom2_Documentation_8_User Type="Boolean" Name="Custom2 Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
@@ -24350,11 +24342,9 @@
 				<Custom2_Documentation_Field_8>
 					<Custom2_Column_Documentation_8_Name Type="WideString" Name="Custom2 Column Documentation 8 Name">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom2_Column_Documentation_8_Name>
 					<Custom2_Column_Documentation_8_Label Type="WideString" Name="Custom2 Column Documentation 8 Label">
 						<DefaultValue></DefaultValue>
-						<CurrentValue>Notes</CurrentValue>
 					</Custom2_Column_Documentation_8_Label>
 					<Custom2_Column_Documentation_8_User Type="Boolean" Name="Custom2 Column Documentation 8 User">
 						<DefaultValue>false</DefaultValue>
