@@ -337,7 +337,7 @@ SELECT {%- from table.columns as column %}
       FROM @~/wsl${env:WSL_LOAD_TABLE}${env:WSL_SEQUENCE}{%- if PilotTable != "" %}_BATCH_$($batch.batch_number){% endif %}.dat t{%- br %}
     ){% br %}
     PATTERN = '.*'{%- br %}
-    FILE_FORMAT = ${env:FILE_FORMAT}{% br %}
+    FILE_FORMAT = ${env:fileFormatFullName}{% br %}
     PURGE = $PURGE{% br %}
     {%- if table.loadInfo.fileLoaderOptions != "" %}    {{ table.loadInfo.fileLoaderOptions }}{%- br %}
     {%- endif %}
@@ -501,9 +501,29 @@ function MAIN { {%- br %}
     $env:RANGE_LOCATION      = @($(Get-ExtendedProperty -PropertyName "RANGE_WORK_TABLE_LOCATION" -TableName ${env:WSL_LOAD_TABLE}))[0]{% br %}
     $RANGE_WORK_CONNECTION   = @($(Get-ExtendedProperty -PropertyName "RANGE_WORK_CONNECTION" -TableName ${env:WSL_LOAD_TABLE}))[0]{% br %}
 
+		# Work out full file format name{%- br %}
+    Add-Type -Path $(Join-Path -Path ${env:WSL_BINDIR} -ChildPath 'WslMetadataServiceClient.dll')
+    $metaDbType = [WslMetadataServiceClient.MetaDatabaseType]::SqlServer
+    # Metadata DSN, Meta DB Type enum, Metadata User, Metadata Password, Metadata schema and lastly maybe 64bit
+    if ([System.Environment]::Is64BitProcess) {
+        $metaArch = [WslMetadataServiceClient.Architecture]::_64bit
+        $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo.",$metaArch)
+    }
+    else {
+        $repo = New-Object WslMetadataServiceClient.Repo(${env:WSL_META_DSN},$metaDbType,${env:WSL_META_USER},${env:WSL_META_PWD},"dbo.")
+    }
+    $root = $repo.objectsByName
+    $fileFormatObject = $root[${env:FILE_FORMAT}]
+		${env:fileFormatDatabase} = $fileFormatObject.target.database.GetValue()
+    ${env:fileFormatSchema} = $fileFormatObject.target.schema.GetValue()
+    ${env:fileFormatFullName} = ""
+    if( ! [string]::IsNullOrEmpty(${env:fileFormatDatabase})) { ${env:fileFormatFullName} += ${env:fileFormatDatabase} + "." }
+    if( ! [string]::IsNullOrEmpty(${env:fileFormatSchema})) { ${env:fileFormatFullName} += ${env:fileFormatSchema} + "." }
+    ${env:fileFormatFullName} += ${env:FILE_FORMAT}
+
     {%- br %}
     if(${env:DEBUG} -eq "TRUE") { {%- br %}
-        $errStream.WriteLine("Powerhshell version:              $($PSVersionTable.PSVersion.ToString())") 
+        $errStream.WriteLine("Powerhshell version:              $($PSVersionTable.PSVersion.ToString())")
         $errStream.WriteLine("=================== LOAD OPTIONS ==================="){%- br %}
         $errStream.WriteLine("Specified Load Table:             " + ${env:WSL_LOAD_TABLE}){%- br %}
         $errStream.WriteLine("Specified Work Dir:               " + ${env:WSL_WORKDIR}){%- br %}
@@ -528,6 +548,7 @@ function MAIN { {%- br %}
         $errStream.WriteLine("SF_SNOWSQL_WAREHOUSE:             " + ${env:SNOWSQL_WAREHOUSE}){%- br %}
         $errStream.WriteLine("SF_SNOWSQL_DATABASE:              " + ${env:SNOWSQL_DATABASE}){%- br %}
         $errStream.WriteLine("SF_FILE_FORMAT:                   " + ${env:FILE_FORMAT}){%- br %}
+		$errStream.WriteLine("fileFormatFullName:               " + ${env:fileFormatFullName}){%- br %}
         $errStream.WriteLine("SF_SEND_FILES_ZIPPED:             " + ${env:UNLOAD_GZIP}){%- br %}
         $errStream.WriteLine("SF_UNLOAD_DELIMITER:              " + ${env:UNLOAD_DELIM}){%- br %}
         $errStream.WriteLine("SF_UNLOAD_ENCLOSED_BY:            " + ${env:UNLOAD_ENCLOSED}){%- br %}
@@ -577,12 +598,12 @@ function MAIN { {%- br %}
     if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
     {%- if PilotTable != "" %}
     $batchListSql = @"
-      SELECT batch_number
-           , min_value
-           , max_value
+      SELECT BATCH_NUMBER
+           , MIN_VALUE
+           , MAX_VALUE
       FROM ${env:RANGE_SCHEMA}.${env:PILOT_TABLE}
-      WHERE status IN ('N','R')
-      ORDER BY batch_number
+      WHERE STATUS IN ('N','R')
+      ORDER BY BATCH_NUMBER
 "@
     try {
         $rtOdbc.Open()
@@ -645,12 +666,12 @@ function MAIN { {%- br %}
     $retCode = 1
     foreach($j in $jobs) {
           $jobRes = $j | Receive-Job
-          if ($jobRes -ne $null) {                      
+          if ($jobRes -ne $null) {
             if ([String]$jobRes[0] -match "^[-]?[0-9]+$") {
               $jobStatus = $jobRes[0]
               $jobAud = $jobRes[1]
               $jobErr = $jobRes[2]
-              
+
               $audReader = New-Object System.IO.StreamReader($jobAud)
               while( ! $audReader.EndOfStream) { {%- br %}
                 $logStream.WriteLine($audReader.ReadLine()){%- br %}
@@ -667,22 +688,22 @@ function MAIN { {%- br %}
               $jobStatus = -2
               $jobAud = "Range Load job $($j.Name)"
               $logStream.WriteLine("Range Load job $($j.Name) invalid job status")
-              $errStream.WriteLine("Range Load job $($j.Name) invalid job status: $($jobRes[0])") 
+              $errStream.WriteLine("Range Load job $($j.Name) invalid job status: $($jobRes[0])")
             }
           }
           elseif ($j.State -eq 'Failed'){
             $jobStatus = -2
             $jobAud = "Range Load job $($j.Name)"
             $logStream.WriteLine("Range Load job $($j.Name) failed: $($j.ChildJobs[0].JobStateInfo.Reason.Message)")
-            $errStream.WriteLine("Range Load job $($j.Name) failed: $($j.ChildJobs[0].JobStateInfo.Reason.Message)")          
+            $errStream.WriteLine("Range Load job $($j.Name) failed: $($j.ChildJobs[0].JobStateInfo.Reason.Message)")
           }
           else {
             $jobStatus = -2
             $jobAud = "Range Load job $($j.Name)"
             $logStream.WriteLine("Range Load job $($j.Name) had no output from 'Receive-Job' command, check that the batch job ran successfully")
-            $errStream.WriteLine("Range Load job $($j.Name) failed or run status could not be determined, errors: $($j.ChildJobs[0].Error)")           
-          }       
-        
+            $errStream.WriteLine("Range Load job $($j.Name) failed or run status could not be determined, errors: $($j.ChildJobs[0].Error)")
+          }
+
         if ($jobStatus -gt -2) {
             $jobRows = $jobRes[3]
             $TotalRows += $jobRows
