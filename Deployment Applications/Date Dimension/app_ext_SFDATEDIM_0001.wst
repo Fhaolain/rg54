@@ -1,6 +1,11 @@
-3;2406;UPDATE_STAGE_DATE_SF;;
-1;30;DAILY_DATE_ROLL_SF;;
-3;31;UPDATE_DIM_DATE_SF;;
-1;72;wsl_snowflake_table_information;;
-7;2405;STAGE_DATE_SF;STAGE_DATE_SF;
-6;69;DIM_DATE_SF;DIM_DATE_SF;
+3;68;UPDATE_STAGE_DATE_SF;;
+1;8;daily_date_roll;;
+1;5;update_dim_date;;
+1;4;get_dim_date_key;;
+1;69;DAILY_DATE_ROLL_SF;;
+3;70;UPDATE_DIM_DATE_SF;;
+7;71;STAGE_DATE_SF;STAGE_DATE_SF;
+6;10;dim_date;dim_date;
+6;72;DIM_DATE_SF;DIM_DATE_SF;
+10;13;dim_date_idx_0;;
+10;14;dim_date_idx_A;;
