@@ -1756,7 +1756,9 @@ try {
         SET-TABLE-PRE-ACTION -tabName $loadTable -preAction "N"
 
         $srcOdbc.Dispose()
-
+		$host.ui.WriteLine("1")
+        $rDefine = New-Object -ComObject Wscript.Shell
+		$rDefine.Popup("Range Table: $rangeTable has been defined",0,"Wherescape RED")
         $logStream.WriteLine("Range Table: $rangeTable has been defined")
         if(${env:rangeLocation} -eq "SNOWFLAKE") {
             $logStream.WriteLine("==> Please create $rangeTable then regenerate scripts for: $loadTable and $rangeTable")
