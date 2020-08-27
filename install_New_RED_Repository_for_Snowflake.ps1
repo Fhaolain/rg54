@@ -147,7 +147,7 @@ if ($startAtStep -ne 1) { Write-Host "Starting from Step = $startAtStep" }
 
 # Check for a correct RED Version
 $redLoc="C:\Program Files\WhereScape\RED\"
-$getRedVersion = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* |  Select-Object DisplayName, DisplayVersion, InstallLocation | where DisplayName -eq "WhereScape RED" | where DisplayVersion -like "8.5.*"
+$getRedVersion = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* |  Select-Object DisplayName, DisplayVersion, InstallLocation | where DisplayName -eq "WhereScape RED" | where DisplayVersion -ge "8.5.*"
 if ($getRedVersion -isnot [array] -and $getRedVersion -ne $null) { 
   $redLoc = $getRedVersion.InstallLocation 
 } elseif ($getRedVersion.count -gt 1) {
@@ -347,6 +347,60 @@ Function Execute-RedCli-Command ( $commandArguments, $commonArguments="" ) {
       $batchJson = ($cmdReturn.stdout -split "`n" | Select-String -Pattern '^{"Batch":\[').Line.Trim().TrimEnd("Content-Type: application/json; charset=utf-8")
       $cmdResult = ($batchJson | ConvertFrom-Json).Batch[0].Result
       Write-Output "Result: $cmdResult Cmd: $(Remove-Passwords $commandArguments)"
+  }
+}
+
+Function Execute-CurrentUserHasPermissions{
+  Try {
+    $sql = @"
+declare @permission table (
+Database_Name sysname,
+User_Role_Name sysname,
+Account_Type nvarchar(60),
+Action_Type nvarchar(128),
+Permission nvarchar(60),
+ObjectName sysname null
+)
+declare @dbs table (dbname sysname)
+declare @Next sysname
+insert into @dbs
+select name from sys.databases order by name
+select top 1 @Next = dbname from @dbs
+while (@@rowcount<>0)
+begin
+insert into @permission
+exec('use [' + @Next + ']
+declare @objects table (obj_id int)
+insert into @objects
+select id from master.sys.sysobjects
+insert into @objects
+select object_id from sys.objects
+SELECT ''' + @Next + ''', a.name as ''User or Role Name'', a.type_desc as ''Account Type'',
+d.permission_name as ''Type of Permission'', d.state_desc as ''State of Permission'',
+OBJECT_SCHEMA_NAME(d.major_id) + ''.'' + object_name(d.major_id) as ''Object Name''
+FROM [' + @Next + '].sys.database_principals a 
+left join [' + @Next + '].sys.database_permissions d on a.principal_id = d.grantee_principal_id
+left join @objects e on d.major_id = e.obj_id
+order by a.name, d.class_desc')
+delete @dbs where dbname = @Next
+select top 1 @Next = dbname from @dbs
+end
+select * from @permission where Database_Name = '$metaDsn' and Action_Type in ('SELECT','INSERT','UPDATE','EXECUTE') and Permission = 'GRANT_WITH_GRANT_OPTION'
+"@
+	$conn = New-Object System.Data.Odbc.OdbcConnection
+    $conn.ConnectionString = "DSN=$metaDsn"
+    if( ! [string]::IsNullOrEmpty($metaUser)) { $conn.ConnectionString += ";UID=$metaUser" }
+    if( ! [string]::IsNullOrEmpty($metaPwd))  { $conn.ConnectionString += ";PWD=$metaPwd" }
+	
+	# True if any records exist
+    $conn.Open()
+	$command = New-Object System.Data.Odbc.OdbcDataAdapter($sql,$conn)
+	$dataset = New-Object System.Data.DataSet
+    $command.Fill($dataset)
+	$conn.Close()
+    return $dataset.Tables[0].Rows.Count
+  } Catch {
+    return $false
   }
 }
 
@@ -567,11 +621,9 @@ AND ta_type = 'L'
 }
 
 
-
 # Install FieldSolutions
 $installStep=800
-if ($installStep -ge $startAtStep) { 
-
+if ($installStep -ge $startAtStep) {
   if( ([string]::IsNullOrEmpty($metaUser) -and [string]::IsNullOrEmpty($metaPwd)) -or ([string]::IsNullorWhitespace($metaUser) -and [string]::IsNullorWhitespace($metaPwd))) {
    & powershell -ExecutionPolicy RemoteSigned -file "$FSFile" -metaDsn "$metaDsn"
   }else{
@@ -585,13 +637,22 @@ if ($installStep -ge $startAtStep) {
     Exit $LASTEXITCODE
   }
 }
+
 # Create a RED Scheduler
 $installStep=900
+#checking Auth Type to proceed or skip this step
+if([string]::IsNullOrEmpty($metaUser)) {
 if ($installStep -ge $startAtStep) {
-  Write-Output "`nFinal step: Installing the RED Scheduler, if this step fails you can manually install the RED Scheduler through RED Setup Administrator (ADM.exe)`n"
-  $addSchedCmd =  @" 
+  #checking user rights to proceed or skip
+  $hasPermissions = Execute-CurrentUserHasPermissions
+  if ($hasPermissions -eq 4) {
+    $addSchedCmd =  @"
 scheduler add --service-name "$metaDsn" --scheduler-name "$schedulerName" --exe-path-name "$wslSched" --sched-log-level 2 --log-file-name "$wslSchedLog" --sched-meta-dsn-arch "$metaDsnArch" --sched-meta-dsn "$metaDsn" --sched-meta-user-name "$metaUser" --sched-meta-password "$metaPwd" --login-mode "LocalSystemAccount" --ip-service tcp --host-name "${env:COMPUTERNAME}" --output-mode json
 "@
-  Execute-RedCli-Command $addSchedCmd
+    Execute-RedCli-Command $addSchedCmd
+  } else {
+      Write-Output "`nFinal step: Installing the RED Scheduler,If this step fails you can manually install the RED Scheduler through RED Setup Administrator (ADM.exe)`n"
+  }
+}
 }
 Write-Output "`nINFO: Installation Complete, run RED to continue"
