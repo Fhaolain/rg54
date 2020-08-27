@@ -31,12 +31,3 @@
 45;wsl_snowflake_utility
 46;wsl_snowflake_utility_dml
 47;wsl_snowflake_utility_dv
-107;wsl_snowflake_pyscript_dv_perm
-108;wsl_snowflake_pyscript_dv_stage
-109;wsl_snowflake_pyscript_export
-110;wsl_snowflake_pyscript_hist
-111;wsl_snowflake_pyscript_load
-112;wsl_snowflake_pyscript_load_range
-113;wsl_snowflake_pyscript_perm
-114;wsl_snowflake_pyscript_stage
-115;wsl_snowflake_utility_dml_py

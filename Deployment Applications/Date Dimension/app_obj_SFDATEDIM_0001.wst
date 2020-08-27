@@ -1,11 +1,7 @@
 3;68;UPDATE_STAGE_DATE_SF
-1;8;daily_date_roll
-1;5;update_dim_date
-1;4;get_dim_date_key
 1;69;DAILY_DATE_ROLL_SF
 3;70;UPDATE_DIM_DATE_SF
+1;59;wsl_snowflake_table_information
 7;71;STAGE_DATE_SF
-6;10;dim_date
 6;72;DIM_DATE_SF
-10;13;dim_date_idx_0
-10;14;dim_date_idx_A
+50;4;Initialize Date Dimension for Snowflake
