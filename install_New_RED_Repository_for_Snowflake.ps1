@@ -109,7 +109,7 @@ else {
   }
   # Output the command line used to the host (passwords removed)
   $cmdLineArgs = @"
-"$PSScriptRoot\install_New_RED_Repository_for_Snowflake.ps1" -metaDsn "$metaDsn" -metaDsnArch "$metaDsnArch" $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser ""$metaUser"" "})-metaBase "$metaBase" -snowflakeDB "$snowflakeDB" -tgtLoadSchema "$tgtLoadSchema" -tgtStageSchema "$tgtStageSchema" -tgtEdwSchema "$tgtEdwSchema" -tgtDvSchema "$tgtDvSchema" -snowflakeDsn "$snowflakeDsn" $( if(![string]::IsNullOrEmpty($snowflakeUser)){"-snowflakeUser ""$snowflakeUser"" "})-snowflakeDataWarehouse "$SnowflakeDataWarehouse" -sfSnowsqlAcc "$sfSnowsqlAcc" -templateSet '$templateSet' -startAtStep $startAtStep
+"$PSScriptRoot\install_New_RED_Repository_for_Snowflake.ps1" -metaDsn "$metaDsn" -metaDsnArch "$metaDsnArch" $( if(![string]::IsNullOrEmpty($metaUser)){"-metaUser ""$metaUser"" "})-metaBase "$metaBase" -snowflakeDB "$snowflakeDB" -tgtLoadSchema "$tgtLoadSchema" -tgtStageSchema "$tgtStageSchema" -tgtEdwSchema "$tgtEdwSchema" -tgtDvSchema "$tgtDvSchema" -snowflakeDsn "$snowflakeDsn" $( if(![string]::IsNullOrEmpty($snowflakeUser)){"-snowflakeUser ""$snowflakeUser"" "})-snowflakeDataWarehouse "$SnowflakeDataWarehouse" -sfSnowsqlAcc "$sfSnowsqlAcc" -templateSet "$templateSet" -startAtStep $startAtStep
 "@
   Write-Host "`nINFO: Script command line executed (passwords removed): $cmdLineArgs`n"
 }
@@ -642,17 +642,17 @@ if ($installStep -ge $startAtStep) {
 $installStep=900
 #checking Auth Type to proceed or skip this step
 if([string]::IsNullOrEmpty($metaUser)) {
-if ($installStep -ge $startAtStep) {
-  #checking user rights to proceed or skip
-  $hasPermissions = Execute-CurrentUserHasPermissions
-  if ($hasPermissions -eq 4) {
-    $addSchedCmd =  @"
+  if ($installStep -ge $startAtStep) {
+    #checking user rights to proceed or skip
+    $hasPermissions = Execute-CurrentUserHasPermissions
+    if ($hasPermissions -eq 4) {
+      $addSchedCmd =  @"
 scheduler add --service-name "$metaDsn" --scheduler-name "$schedulerName" --exe-path-name "$wslSched" --sched-log-level 2 --log-file-name "$wslSchedLog" --sched-meta-dsn-arch "$metaDsnArch" --sched-meta-dsn "$metaDsn" --sched-meta-user-name "$metaUser" --sched-meta-password "$metaPwd" --login-mode "LocalSystemAccount" --ip-service tcp --host-name "${env:COMPUTERNAME}" --output-mode json
 "@
-    Execute-RedCli-Command $addSchedCmd
-  } else {
-      Write-Output "`nFinal step: Installing the RED Scheduler,If this step fails you can manually install the RED Scheduler through RED Setup Administrator (ADM.exe)`n"
+      Execute-RedCli-Command $addSchedCmd
+    } else {
+        Write-Output "`nFinal step: Installing the RED Scheduler,If this step fails you can manually install the RED Scheduler through RED Setup Administrator (ADM.exe)`n"
+    }
   }
-}
 }
 Write-Output "`nINFO: Installation Complete, run RED to continue"
