@@ -350,57 +350,43 @@ Function Execute-RedCli-Command ( $commandArguments, $commonArguments="" ) {
   }
 }
 
-Function Execute-CurrentUserHasPermissions{
+Function Check-SchedulerPermissions ($sqlUser='NT AUTHORITY\SYSTEM') {
   Try {
     $sql = @"
-declare @permission table (
-Database_Name sysname,
-User_Role_Name sysname,
-Account_Type nvarchar(60),
-Action_Type nvarchar(128),
-Permission nvarchar(60),
-ObjectName sysname null
-)
-declare @dbs table (dbname sysname)
-declare @Next sysname
-insert into @dbs
-select name from sys.databases order by name
-select top 1 @Next = dbname from @dbs
-while (@@rowcount<>0)
-begin
-insert into @permission
-exec('use [' + @Next + ']
-declare @objects table (obj_id int)
-insert into @objects
-select id from master.sys.sysobjects
-insert into @objects
-select object_id from sys.objects
-SELECT ''' + @Next + ''', a.name as ''User or Role Name'', a.type_desc as ''Account Type'',
-d.permission_name as ''Type of Permission'', d.state_desc as ''State of Permission'',
-OBJECT_SCHEMA_NAME(d.major_id) + ''.'' + object_name(d.major_id) as ''Object Name''
-FROM [' + @Next + '].sys.database_principals a 
-left join [' + @Next + '].sys.database_permissions d on a.principal_id = d.grantee_principal_id
-left join @objects e on d.major_id = e.obj_id
-order by a.name, d.class_desc')
-delete @dbs where dbname = @Next
-select top 1 @Next = dbname from @dbs
-end
-select * from @permission where Database_Name = '$metaDsn' and Action_Type in ('SELECT','INSERT','UPDATE','EXECUTE') and Permission = 'GRANT_WITH_GRANT_OPTION'
+      USE $metaBase;  
+      BEGIN TRY
+        EXECUTE AS USER = '$sqlUser';  
+        SELECT permission_name FROM fn_my_permissions(NULL, 'DATABASE')   
+          WHERE permission_name IN ('SELECT','INSERT','UPDATE','EXECUTE');
+        REVERT;   
+      END TRY
+      BEGIN CATCH
+        SELECT 'none' as permission_name
+      END CATCH    
 "@
-	$conn = New-Object System.Data.Odbc.OdbcConnection
+    $conn = New-Object System.Data.Odbc.OdbcConnection
     $conn.ConnectionString = "DSN=$metaDsn"
     if( ! [string]::IsNullOrEmpty($metaUser)) { $conn.ConnectionString += ";UID=$metaUser" }
     if( ! [string]::IsNullOrEmpty($metaPwd))  { $conn.ConnectionString += ";PWD=$metaPwd" }
-	
-	# True if any records exist
+
     $conn.Open()
-	$command = New-Object System.Data.Odbc.OdbcDataAdapter($sql,$conn)
-	$dataset = New-Object System.Data.DataSet
-    $command.Fill($dataset)
-	$conn.Close()
-    return $dataset.Tables[0].Rows.Count
-  } Catch {
-    return $false
+    $command = New-Object System.Data.Odbc.OdbcDataAdapter($sql,$conn)
+    $dataset = New-Object System.Data.DataSet
+    $command.Fill($dataset) | out-null
+    $permissionsGranted = ''
+    foreach ($Row in $dataset.Tables[0].Rows){ 
+      $permissionsGranted+= "$($Row[0]), "
+    }
+    $permissionsGranted = $permissionsGranted -replace ", $"
+    $rowCount = $dataset.Tables[0].Rows.Count
+    return $rowCount,$permissionsGranted
+  } 
+  Catch {
+    $e = $_.Exception.Message
+    return -2,$e
+  } 
+  Finally {
+    $conn.Close()
   }
 }
 
@@ -640,19 +626,28 @@ if ($installStep -ge $startAtStep) {
 
 # Create a RED Scheduler
 $installStep=900
-#checking Auth Type to proceed or skip this step
-if([string]::IsNullOrEmpty($metaUser)) {
-  if ($installStep -ge $startAtStep) {
-    #checking user rights to proceed or skip
-    $hasPermissions = Execute-CurrentUserHasPermissions
-    if ($hasPermissions -eq 4) {
-      $addSchedCmd =  @"
+if ($installStep -ge $startAtStep) {
+  Write-Output "`nFinal step: Installing the RED Scheduler, if this step fails you can manually install the RED Scheduler through RED Setup Administrator (ADM.exe)`n"
+  $installScheduler =$true
+  $addSchedCmd =  @"
 scheduler add --service-name "$metaDsn" --scheduler-name "$schedulerName" --exe-path-name "$wslSched" --sched-log-level 2 --log-file-name "$wslSchedLog" --sched-meta-dsn-arch "$metaDsnArch" --sched-meta-dsn "$metaDsn" --sched-meta-user-name "$metaUser" --sched-meta-password "$metaPwd" --login-mode "LocalSystemAccount" --ip-service tcp --host-name "${env:COMPUTERNAME}" --output-mode json
 "@
-      Execute-RedCli-Command $addSchedCmd
-    } else {
-        Write-Output "`nFinal step: Installing the RED Scheduler,If this step fails you can manually install the RED Scheduler through RED Setup Administrator (ADM.exe)`n"
+  # For Windows Authentication check the metadata db for 'NT AUTHORITY\SYSTEM' permissions
+  if([string]::IsNullOrEmpty($metaUser)) {
+      $hasPermissions = Check-SchedulerPermissions 'NT AUTHORITY\SYSTEM'
+      if ($hasPermissions[0] -ne 4) {
+          $installScheduler =$false
+          Write-Warning "Failed at step = $installStep, please manually install the RED Scheduler through RED Setup Administrator (ADM.exe), or grant the required permission and restart this step"  
+          Write-Output "INFO: NT AUTHORITY\SYSTEM does not have the required persmissions on the RED Metadata database. The RED Scheduler user must have at least SELECT,INSERT,UPDATE and EXECUTE"
+          if ($hasPermissions[0] -eq -2) {
+            Write-Warning $hasPermissions[1].toString()
+          } else {
+            Write-Output "INFO: Permissions found: $($hasPermissions[1])"
+          }
     }
+  }
+  if($installScheduler) {
+    Execute-RedCli-Command $addSchedCmd
   }
 }
 Write-Output "`nINFO: Installation Complete, run RED to continue"
