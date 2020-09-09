@@ -68,49 +68,6 @@ if (!(Test-Path $wsFSDir)) {
   Write-Output "Overwriting FieldSolutions Folder where the Folder Already Exists"
 }
 
-#Connect to MetaData Repository
-$conn = New-Object System.Data.Odbc.OdbcConnection
-$conn.ConnectionString = "DSN=$metaDsn"
-if( ! [string]::IsNullOrEmpty($metaUser)) { $conn.ConnectionString += ";UID=$metaUser" }
-if( ! [string]::IsNullOrEmpty($metaPwd)) { $conn.ConnectionString += ";PWD=$metaPwd" }
-
-#Update the Script Launcher Menu items
-$sql = @"
-MERGE INTO ws_table_attributes AS ta
-USING (select 0 as ta_obj_key) as new_ta
-  ON ta.ta_obj_key = new_ta.ta_obj_key and ta.ta_type = 'R'
-WHEN MATCHED THEN
-UPDATE SET ta_obj_key = 0,
-  ta_type = 'R',
-  ta_text_1 = 'Add Transforms to a Fixed Width Stage Table',
-  ta_text_2 = 'Create New Range Tables',
-  ta_text_3 = 'Pause a Ranged Table',
-  ta_text_4 = 'Restart a Ranged Table',
-  ta_text_5 = 'Retrofit Fivetran Tables',
-  ta_text_6 = 'Parse JSON  load->stage',
-  ta_text_7 = 'Job Versioning',
-  ta_text_8 = 'Job Maintenance',
-  ta_val_1 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_fixed_width_setup' and oo_type_key = 3),
-  ta_val_2 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_create_range_table' and oo_type_key = 3),
-  ta_val_3 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_pause' and oo_type_key = 3),
-  ta_val_4 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_restart' and oo_type_key = 3),
-  ta_val_5 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_retrofit_tables' and oo_type_key = 3),
-  ta_val_6 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_parse_json_load_tables' and oo_type_key = 3),
-  ta_val_7 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_versioning_extensions' and oo_type_key = 3),
-  ta_val_8 = (select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_maintenance_extensions' and oo_type_key = 3)
-WHEN NOT MATCHED THEN
-INSERT (ta_obj_key,ta_type,ta_text_1,ta_text_2,ta_text_3,ta_text_4,ta_text_5,ta_text_6,ta_text_7,ta_text_8,ta_val_1,ta_val_2,ta_val_3,ta_val_4,ta_val_5,ta_val_6,ta_val_7,ta_val_8) 
-  VALUES (0,'R','Add Transforms to a Fixed Width Stage Table','Create New Range Tables','Pause a Ranged Table','Restart a Ranged Table','Retrofit Fivetran Tables','Parse JSON  load->stage','Job Versioning','Job Maintenance',(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_fixed_width_setup' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_create_range_table' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_pause' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_ranged_table_restart' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_retrofit_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_parse_json_load_tables' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_versioning_extensions' and oo_type_key = 3),(select oo_obj_key from dbo.ws_obj_object where oo_name = 'snowflake_job_maintenance_extensions' and oo_type_key = 3))
-;
-"@
-
-$command = New-Object System.Data.Odbc.OdbcCommand($sql,$conn)
-$command.CommandTimeout = 0
-$command.CommandType = "StoredProcedure"
-$conn.Open()
-[void]$command.ExecuteNonQuery()
-$conn.Close()
-
 if ($error.count -gt 0) {
   Exit 1
 } else {
