@@ -87,7 +87,7 @@ if ($startAtStep -ne 1) { Write-Host "Starting from Step = $startAtStep" }
 
 # Check for a correct RED Version
 $redLoc="C:\Program Files\WhereScape\RED\"
-$getRedVersion = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* |  Select-Object DisplayName, DisplayVersion, InstallLocation | where DisplayName -eq "WhereScape RED" | where DisplayVersion -like "8.5.*"
+$getRedVersion = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* |  Select-Object DisplayName, DisplayVersion, InstallLocation | where DisplayName -eq "WhereScape RED" | where DisplayVersion -ge "8.5.*"
 if ($getRedVersion -isnot [array] -and $getRedVersion -ne $null) { 
   $redLoc = $getRedVersion.InstallLocation 
 } elseif ($getRedVersion.count -gt 1) {
