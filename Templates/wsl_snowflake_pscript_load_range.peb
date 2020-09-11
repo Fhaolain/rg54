@@ -248,7 +248,8 @@ SELECT {%- from table.columns as column %}
     if( ! [string]::IsNullOrEmpty($env:rangeTableUser)) { $rtOdbc.ConnectionString += ";UID=$env:rangeTableUser" }
     if( ! [string]::IsNullOrEmpty($env:rangeTablePwd)) { $rtOdbc.ConnectionString += ";PWD=$env:rangeTablePwd" }{% br %}
 
-    $putSQL = "PUT file://$(Join-Path -Path ${env:WSL_WORKDIR} -ChildPath $fileDat)* @~;"
+    $putFile = $(Join-Path -Path ${env:WSL_WORKDIR} -ChildPath $fileDat).Replace("\","/")
+    $putSQL = "PUT 'file://$($putFile)' @~;"
     $snowsqlPut = "snowsql -q ""$putsql"" -o friendly=false -o exit_on_error=true -o remove_comments=true -o output_format=csv -o timing=false"{%- br %}
     $putRes = & $([ScriptBlock]::Create($snowsqlPut)){%- br %}
 
