@@ -551,9 +551,9 @@ def LoadData(runMode):{%br%}
             SFconn.close(){% br %}
             logStream.write(os.path.join(filePath,fileDat))
             if os.environ["SEND_FILES_ZIPPED"] == "TRUE":{% br %}
-               putSQL = "PUT "+"file://" +os.path.join(filePath,fileDat)+"*.gz"+" @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+";"{% br %}
+               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*.gz'"+" @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+";"{% br %}
             else:{% br %}
-               putSQL = "PUT "+"file://" +os.path.join(filePath,fileDat)+"*"+" @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+";"{% br %}
+               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*'"+" @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+";"{% br %}
             SFconn = SFConnectionString.cursor(){% br %}
             SFconn.execute(putSQL){% br %}
             SFconn.close()

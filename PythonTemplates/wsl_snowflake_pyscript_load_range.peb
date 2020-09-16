@@ -228,10 +228,11 @@ SELECT {%- from table.columns as column %}
      SFconn = SFConnectionString.cursor(){% br %}
      SFconn.execute(removeSQL){% br %}
      SFconn.close(){% br %}
+     putSQL =r"PUT 'file://" + (os.path.join(os.environ["WSL_WORKDIR"],"wsl"+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]+"_BATCH_"+str(batch[0])).replace(os.sep, '/'))
      if str(os.environ["UNLOAD_GZIP"])== "TRUE":{% br %}
-      putSQL = "PUT "+"file://" +os.path.join(os.environ["WSL_WORKDIR"],"wsl"+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]+"_BATCH_"+str(batch[0]))+"*.gz @~;"{% br %}
+      putSQL = str(putSQL)+r"*.gz' @~;"{% br %}
      else:{% br %}
-      putSQL = "PUT "+"file://" +os.path.join(os.environ["WSL_WORKDIR"],"wsl"+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]+"_BATCH_"+str(batch[0]))+"* @~;"{% br %}
+      putSQL = str(putSQL)+r"*' @~;"{% br %}
 
      SFconn = SFConnectionString.cursor(){% br %}
      SFconn.execute(putSQL){% br %}
@@ -260,8 +261,8 @@ SELECT {%- from table.columns as column %}
         SFconn = SFConnectionString.cursor()
         SFconn.execute("\n"+removeSQL)
         SFconn.close()
-
-        putSQL = "PUT "+"file://" +os.path.join(os.environ["WSL_WORKDIR"],fileDat)+"* @~;"#+" @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+";"
+        putSQL =r"PUT 'file://" + os.path.join(os.environ["WSL_WORKDIR"],fileDat).replace(os.sep, '/'){% br %}
+        putSQL = str(putSQL)+r"*' @~;"{% br %}
         SFconn = SFConnectionString.cursor()
         SFconn.execute(putSQL)
         SFconn.close()
