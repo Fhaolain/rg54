@@ -36,11 +36,9 @@ import sys{%br%}
 from datetime import datetime{%br%}
 import glob{%br%}
 import pyodbc{%br%}
-import snowflake.connector{%br%}
 import time{%br%}
 sys.path.append('C:\ProgramData\WhereScape\Modules\WslPython'){%br%}
 import WslPythonCommon{%br%}
-
 WslPythonCommon.HideWindow(){%br%}
 
 def PrintLog(fileAud):{%br%}
@@ -51,7 +49,7 @@ def PrintLog(fileAud):{%br%}
 def ReplaceWslTags(stuff):{%br%}
 
     if '$SEQUENCE$' in stuff:{%br%}
-        stuff = stuff.replace('$SEQUENCE$',str(os.environ["WSL_SEQUENCE"])){%br%}
+        stuff = stuff.replace('$SEQUENCE$',str(os.environ.get('WSL_SEQUENCE',''))){%br%}
     if re.findall(r'\$(.+?)\$',stuff)!=[]:{%br%}
         # If stuff contains two or more $s and the $SEQUENCE$ string is not detected{%br%}
         # or has already been replaced then we assume a date{%br%}
@@ -167,147 +165,136 @@ def GzipFile({%br%}
 def LoadData(runMode):{%br%}
   try:
     #Set variables from extended properties{%br%}
-    os.environ["DEBUG"]              = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["ACCESS_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_ACCESS_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SECRET_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_SECRET_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SEND_FILES_ZIPPED"]  = WslPythonCommon.GetExtendedProperty("SF_SEND_FILES_ZIPPED",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["FILE_FORMAT"]        = WslPythonCommon.GetExtendedProperty("SF_FILE_FORMAT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_ACCOUNT"]    = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_ACCOUNT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_DATABASE"]   = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_DATABASE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_SCHEMA"]     = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_SCHEMA",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_WAREHOUSE"]  = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_WAREHOUSE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNICODE_SUPPORT"]    = WslPythonCommon.GetExtendedProperty("SF_UNICODE_SUPPORT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNLOAD_DELIM"]       = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_DELIMITER",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNLOAD_ENC"]         = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ENCLOSED_BY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNLOAD_ESC"]         = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ESCAPE_CHAR",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SPLIT_THRESHOLD"]    = WslPythonCommon.GetExtendedProperty("SF_SPLIT_THRESHOLD",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["FILE_COUNT"]         = WslPythonCommon.GetExtendedProperty("SF_SPLIT_COUNT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["TIMEZONE"]           = WslPythonCommon.GetExtendedProperty("SF_TIMEZONE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["FILE_TYPE"]          = WslPythonCommon.GetExtendedProperty("SF_FILE_TYPE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["EXTERNAL_STAGE"]     = WslPythonCommon.GetExtendedProperty("SF_EXTERNAL_STAGE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["AZ_SAS_TOKEN"]       = WslPythonCommon.GetExtendedProperty("SF_AZURE_SAS_TOKEN",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["AZ_ENCRYPTION_TYPE"] = WslPythonCommon.GetExtendedProperty("SF_AZURE_ENCRYPTION_TYPE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["AZ_ENCRYPTION_KEY"]  = WslPythonCommon.GetExtendedProperty("SF_AZURE_ENCRYPTION_KEY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
+    os.environ["DEBUG"]              = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["ACCESS_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_ACCESS_KEY",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["SECRET_KEY"]         = WslPythonCommon.GetExtendedProperty("SF_SECRET_KEY",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["SEND_FILES_ZIPPED"]  = WslPythonCommon.GetExtendedProperty("SF_SEND_FILES_ZIPPED",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["FILE_FORMAT"]        = WslPythonCommon.GetExtendedProperty("SF_FILE_FORMAT",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNICODE_SUPPORT"]    = WslPythonCommon.GetExtendedProperty("SF_UNICODE_SUPPORT",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNLOAD_DELIM"]       = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_DELIMITER",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNLOAD_ENC"]         = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ENCLOSED_BY",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNLOAD_ESC"]         = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ESCAPE_CHAR",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["SPLIT_THRESHOLD"]    = WslPythonCommon.GetExtendedProperty("SF_SPLIT_THRESHOLD",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["FILE_COUNT"]         = WslPythonCommon.GetExtendedProperty("SF_SPLIT_COUNT",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["TIMEZONE"]           = WslPythonCommon.GetExtendedProperty("SF_TIMEZONE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["FILE_TYPE"]          = WslPythonCommon.GetExtendedProperty("SF_FILE_TYPE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["EXTERNAL_STAGE"]     = WslPythonCommon.GetExtendedProperty("SF_EXTERNAL_STAGE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["AZ_SAS_TOKEN"]       = WslPythonCommon.GetExtendedProperty("SF_AZURE_SAS_TOKEN",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["AZ_ENCRYPTION_TYPE"] = WslPythonCommon.GetExtendedProperty("SF_AZURE_ENCRYPTION_TYPE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["AZ_ENCRYPTION_KEY"]   = WslPythonCommon.GetExtendedProperty("SF_AZURE_ENCRYPTION_KEY",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
 
     #Set defaults to variables if not set from extended properties{%br%}
-    if os.environ["UNICODE_SUPPORT"]!="TRUE":{%br%}
+    if os.environ.get('UNICODE_SUPPORT','')!="TRUE":{%br%}
         os.environ["UNICODE_SUPPORT"] = "FALSE"{%br%}
 
-    if os.environ["SEND_FILES_ZIPPED"]!="TRUE":{%br%}
+    if os.environ.get('SEND_FILES_ZIPPED','')!="TRUE":{%br%}
         os.environ["SEND_FILES_ZIPPED"] = "FALSE"{%br%}
 
-    if os.environ["FILE_COUNT"]== 1:{%br%}
-        os.environ["FILE_COUNT"]= 1{%br%}
+    if os.environ.get('FILE_COUNT','')== 1:{%br%}
+        os.environ["FILE_COUNT"] = 1{%br%}
 
-    if os.environ["UNLOAD_DELIM"]=="":{%br%}
+    if os.environ.get('UNLOAD_DELIM','')=="":{%br%}
         os.environ["UNLOAD_DELIM"] = "|"{%br%}
 
-    if os.environ["UNLOAD_ENC"]=="":{%br%}
+    if os.environ.get('UNLOAD_ENC','')=="":{%br%}
         os.environ["UNLOAD_ENC"] = '"'{%br%}
 
-    if os.environ["UNLOAD_ESC"]=="":{%br%}
+    if os.environ.get('UNLOAD_ESC','')=="":{%br%}
         os.environ["UNLOAD_ESC"] = "#"{%br%}
 
-    if os.environ["FILE_TYPE"]=="":{%br%}
+    if os.environ.get('FILE_TYPE','')=="":{%br%}
         os.environ["FILE_TYPE"] = "CSV"{%br%}
 
-    if os.environ["FILE_FORMAT"]=="":{%br%}
-        os.environ["FILE_FORMAT"] = "FMT_RED_CSV_SKIP_GZIP_COMMA"{%br%}
+    if os.environ.get('FILE_FORMAT','')=="":{%br%}
+        os.environ["FILE_FORMAT"]  = "FMT_RED_CSV_SKIP_GZIP_COMMA"{%br%}
 
     unicode = False{% br %}
-    if str(os.getenv('UNICODE_SUPPORT'))== "TRUE":{% br %}
+    if str(os.environ.get('UNICODE_SUPPORT',''))== "TRUE":{% br %}
        unicode = True{% br %}
-    if str(os.getenv('FILE_COUNT'))=="None":{% br %}
+    if str(os.environ.get('FILE_COUNT',''))=="None":{% br %}
       fileCount=0{% br %}
     else:{% br %}
-      fileCount=int(str(os.getenv('FILE_COUNT'))){% br %}
+      fileCount=int(str(os.environ.get('FILE_COUNT',''))){% br %}
 
-    if str(os.getenv('SPLIT_THRESHOLD'))=="None":{% br %}
+    if str(os.environ.get('SPLIT_THRESHOLD',''))=="None":{% br %}
       splitThresholdCount=0{% br %}
     else:{% br %}
-      splitThresholdCount=int(str(os.getenv('SPLIT_THRESHOLD'))){% br %}
+      splitThresholdCount=int(str(os.environ.get('SPLIT_THRESHOLD',''))){% br %}
 
-    #Set environment variables for snowflake credentials{%br%}
-    os.environ["SNOWSQL_USER"] = os.environ["WSL_TGT_USER"]{%br%}
-    os.environ["SNOWSQL_PWD"]  = os.environ["WSL_TGT_PWD"]{%br%}
 
     # Work out full file format name{%- br %}
-    FILE_FORMAT_FULL=WslPythonCommon.GetFileFormatFullName( os.environ["FILE_FORMAT"] )
+    FILE_FORMAT_FULL=WslPythonCommon.GetFileFormatFullName( os.environ.get('FILE_FORMAT','') )
     os.environ["fileFormatFullName"] = ""
     if FILE_FORMAT_FULL != "":
-         os.environ["fileFormatFullName"] = FILE_FORMAT_FULL+"."+os.environ["FILE_FORMAT"]
+         os.environ["fileFormatFullName"] = FILE_FORMAT_FULL+"."+os.environ.get('FILE_FORMAT','')
     else:
-      os.environ["fileFormatFullName"] = os.environ["FILE_FORMAT"]
+     os.environ["fileFormatFullName"] = os.environ.get('FILE_FORMAT','')
 
-    filePath = os.environ["WSL_WORKDIR"]{%br%}
-    auditLog=str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+".txt"{%br%}
+    filePath = os.environ.get('WSL_WORKDIR',''){%br%}
+    auditLog=str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+".txt"{%br%}
     logStream = open(os.path.join(filePath,auditLog), 'a+'){%br%}
 
   except Exception as exceptionError:{%br%}
    raise{%br%}
   try:
-    if str(os.getenv('DEBUG'))== "TRUE":{%br%}
+    if str(os.environ.get('DEBUG',''))== "TRUE":{%br%}
          logStream.write("=================== LOAD OPTIONS ===================\n"){%br%}
-         logStream.write("Specified Load Table:        " + str(os.environ["WSL_LOAD_TABLE"])+'\n'){%br%}
-         logStream.write("Specified Work Dir:          " + str(os.getenv('WSL_WORKDIR'))+'\n'){%br%}
-         logStream.write("Specified Sequence:          " + str(os.getenv('WSL_SEQUENCE'))+'\n'){%br%}
-         logStream.write("Specified Metadata ODBC DSN: " + str(os.getenv('WSL_META_DSN'))+'\n'){%br%}
-         logStream.write("Specified Metadata Username: " + str(os.getenv('WSL_META_USER'))+'\n'){%br%}
-         logStream.write("Specified Metadata Password: " + ('*'*len(str(os.getenv('WSL_META_PWD'))))+'\n'){%br%}
+         logStream.write("Specified Load Table:        " + str(os.environ.get('WSL_LOAD_TABLE',''))+'\n'){%br%}
+         logStream.write("Specified Work Dir:          " + str(os.environ.get('WSL_WORKDIR',''))+'\n'){%br%}
+         logStream.write("Specified Sequence:          " + str(os.environ.get('WSL_SEQUENCE',''))+'\n'){%br%}
+         logStream.write("Specified Metadata ODBC DSN: " + str(os.environ.get('WSL_META_DSN',''))+'\n'){%br%}
+         logStream.write("Specified Metadata Username: " + str(os.environ.get('WSL_META_USER',''))+'\n'){%br%}
+         logStream.write("Specified Metadata Password: " + ('*'*len(str(os.environ.get('WSL_META_PWD',''))))+'\n'){%br%}
          logStream.write("")
          if runMode == 'S3':{%br%}
              logStream.write("=================== CONNECTION OPTIONS ==================="+'\n'){%br%}
-             logStream.write("Access Key:                  " +  ('*'*len(str(os.getenv('ACCESS_KEY'))))+'\n'){%br%}
-             logStream.write("Secret Key:                  " +  ('*'*len(str(os.getenv('SECRET_KEY'))))+'\n'){%br%}
+             logStream.write("Access Key:                  " +  ('*'*len(str(os.environ.get('ACCESS_KEY',''))))+'\n'){%br%}
+             logStream.write("Secret Key:                  " +  ('*'*len(str(os.environ.get('SECRET_KEY',''))))+'\n'){%br%}
              logStream.write(""){%br%}
 
          elif runMode == "AZ":{%br%}
              logStream.write("=================== CONNECTION OPTIONS ==================="+'\n'){%br%}
-             logStream.write("SAS Token:                          " +  ('*'*len(str(os.getenv('AZ_SAS_TOKEN'))))+'\n'){%br%}
-             logStream.write("Encryption Method:                  " +  str(os.getenv('AZ_ENCRYPTION_TYPE'))+'\n'){%br%}
-             logStream.write("Encryption Key:                     " +  ('*'*len(str(os.getenv('AZ_ENCRYPTION_KEY'))))+'\n'){%br%}
+             logStream.write("SAS Token:                          " +  ('*'*len(str(os.environ.get('AZ_SAS_TOKEN',''))))+'\n'){%br%}
+             logStream.write("Encryption Method:                  " +  str(os.environ.get('AZ_ENCRYPTION_TYPE',''))+'\n'){%br%}
+             logStream.write("Encryption Key:                     " +  ('*'*len(str(os.environ.get('AZ_ENCRYPTION_KEY',''))))+'\n'){%br%}
              logStream.write(""){%br%}
 
          logStream.write("=================== MODES ==================="+'\n'){%br%}
-         logStream.write("Specified Debug Mode:        " + str(os.getenv('DEBUG'))+'\n'){%br%}
+         logStream.write("Specified Debug Mode:        " + str(os.environ.get('DEBUG',''))+'\n'){%br%}
          logStream.write("Specified Run Mode:          " + runMode+'\n'){%br%}
-         logStream.write("Unicode Extract:             " + str(os.getenv('UNICODE_SUPPORT'))+'\n'){%br%}
+         logStream.write("Unicode Extract:             " + str(os.environ.get('UNICODE_SUPPORT',''))+'\n'){%br%}
          logStream.write(""){%br%}
 
          if runMode == 'Database':{%br%}
              logStream.write("=================== SOURCE TABLE INFO ==================="+'\n'){%br%}
-             logStream.write("Source Schema:               " + str(os.getenv('WSL_SRC_SCHEMA'))+'\n'){%br%}
+             logStream.write("Source Schema:               " + str(os.environ.get('WSL_SRC_SCHEMA',''))+'\n'){%br%}
              logStream.write("Source Tables:               " + "address"+'\n'){%br%}
              logStream.write("Source Where:                " + ""+'\n'){%br%}
              logStream.write(""+'\n'){%br%}
              logStream.write("=================== SOURCE DB INFO ==================="+'\n'){%br%}
-             logStream.write("ODBC Source DSN:             " + str(os.getenv('WSL_SRC_DSN'))+'\n'){%br%}
-             logStream.write("ODBC Source Username:        " + str(os.getenv('WSL_SRC_USER'))+'\n'){%br%}
-             logStream.write("ODBC Source Password:        " + ('*'*len(str(os.getenv('WSL_SRC_PWD'))))+'\n'){%br%}
+             logStream.write("ODBC Source DSN:             " + str(os.environ.get('WSL_SRC_DSN',''))+'\n'){%br%}
+             logStream.write("ODBC Source Username:        " + str(os.environ.get('WSL_SRC_USER',''))+'\n'){%br%}
+             logStream.write("ODBC Source Password:        " + ('*'*len(str(os.environ.get('WSL_SRC_PWD',''))))+'\n'){%br%}
              logStream.write(""){%br%}
 
          logStream.write("=================== EXTENDED PROPERTIES ==================="+'\n'){%br%}
-         logStream.write("SF_SNOWSQL_ACCOUNT:       " + str(os.getenv('SNOWSQL_ACCOUNT'))+'\n'){%br%}
-         logStream.write("SF_SNOWSQL_WAREHOUSE:     " + str(os.getenv('SNOWSQL_WAREHOUSE'))+'\n'){%br%}
-         logStream.write("SF_SNOWSQL_DATABASE:      " + str(os.getenv('SNOWSQL_DATABASE'))+'\n'){%br%}
-         logStream.write("SF_SNOWSQL_SCHEMA:        " + str(os.getenv('SNOWSQL_SCHEMA'))+'\n'){%br%}
-         logStream.write("SF_FILE_FORMAT:           " + str(os.getenv('FILE_FORMAT'))+'\n'){%br%}
-         logStream.write("SF_SEND_FILES_ZIPPED:     " + str(os.getenv('SEND_FILES_ZIPPED'))+'\n'){%br%}
-         logStream.write("SF_UNLOAD_DELIMITER:      " + str(os.getenv('UNLOAD_DELIM'))+'\n'){%br%}
-         logStream.write("SF_UNLOAD_ENCLOSED_BY:    " + str(os.getenv('UNLOAD_ENC'))+'\n'){%br%}
-         logStream.write("SF_UNLOAD_ESCAPE_CHAR:    " + str(os.getenv('UNLOAD_ESC'))+'\n'){%br%}
-         logStream.write("SF_SPLIT_THRESHOLD:       " + str(os.getenv('SPLIT_THRESHOLD'))+'\n'){%br%}
-         logStream.write("SF_SPLIT_COUNT:           " + str(os.getenv('FILE_COUNT'))+'\n'){%br%}
-         logStream.write("SF_TIMEZONE:              " + str(os.getenv('TIMEZONE'))+'\n'){%br%}
-         logStream.write("SF_FILE_TYPE:             " + str(os.getenv('FILE_TYPE'))+'\n'){%br%}
-         logStream.write("SF_EXTERNAL_STAGE:        " + str(os.getenv('EXTERNAL_STAGE'))+'\n'){%br%}
-         logStream.write("SF_AZURE_SAS_TOKEN:       " + str(os.getenv('AZ_SAS_TOKEN'))+'\n'){%br%}
-         logStream.write("SF_AZURE_ENCRYPTION_TYPE: " + str(os.getenv('AZ_ENCRYPTION_TYPE'))+'\n'){%br%}
-         logStream.write("SF_AZURE_ENCRYPTION_KEY:  " + str(os.getenv('AZ_ENCRYPTION_KEY'))+'\n'){%br%}
+         logStream.write("SF_FILE_FORMAT:           " + str(os.environ.get('FILE_FORMAT',''))+'\n'){%br%}
+         logStream.write("SF_SEND_FILES_ZIPPED:     " + str(os.environ.get('SEND_FILES_ZIPPED',''))+'\n'){%br%}
+         logStream.write("SF_UNLOAD_DELIMITER:      " + str(os.environ.get('UNLOAD_DELIM',''))+'\n'){%br%}
+         logStream.write("SF_UNLOAD_ENCLOSED_BY:    " + str(os.environ.get('UNLOAD_ENC',''))+'\n'){%br%}
+         logStream.write("SF_UNLOAD_ESCAPE_CHAR:    " + str(os.environ.get('UNLOAD_ESC',''))+'\n'){%br%}
+         logStream.write("SF_SPLIT_THRESHOLD:       " + str(os.environ.get('SPLIT_THRESHOLD',''))+'\n'){%br%}
+         logStream.write("SF_SPLIT_COUNT:           " + str(os.environ.get('FILE_COUNT',''))+'\n'){%br%}
+         logStream.write("SF_TIMEZONE:              " + str(os.environ.get('TIMEZONE',''))+'\n'){%br%}
+         logStream.write("SF_FILE_TYPE:             " + str(os.environ.get('FILE_TYPE',''))+'\n'){%br%}
+         logStream.write("SF_EXTERNAL_STAGE:        " + str(os.environ.get('EXTERNAL_STAGE',''))+'\n'){%br%}
+         logStream.write("SF_AZURE_SAS_TOKEN:       " + str(os.environ.get('AZ_SAS_TOKEN',''))+'\n'){%br%}
+         logStream.write("SF_AZURE_ENCRYPTION_TYPE: " + str(os.environ.get('AZ_ENCRYPTION_TYPE',''))+'\n'){%br%}
+         logStream.write("SF_AZURE_ENCRYPTION_KEY:  " + str(os.environ.get('AZ_ENCRYPTION_KEY',''))+'\n'){%br%}
          logStream.write(""){%br%}
     {%- br %}
     {% if (table.loadInfo.sourceConnectionType.name == "ODBC") or (table.loadInfo.sourceConnectionType.name == "Database") -%}
-    fileDat = "wsl"+str(os.environ["WSL_LOAD_TABLE"])+str(os.getenv('WSL_SEQUENCE')){%br%}
+    fileDat = "wsl"+str(os.environ.get('WSL_LOAD_TABLE',''))+str(os.environ.get('WSL_SEQUENCE','')){%br%}
     {%- br %}
     logStream.write("================= EXTRACT SQL =====================\n"){%br%}
     {%- set empty = "" %}
@@ -328,7 +315,7 @@ def LoadData(runMode):{%br%}
         {%- endif %}
         {%- br %}
       {%- endfrom %}
-    {%- if table.loadInfo.sourceTables != "" -%}FROM """+str(os.getenv('WSL_SRC_SCHEMA'))+""".{{ table.loadInfo.sourceTables }} {{table.loadInfo.sourceTables }}{%- br %}{% endif %}
+    {%- if table.loadInfo.sourceTables != "" -%}FROM """+str(os.environ.get('WSL_SRC_SCHEMA',''))+""".{{ table.loadInfo.sourceTables }} {{table.loadInfo.sourceTables }}{%- br %}{% endif %}
     {%- from table.loadInfo.whereAndGroupByClauses | lines as whereLine %}
 		 {{ whereLine }}{% br %}
     {%- endfrom %}
@@ -337,11 +324,11 @@ def LoadData(runMode):{%br%}
 
     logStream.write(extractSql)
 
-    if str(os.getenv('DEBUG'))== "TRUE":{% br %}
+    if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
        logStream.write("BEGIN create of data file from source system: "+str(datetime.now())+'\n'){% br %}
 
 
-    rowCount = WslPythonCommon.GetDataToFile(extractSql,str(os.getenv('WSL_SRC_DSN')),str(os.getenv('WSL_SRC_USER')),str(os.getenv('WSL_SRC_PWD')),os.path.join(filePath,fileDat),str(os.getenv('UNLOAD_DELIM')), fileCount, splitThresholdCount, True, unicode, str(os.getenv('UNLOAD_ENC')), str(os.getenv('UNLOAD_ESC'))){% br %}
+    rowCount = WslPythonCommon.GetDataToFile(extractSql,str(os.environ.get('WSL_SRC_DSN','')),str(os.environ.get('WSL_SRC_USER','')),str(os.environ.get('WSL_SRC_PWD','')),os.path.join(filePath,fileDat),str(os.environ.get('UNLOAD_DELIM','')), fileCount, splitThresholdCount, True, unicode, str(os.environ.get('UNLOAD_ENC','')), str(os.environ.get('UNLOAD_ESC',''))){% br %}
     if rowCount[0]== -2:
        logStream.write("An error has occurred: : " + rowCount[1]+"\n"+rowCount[2])
        raise Exception(rowCount[2])
@@ -351,7 +338,7 @@ def LoadData(runMode):{%br%}
       print("Source query returned 0 rows"+'\n')
       PrintLog(logStream)
 
-    if str(os.getenv('DEBUG')) == "TRUE":
+    if str(os.environ.get('DEBUG','')) == "TRUE":
        logStream.write("END create of data file from source system: "+str(datetime.now())+'\n'){% br %}
 
 
@@ -364,7 +351,7 @@ def LoadData(runMode):{%br%}
     fileDat = "{{ table.loadInfo.sourceFile.name }}"
     fileHeader ="{{ table.loadInfo.sourceFile.headerLine }}"
     newName=""
-    if runMode == "Windows" and str(os.getenv('EXTERNAL_STAGE')) =="":
+    if runMode == "Windows" and str(os.environ.get('EXTERNAL_STAGE','')) =="":
         filePath = r"{{ table.loadInfo.sourceFile.path }} ".replace("\ ","").strip(){%- br %} {%- br %}
         loadFile = os.path.join("{{ table.loadInfo.sourceFile.path }} ".replace("\ ","").strip(),fileDat){%- br %}
         {%- if table.loadInfo.triggerFile.name|trim != "" %}
@@ -417,7 +404,7 @@ def LoadData(runMode):{%br%}
             {%- endif %}
               print("File "+ fileCheck +" was not found. "){%- br %}
               logStream.close(){%- br %}
-              PrintLog(os.path.join(str(os.environ["WSL_WORKDIR"]),auditLog)){%- br %}
+              PrintLog(os.path.join(str(os.environ.get('WSL_WORKDIR','')),auditLog)){%- br %}
               sys.exit(){%- br %}
               {%- else -%}{%- br %}
         if len(dataFiles)==0:{%- br %}
@@ -436,7 +423,7 @@ def LoadData(runMode):{%br%}
             {%- endif %}
               print("File "+ fileCheck +" was not found. "){%- br %}
               logStream.close(){%- br %}
-              PrintLog(os.path.join(str(os.environ["WSL_WORKDIR"]),auditLog)){%- br %}
+              PrintLog(os.path.join(str(os.environ.get('WSL_WORKDIR','')),auditLog)){%- br %}
               sys.exit(){%- br %}
         {%- endif -%}
         {%- br %}
@@ -448,7 +435,7 @@ def LoadData(runMode):{%br%}
         originalDat = fileDat
         for sourceFile in dataFilesCopy:
             rowCount = 0
-            if os.environ["UNICODE_SUPPORT"]=="TRUE":
+            if os.environ.get('UNICODE_SUPPORT','')=="TRUE":
              with open(sourceFile, 'r', encoding='utf-8') as f:
               for line in f:
                 rowCount += 1
@@ -459,18 +446,18 @@ def LoadData(runMode):{%br%}
             if fileHeader=="true":
                 rowCount =rowCount-1
             cleanedDat = originalDat.replace("*","")
-            if int(os.environ["FILE_COUNT"]) > 1:
-                filePath = os.environ["WSL_WORKDIR"]
-                if rowCount > os.environ["SPLIT_THRESHOLD"]:
+            if int(os.environ.get('FILE_COUNT','')) > 1:
+                filePath = os.environ.get('WSL_WORKDIR','')
+                if rowCount > os.environ.get('SPLIT_THRESHOLD',''):
                     fileToSplit = sourceFile
                     i=0
-                    while i < os.environ["FILE_COUNT"]:
+                    while i < os.environ.get('FILE_COUNT',''):
                         threeDigits = str(i)
-                        newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ["WSL_SEQUENCE"] + "-" + os.environ["WSL_TASK_KEY"] + "_p" + threeDigits)
-                        splitPath =os.path.join( os.environ["WSL_WORKDIR"],newName)
+                        newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "_p" + threeDigits)
+                        splitPath =os.path.join( os.environ.get('WSL_WORKDIR',''),newName)
                         dataFiles.append(splitPath)
                         swl.append(sw)
-                        if os.environ["DEBUG"]== "TRUE":
+                        if os.environ.get('DEBUG','')== "TRUE":
                             logStream.write("Source file '$(Get-Item $sourceFile).Name' Part ${threeDigits}: $splitPath")
                         i=i+1
                     swNum = 0
@@ -482,18 +469,18 @@ def LoadData(runMode):{%br%}
                         line = fileToSplit.readline().strip()
                         if line=="":
                            break
-                        if swNum >=os.environ["FILE_COUNT"]:
+                        if swNum >=os.environ.get('FILE_COUNT',''):
                             swNum = 0
                         swl[swNum].writelines(line);
                         swNum=swNum+1
                 else:
-                    newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ["WSL_SEQUENCE"]+ "-" + os.environ["WSL_TASK_KEY"] + "_p000")
-                    notSplitPath = os.path.join(os.environ["WSL_WORKDIR"],newName)
+                    newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','')+ "-" + os.environ.get('WSL_TASK_KEY','') + "_p000")
+                    notSplitPath = os.path.join(os.environ.get('WSL_WORKDIR',''),newName)
                     sourceFile=notSplitPath
                     dataFiles.append(notSplitPath)
-                    if os.environ["DEBUG"] == "TRUE":
+                    if os.environ.get('DEBUG','') == "TRUE":
                         logStream.write("Source file "+sourceFile+" Part 000: "+notSplitPath)
-                fileDat = cleanedDat + "_" + os.environ["WSL_SEQUENCE"] + "-" + os.environ["WSL_TASK_KEY"] + "*"
+                fileDat = cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "*"
             else:
               dataFiles.append(sourceFile)
     else: {%- br %}
@@ -502,81 +489,89 @@ def LoadData(runMode):{%br%}
             filePath =filePath+ '\\'{%- br %}
         {%- br %}
     {%- endif %}
-    if runMode != "S3" and runMode != "AZ" and os.environ["EXTERNAL_STAGE"] =="":{% br %}
+    if runMode != "S3" and runMode != "AZ" and os.environ.get('EXTERNAL_STAGE','') =="":{% br %}
      sourcePath = filePath{% br %}
      x=0{% br %}
      while x< len(dataFiles):{% br %}
         originalName = dataFiles[x]{% br %}
-        if os.environ["SEND_FILES_ZIPPED"] == "TRUE":{% br %}
+        if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE":{% br %}
            {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}{% br %}
            noPath=os.path.basename(dataFiles[x]){% br %}
-           if int(os.environ["FILE_COUNT"]) < 2:
-              noPath = noPath.replace(cleanedDat,cleanedDat + "_" + os.environ["WSL_SEQUENCE"] + "-" + os.environ["WSL_TASK_KEY"]){% br %}
-           dataFiles[x]=GzipFile(dataFiles[x],os.path.join(os.environ["WSL_WORKDIR"],noPath),False){% br %}
+           if int(os.environ.get('FILE_COUNT','')) < 2:
+              noPath = noPath.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','')){% br %}
+           dataFiles[x]=GzipFile(dataFiles[x],os.path.join(os.environ.get('WSL_WORKDIR',''),noPath),False){% br %}
            {%- else %}
            dataFiles[x]=GzipFile(dataFiles[x],'.gz',True){% br %}
            {%- endif %}{% br %}
            {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}{% br %}
-           filePath = os.environ["WSL_WORKDIR"]{% br %}
+           filePath = os.environ.get('WSL_WORKDIR',''){% br %}
            logStream.write("File "+originalName+" GZipped to " + noPath+" prior to upload\n"){% br %}
            {%- else %}
            logStream.write("File "+ originalName +" GZipped to"+ dataFiles[x] +" prior to upload\n") {% br %}
            {%- endif %}
         x=x+1 {% br %}
      {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}
-     if int(os.environ["FILE_COUNT"]) < 2:
-        if os.environ["SEND_FILES_ZIPPED"] == "TRUE": {% br %}
-           fileDat = cleanedDat + "_" + os.environ["WSL_SEQUENCE"] + "-" + os.environ["WSL_TASK_KEY"] + "*"
+     if int(os.environ.get('FILE_COUNT','')) < 2:
+        if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE": {% br %}
+           fileDat = cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "*"
         {%- br %}
      {%- endif %}
     {%- br %}
     logStream.write("================= LOAD =================\n"){% br %}
-    SFConnectionString = snowflake.connector.connect({% br %}
-                user=str(os.getenv('WSL_TGT_USER')),{% br %}
-                password=str(os.getenv('WSL_TGT_PWD')),{% br %}
-                account=os.environ["SNOWSQL_ACCOUNT"],{% br %}
-                warehouse=os.environ["SNOWSQL_WAREHOUSE"],{% br %}
-                database=os.environ["SNOWSQL_DATABASE"],{% br %}
-                schema=os.environ["SNOWSQL_SCHEMA"]{% br %}
-                ){% br %}
-    if os.environ["EXTERNAL_STAGE"] =="": {% br %}
-       externalStageName="@~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+" t" {% br %}
+    try: {% br %}
+        uid=str(os.environ.get('WSL_TGT_USER','')) {% br %}
+        pwd=str(os.environ.get('WSL_TGT_PWD','')) {% br %}
+        SFConnectionString = "DSN="+str(os.environ.get('WSL_TGT_DSN','')) {% br %}
+        if uid and not uid.isspace(): {% br %}
+          SFConnectionString += ";UID="+uid {% br %}
+        if pwd and not pwd.isspace(): {% br %}
+          SFConnectionString += ";PWD="+pwd {% br %}
+        SFConnectionString = pyodbc.connect(SFConnectionString) {% br %}
+    except Exception as exceptionError: {% br %}
+      logStream.write("An error has occurred: : " + repr( exceptionError)) {% br %}
+
+    if os.environ.get('EXTERNAL_STAGE','') =="": {% br %}
+       externalStageName="@~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+" t" {% br %}
     else: {% br %}
-       externalStageName="@"+os.environ["EXTERNAL_STAGE"] +"/"+fileDat+" t" {% br %}
-    if (runMode != "S3" and runMode != "AZ") or os.environ["EXTERNAL_STAGE"] !="":{% br %}
-        if runMode != "S3" and runMode != "AZ" and os.environ["EXTERNAL_STAGE"] =="":{% br %}
-            removeSQL = "remove @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+"*"+";"{% br %}
+       externalStageName="@"+os.environ.get('EXTERNAL_STAGE','') +"/"+fileDat+" t" {% br %}
+    if (runMode != "S3" and runMode != "AZ") or os.environ.get('EXTERNAL_STAGE','') !="":{% br %}
+        if runMode != "S3" and runMode != "AZ" and os.environ.get('EXTERNAL_STAGE','') =="":{% br %}
+            removeSQL = "remove @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"*"+";"{% br %}
             SFconn = SFConnectionString.cursor(){% br %}
             SFconn.execute(removeSQL){% br %}
             SFconn.close(){% br %}
             logStream.write(os.path.join(filePath,fileDat))
-            if os.environ["SEND_FILES_ZIPPED"] == "TRUE":{% br %}
-               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*.gz'"+" @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+";"{% br %}
+            if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE":{% br %}
+               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*.gz'"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
             else:{% br %}
-               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*'"+" @~/WSL-"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+";"{% br %}
-            SFconn = SFConnectionString.cursor(){% br %}
-            SFconn.execute(putSQL){% br %}
-            SFconn.close()
-            if str(os.getenv('DEBUG'))== "TRUE":{% br %}
+               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*'"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
+            try:{% br %}
+              SFconn = SFConnectionString.cursor(){% br %}
+              no=SFconn.execute(putSQL){% br %}
+              SFconn.close(){% br %}
+            except Exception as exceptionError:{% br %}
+              print(-2){% br %}
+              print("An error has occurred: : " + repr( exceptionError))
+            if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
                  logStream.write("\nBEGIN PUT of files matching" +filePath+fileDat+" : "+str(datetime.now())+'\n'){% br %}
             logStream.write("\nPUT:\n"){% br %}
             logStream.write(putSQL){% br %}
             logStream.write("\n"){% br %}
-            if str(os.getenv('DEBUG'))== "TRUE":{% br %}
+            if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
                 logStream.write("\nEND PUT of files matching " +fileDat+" : "+str(datetime.now())+'\n'){% br %}
 {% br %}
  {%- set noindent = "" %}
-        if os.environ["TIMEZONE"] !="":{% br %}
-            tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ["TIMEZONE"]) +"'"+ ";`r`n"{% br %}
+        if os.environ.get('TIMEZONE','') !="":{% br %}
+            tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ.get('TIMEZONE','')) +"'"+ ";`r`n"{% br %}
             logStream.write("\nSET TIMEZONE:"){% br %}
             logStream.write(tzStmt){% br %}
             SFconn = SFConnectionString.cursor(){% br %}
             SFconn.execute(tzStmt){% br %}
             SFconn.close(){% br %}
 {% br %}
-        if os.environ["FILE_TYPE"]== "CSV":{% br %}
+        if os.environ.get('FILE_TYPE','')== "CSV":{% br %}
             copyStatement ="""
-            COPY INTO """+str(os.environ["WSL_LOAD_FULLNAME"])+"""
+            COPY INTO """+str(os.environ.get('WSL_LOAD_FULLNAME',''))+"""
             ({{ noindent }}
               {%- for col in table.columns %}
                {%- if not loop.first %}
@@ -598,27 +593,27 @@ def LoadData(runMode):{%br%}
               {%- endfor %}
               FROM """+externalStageName+"""
             ){%- br %}
-            FILE_FORMAT = '"""+os.environ["fileFormatFullName"] +"'"
+            FILE_FORMAT = '"""+os.environ.get('fileFormatFullName','') +"'"
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
 
         else:{%- br %}
           copyStatement = """
-          COPY INTO """+str(os.environ["WSL_LOAD_FULLNAME"])+"""
-          FROM"""+ " @~/WSL"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+"""
-          FILE_FORMAT = '"""+os.environ["fileFormatFullName"] +"'"
+          COPY INTO """+str(os.environ.get('WSL_LOAD_FULLNAME',''))+"""
+          FROM"""+ " @~/WSL"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"""
+          FILE_FORMAT = '"""+os.environ.get('fileFormatFullName','') +"'"
 
         maskedLoad = copyStatement{%- br %}
 
         logStream.write("\nCOPY:\n")
         logStream.write(maskedLoad){%- br %}
-        if str(os.getenv('DEBUG'))== "TRUE":{%- br %}
-            logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ["WSL_LOAD_FULLNAME"]) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
+        if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
+            logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
         SFconn = SFConnectionString.cursor(){%- br %}
         loadResult=SFconn.execute(copyStatement).fetchall(){%- br %}
-        if str(os.getenv('DEBUG'))== "TRUE":{%- br %}
-            logStream.write("\nEND COPY INTO "+"'"+ str(os.environ["WSL_LOAD_FULLNAME"]) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
+        if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
+            logStream.write("\nEND COPY INTO "+"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
         SFconn.close(){%- br %}
         checkStatus=0{%- br %}
         rowsLoaded=0{%- br %}
@@ -641,15 +636,15 @@ def LoadData(runMode):{%br%}
                 logStream.write("Failed to update task row count"){%- br %}
             print("1"){%- br %}
             print("Load successful. "+str(rowsLoaded)+" rows loaded"){%- br %}
-            if str(os.getenv('DEBUG'))== "FALSE":{%- br %}
+            if str(os.environ.get('DEBUG',''))== "FALSE":{%- br %}
             {%- if table.loadInfo.sourceConnectionType.name != "Windows" %}
                 x=0{%- br %}
                 while x< len(dataFiles):{%- br %}
                     os.remove(str(dataFiles[x]).split(".")[0]+".gz"){%- br %}
                     x=x+1{%- br %}
             {%- else %}{%- br %}
-              if os.environ["EXTERNAL_STAGE"] =="":
-                if os.environ["SEND_FILES_ZIPPED"] == "TRUE" or int(os.environ["FILE_COUNT"]) >1:{%- br %}
+              if os.environ.get('EXTERNAL_STAGE','') =="":
+                if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE" or int(os.environ.get('FILE_COUNT','')) >1:{%- br %}
                     if fileDat[-1]=="*":
                         x=0{%- br %}
                         while x< len(glob.glob(os.path.join(filePath,fileDat))):{%- br %}
@@ -674,33 +669,33 @@ def LoadData(runMode):{%br%}
         ArchiveTrigger([os.path.join('{{ table.loadInfo.triggerFile.path }} '.replace("\ ","").strip(),'{{ table.loadInfo.triggerFile.name }}')],logStream){%- br %}
         {%- endif %}
     elif runMode == "S3":{%- br %}
-            if os.environ["TIMEZONE"] !="":{%- br %}
-                tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ["TIMEZONE"]) +"'"+ ";`r`n"{%- br %}
+            if os.environ.get('TIMEZONE','') !="":{%- br %}
+                tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ.get('TIMEZONE','')) +"'"+ ";`r`n"{%- br %}
                 logStream.write("\nSET TIMEZONE:"){%- br %}
                 logStream.write(tzStmt){%- br %}
                 SFconn = SFConnectionString.cursor(){%- br %}
                 SFconn.execute(tzStmt){%- br %}
                 SFconn.close(){%- br %}
             copyStatement = """{%- br %}
-            COPY INTO """+str(os.environ["WSL_LOAD_FULLNAME"])+"""
-            FROM"""+ " @~/WSL"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+" CREDENTIALS = (AWS_KEY_ID="+str(os.getenv('ACCESS_KEY'))+ " AWS_SECRET_KEY="+str(os.getenv('SECRET_KEY'))+") "+"""
-            FILE_FORMAT = """+"'"+os.environ["fileFormatFullName"] +"'"{%- br %}
+            COPY INTO """+str(os.environ.get('WSL_LOAD_FULLNAME',''))+"""
+            FROM"""+ " @~/WSL"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+" CREDENTIALS = (AWS_KEY_ID="+str(os.environ.get('ACCESS_KEY',''))+ " AWS_SECRET_KEY="+str(os.environ.get('SECRET_KEY',''))+") "+"""
+            FILE_FORMAT = """+"'"+os.environ.get('fileFormatFullName','') +"'"{%- br %}
             maskedLoad = copyStatement{%- br %}
-            if str(os.getenv('ACCESS_KEY')) !="":{%- br %}
-                maskedLoad = maskedLoad.replace(str(os.getenv('ACCESS_KEY')),'*'* len(str(os.getenv('ACCESS_KEY')))){%- br %}
+            if str(os.environ.get('ACCESS_KEY','')) !="":{%- br %}
+                maskedLoad = maskedLoad.replace(str(os.environ.get('ACCESS_KEY','')),'*'* len(str(os.environ.get('ACCESS_KEY','')))){%- br %}
 
-            if str(os.getenv('SECRET_KEY')) !="":{%- br %}
-                maskedLoad = maskedLoad.replace(str(os.getenv('SECRET_KEY')),'*'* len(str(os.getenv('SECRET_KEY')))){%- br %}
+            if str(os.environ.get('SECRET_KEY','')) !="":{%- br %}
+                maskedLoad = maskedLoad.replace(str(os.environ.get('SECRET_KEY','')),'*'* len(str(os.environ.get('SECRET_KEY','')))){%- br %}
 
             logStream.write("\nCOPY:\n"){%- br %}
             logStream.write(maskedLoad){%- br %}
             logStream.write(""){%- br %}
-            if str(os.getenv('DEBUG'))== "TRUE":{%- br %}
-                logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ["WSL_LOAD_FULLNAME"]) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
+            if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
+                logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
             SFconn = SFConnectionString.cursor(){%- br %}
             loadResult=SFconn.execute(copyStatement).fetchall(){%- br %}
-            if str(os.getenv('DEBUG'))== "TRUE":{%- br %}
-                logStream.write("\nEND COPY INTO "+"'"+ str(os.environ["WSL_LOAD_FULLNAME"]) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
+            if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
+                logStream.write("\nEND COPY INTO "+"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
             checkStatus=0{%- br %}
             rowsLoaded=0{%- br %}
             checkFlag=0{%- br %}
@@ -722,7 +717,7 @@ def LoadData(runMode):{%br%}
                     logStream.write("Failed to update task row count"){%- br %}
                 print("1"){%- br %}
                 print("Load successful. "+str(rowsLoaded)+" rows loaded"){%- br %}
-                if str(os.getenv('DEBUG'))== "FALSE":{%- br %}
+                if str(os.environ.get('DEBUG',''))== "FALSE":{%- br %}
                    x=0{%- br %}
                    while x< len(dataFiles):{%- br %}
                     os.remove(os.path.splitext(str(dataFiles[x]))[0]+".gz"){%- br %}
@@ -737,33 +732,33 @@ def LoadData(runMode):{%br%}
               logStream.write("Load failed"){%- br %}
               PrintLog(os.path.join(filePath,auditLog)){%- br %}
     else:{%- br %}
-        if os.environ["TIMEZONE"] !="":{%- br %}
-                tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ["TIMEZONE"]) +"'"+ ";`r`n"{%- br %}
+        if os.environ.get('TIMEZONE','') !="":{%- br %}
+                tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ.get('TIMEZONE','')) +"'"+ ";`r`n"{%- br %}
                 logStream.write("\nSET TIMEZONE:"){%- br %}
                 logStream.write(tzStmt){%- br %}
                 SFconn = SFConnectionString.cursor(){%- br %}
                 SFconn.execute(tzStmt){%- br %}
                 SFconn.close(){%- br %}
         copyStatement = """
-        COPY INTO """+str(os.environ["WSL_LOAD_FULLNAME"])+"""
-        FROM"""+ " @~/WSL"+str(os.getenv('WSL_SEQUENCE'))+"-"+str(os.getenv('WSL_TASK_KEY'))+"  CREDENTIALS = (AZURE_SAS_TOKEN="+str(os.getenv('AZ_SAS_TOKEN'))+"  ENCRYPTION = (TYPE="+str(os.getenv('AZ_ENCRYPTION_TYPE'))+" MASTER_KEY="+"'"+str(os.getenv('AZ_ENCRYPTION_KEY'))+"'"+"FILE_FORMAT = "+"'"+str(os.getenv('FILE_FORMAT'))+"'"{%- br %}
+        COPY INTO """+str(os.environ.get('WSL_LOAD_FULLNAME',''))+"""
+        FROM"""+ " @~/WSL"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"  CREDENTIALS = (AZURE_SAS_TOKEN="+str(os.environ.get('AZ_SAS_TOKEN',''))+"  ENCRYPTION = (TYPE="+str(os.environ.get('AZ_ENCRYPTION_TYPE',''))+" MASTER_KEY="+"'"+str(os.environ.get('AZ_ENCRYPTION_KEY',''))+"'"+"FILE_FORMAT = "+"'"+str(os.environ.get('FILE_FORMAT',''))+"'"{%- br %}
         maskedLoad = copyStatement{%- br %}
-        if str(os.getenv('AZ_SAS_TOKEN')) !="":{%- br %}
-            maskedLoad = maskedLoad.replace(str(os.getenv('AZ_SAS_TOKEN')),'*'* len(str(os.getenv('AZ_SAS_TOKEN')))){%- br %}
+        if str(os.environ.get('AZ_SAS_TOKEN','')) !="":{%- br %}
+            maskedLoad = maskedLoad.replace(str(os.environ.get('AZ_SAS_TOKEN','')),'*'* len(str(os.environ.get('AZ_SAS_TOKEN','')))){%- br %}
 
-        if str(os.getenv('AZ_ENCRYPTION_KEY')) !="":{%- br %}
-            maskedLoad = maskedLoad.replace(str(os.getenv('AZ_ENCRYPTION_KEY')),'*'* len(str(os.getenv('AZ_ENCRYPTION_KEY')))){%- br %}
+        if str(os.environ.get('AZ_ENCRYPTION_KEY','')) !="":{%- br %}
+            maskedLoad = maskedLoad.replace(str(os.environ.get('AZ_ENCRYPTION_KEY','')),'*'* len(str(os.environ.get('AZ_ENCRYPTION_KEY','')))){%- br %}
 
         logStream.write("\nCOPY:\n"){%- br %}
         logStream.write(maskedLoad){%- br %}
         logStream.write(""){%- br %}
-        if str(os.getenv('DEBUG'))== "TRUE":{%- br %}
-            logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ["WSL_LOAD_FULLNAME"]) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
+        if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
+            logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
         SFconn = SFConnectionString.cursor(){%- br %}
         loadResult=SFconn.execute(copyStatement).fetchall(){%- br %}
         SFconn.close(){%- br %}
-        if str(os.getenv('DEBUG'))== "TRUE":{%- br %}
-            logStream.write("\nEND COPY INTO "+"'"+ str(os.environ["WSL_LOAD_FULLNAME"]) +"'" +" : "+str(datetime.now())+'\n') {%- br %}
+        if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
+            logStream.write("\nEND COPY INTO "+"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n') {%- br %}
         checkStatus=0{%- br %}
         rowsLoaded=0{%- br %}
         checkFlag=0{%- br %}
@@ -787,7 +782,7 @@ def LoadData(runMode):{%br%}
                 logStream.write(exceptionError){%- br %}
             print("1"){%- br %}
             print("Load successful. "+str(rowsLoaded)+" rows loaded"){%- br %}
-            if str(os.getenv('DEBUG'))== "FALSE":{%- br %}
+            if str(os.environ.get('DEBUG',''))== "FALSE":{%- br %}
                 x=0{%- br %}
                 while x< len(dataFiles):{%- br %}
                     os.remove(os.path.splitext(str(dataFiles[x]))[0]+".gz"){%- br %}
@@ -802,11 +797,11 @@ def LoadData(runMode):{%br%}
             logStream.write("Load failed"){%- br %}
             PrintLog(os.path.join(filePath,auditLog)){%- br %}
     logStream.close(){%- br %}
-    return os.path.join(str(os.environ["WSL_WORKDIR"]),auditLog){%- br %}
+    return os.path.join(str(os.environ.get('WSL_WORKDIR','')),auditLog){%- br %}
   except Exception as exceptionError:
     logStream.write("An error has occurred: : " + repr( exceptionError))
 		 # Get a list of all the files created by load
-    fileList = glob.glob(os.path.join(str(os.environ["WSL_WORKDIR"]),"*"+fileDat+"*"))
+    fileList = glob.glob(os.path.join(str(os.environ.get('WSL_WORKDIR','')),"*"+fileDat+"*"))
      # Iterate over the list of filepaths & remove each file.
     logStream.write("\nRolling back all files created")
     for filePath in fileList:
@@ -823,7 +818,7 @@ try: {%- br %}
     {% if (table.loadInfo.sourceConnectionType.name == "ODBC") or (table.loadInfo.sourceConnectionType.name == "Database") -%}
     runMode = "Database"{%- br %}
     {%- else -%}
-    s3Prefix = WslPythonCommon.GetExtendedProperty("SF_S3_BUCKET_PREFIX",str(os.environ["WSL_LOAD_TABLE"])){%- br %}
+    s3Prefix = WslPythonCommon.GetExtendedProperty("SF_S3_BUCKET_PREFIX",str(os.environ.get('WSL_LOAD_TABLE',''))){%- br %}
     if s3Prefix=="": {%- br %}
         runMode = "Windows"{% br %}
     {%- br %}

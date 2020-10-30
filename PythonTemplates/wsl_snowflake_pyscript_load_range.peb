@@ -40,7 +40,6 @@ import sys{%br%}
 from datetime import datetime{%br%}
 import glob{%br%}
 import pyodbc{%br%}
-import snowflake.connector{%br%}
 import time{%br%}
 import threading{%br%}
 from threading import Thread, Event{%br%}
@@ -58,13 +57,13 @@ def PrintLog(fileAud,fileErr):{%br%}
      if filesize != 0:{%br%}
         with open(fileAud, 'r') as write_to_console:{%br%}
             print(write_to_console.read()){%br%}
-        if str(os.getenv('DEBUG'))!= "TRUE":
+        if str(os.environ.get('DEBUG'))!= "TRUE":
             os.remove(fileAud)
      filesize = os.path.getsize(fileErr){%br%}
      if filesize != 0:{%br%}
         with open(fileErr, 'r') as write_to_console:{%br%}
             print(write_to_console.read()){%br%}
-        if str(os.getenv('DEBUG'))!= "TRUE":
+        if str(os.environ.get('DEBUG'))!= "TRUE":
             os.remove(fileErr)
     except Exception as inst:
                         print(inst.args)
@@ -96,22 +95,22 @@ def JobScript({% br %}
         queueObject
     ):{% br %}
    try:
-    threadAud = os.path.join(os.environ["WSL_WORKDIR"], str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+"_THREAD_"+str(id)+".aud")
-    threadErr = os.path.join(os.environ["WSL_WORKDIR"], str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+"_THREAD_"+str(id)+".err")
+    threadAud = os.path.join(os.environ.get('WSL_WORKDIR',''), str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE'))+"_THREAD_"+str(id)+".aud")
+    threadErr = os.path.join(os.environ.get('WSL_WORKDIR',''), str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE'))+"_THREAD_"+str(id)+".err")
     audStream = open(threadAud, 'a+'){% br %}
     errStream = open(threadErr, 'a+'){% br %}
     global totalRows{% br %}
     global threadError{% br %}
     unicode = False
-    if str(os.getenv('UNICODE_SUPPORT'))== "TRUE":
+    if str(os.environ.get('UNICODE_SUPPORT'))== "TRUE":
        unicode = True
     {%- if PilotTable != "" %}
 
     batchStatusSql ="""SELECT STATUS
-    FROM """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""
+    FROM """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
     WHERE BATCH_NUMBER ="""+ str(batch[0]){% br %}
 
-    bst = WslPythonCommon.RunRedSQL(batchStatusSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]){% br %}
+    bst = WslPythonCommon.RunRedSQL(batchStatusSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')){% br %}
 
     if bst[4][0][0] == "P":
         audStream.write("\nBatch " +str(batch[0]) +" is in a paused state. Skipping")
@@ -122,21 +121,21 @@ def JobScript({% br %}
 
     errStream.write("Now loading batch: "+str(batch[0])+"\n"){% br %}
 
-    batchUpdateSql = """UPDATE """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""
+    batchUpdateSql = """UPDATE """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
       SET STATUS = 'R'
         , THREAD_NUMBER = """+str(id)+"""
-        , START_EXTRACT_TIMESTAMP = """+os.environ["RANGE_CURR_DATE"]+"""
+        , START_EXTRACT_TIMESTAMP = """+os.environ.get('RANGE_CURR_DATE','')+"""
       WHERE BATCH_NUMBER = """+str(batch[0])
 
-    bst = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"])
+    bst = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE',''))
 
     {%- endif %}
 
-    fileDat = "wsl"+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]{%- if PilotTable != "" %}+"_BATCH_"+str(batch[0])+".dat"{% endif %}
-                                                                                                                                                                                        
-                                                                                                                                                                                       
-                                                                                                                                                                                          
-                                                                                                                                                                                           
+    fileDat = "wsl"+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE',''){%- if PilotTable != "" %}+"_BATCH_"+str(batch[0])+".dat"{% endif %}
+
+
+
+
 
     extractSQL = """
 SELECT {%- from table.columns as column %}
@@ -153,20 +152,20 @@ SELECT {%- from table.columns as column %}
                                           {%- if column.datatype == "varchar" or column.datatype == "char"  %}{% endif %}{% br %}
                                         {%- endfrom %}
                                        {%- if table.loadInfo.sourceTables != "" %}
-                                 FROM """+os.environ["WSL_SRC_SCHEMA"]+""".{{ table.loadInfo.sourceTables }}{%- br -%}
+                                 FROM """+os.environ.get('WSL_SRC_SCHEMA','')+""".{{ table.loadInfo.sourceTables }}{%- br -%}
                                        {%- endif -%}
                                        {%- from table.loadInfo.whereAndGroupByClauses | trim | lines as whereLine %}                                 {{whereLine}}{% br %}{% endfrom -%}
 """{%- br -%}
     {%- if PilotTable != "" -%}{% br %}
     if((str(batch[1]) != "NULL") and  (str(batch[2]) == "NULL")):{% br %}
-         extractSQL =extractSQL+{% if table.loadInfo.whereAndGroupByClauses == "" %}"                                 WHERE """{% else %}"AND"{% endif %}+ os.environ["BATCH_OVERRIDE"]+""" > """+str(batch[1]){% br %}
+         extractSQL =extractSQL+{% if table.loadInfo.whereAndGroupByClauses == "" %}"                                 WHERE """{% else %}"AND"{% endif %}+ os.environ.get('BATCH_OVERRIDE','')+""" > """+str(batch[1]){% br %}
     elif (str(batch[1])) != "NULL":{% br %}
-        extractSQL =extractSQL+{% if table.loadInfo.whereAndGroupByClauses == "" %}"                                 WHERE """{% else %}"AND"{% endif %}+ os.environ["BATCH_EXPRESSION"]+""" BETWEEN """+str(batch[1])+" AND "+ str(batch[2]){% br %}
+        extractSQL =extractSQL+{% if table.loadInfo.whereAndGroupByClauses == "" %}"                                 WHERE """{% else %}"AND"{% endif %}+ os.environ.get('BATCH_EXPRESSION','')+""" BETWEEN """+str(batch[1])+" AND "+ str(batch[2]){% br %}
     else:{% br %}
-        extractSQL =extractSQL+{% if table.loadInfo.whereAndGroupByClauses == "" %}"                                 WHERE """{% else %}"AND"{% endif %}+ os.environ["BATCH_EXPRESSION"]+""" IS NULL"""{% br %}
+        extractSQL =extractSQL+{% if table.loadInfo.whereAndGroupByClauses == "" %}"                                 WHERE """{% else %}"AND"{% endif %}+ os.environ.get('BATCH_EXPRESSION','')+""" IS NULL"""{% br %}
    {%- endif %}
 
-    if str(os.environ["DEBUG"])== "TRUE":{% br %}
+    if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
         errStream.write("\n================== EXTRACT SQL STATEMENT ==================\n"){%- br %}
         errStream.write(extractSQL.replace("                                 ","")){%- br %}
         errStream.write(""){%- br %}
@@ -175,13 +174,13 @@ SELECT {%- from table.columns as column %}
     extractSQL = extractSQL.replace("                                 ","")
 
     unicode = False{% br %}
-    if str(os.getenv('EXTRACT_CHAR_SET')).find("UTF")!= -1:{% br %}
+    if str(os.environ.get('EXTRACT_CHAR_SET')).find("UTF")!= -1:{% br %}
        unicode = True{% br %}
-    if str(os.environ["DEBUG"])== "TRUE":{% br %}
+    if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
        errStream.write("\nBEGIN create of data file from source system: "+str(datetime.now())+'\n'){% br %}
-    fileFull = os.path.join(os.environ["WSL_WORKDIR"],fileDat)
-    rowCount = WslPythonCommon.GetDataToFile(extractSQL,str(os.getenv('WSL_SRC_DSN')),str(os.getenv('WSL_SRC_USER')),str(os.getenv('WSL_SRC_PWD')),fileFull,str(os.getenv('UNLOAD_DELIM')), 0, 0, True, unicode, os.environ["UNLOAD_ENCLOSED"], os.environ["UNLOAD_ESCAPE"]){% br %}
-    if str(os.environ["DEBUG"]) == "TRUE":
+    fileFull = os.path.join(os.environ.get('WSL_WORKDIR',''),fileDat)
+    rowCount = WslPythonCommon.GetDataToFile(extractSQL,str(os.environ.get('WSL_SRC_DSN','')),str(os.environ.get('WSL_SRC_USER','')),str(os.environ.get('WSL_SRC_PWD','')),fileFull,str(os.environ.get('UNLOAD_DELIM','')), 0, 0, True, unicode, os.environ.get('UNLOAD_ENCLOSED',''), os.environ.get('UNLOAD_ESCAPE','')){% br %}
+    if str(os.environ.get('DEBUG','')) == "TRUE":
        errStream.write("\nEND create of data file from source system: "+str(datetime.now())+'\n'){% br %}
 
     currentRetry = 0
@@ -189,19 +188,19 @@ SELECT {%- from table.columns as column %}
     lastexitcode=0
 
     {%- if PilotTable != "" %}{% br %}{% br %}
-    batchUpdateSql ="""UPDATE """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""
-      SET START_PUT_TIMESTAMP ="""+os.environ["RANGE_CURR_DATE"]+"""
-        , EXTRACT_DURATION_SECONDS = """+os.environ["EXTRACT_SECS"]+"""
+    batchUpdateSql ="""UPDATE """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
+      SET START_PUT_TIMESTAMP ="""+os.environ.get('RANGE_CURR_DATE','')+"""
+        , EXTRACT_DURATION_SECONDS = """+os.environ.get('EXTRACT_SECS','')+"""
       WHERE BATCH_NUMBER =  """+str(batch[0])
 
-    udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"])
+    udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE',''))
     {%- endif %}
 
-    if str(os.environ["UNLOAD_GZIP"])== "TRUE":
+    if str(os.environ.get('UNLOAD_GZIP',''))== "TRUE":
         try:
             inputFile = fileFull+".txt"{%- br %}
             output = ".gz"{%- br %}
-            if str(os.environ["DEBUG"])== "TRUE":
+            if str(os.environ.get('DEBUG',''))== "TRUE":
                 output=GzipFile(inputFile,output,False)
             else:
                 output=GzipFile(inputFile,output,True)
@@ -214,22 +213,25 @@ SELECT {%- from table.columns as column %}
                         threadError=threadError+1{%- br %}
                         errStream.write(str(inst.args)){%- br %}
                         sys.exit(1){%- br %}
+    try: {% br %}
+        uid=str(os.environ.get('WSL_TGT_USER','')) {% br %}
+        pwd=str(os.environ.get('WSL_TGT_PWD','')) {% br %}
+        SFConnectionString = "DSN="+str(os.environ.get('WSL_TGT_DSN','')) {% br %}
+        if uid and not uid.isspace(): {% br %}
+          SFConnectionString += ";UID="+uid {% br %}
+        if pwd and not pwd.isspace(): {% br %}
+          SFConnectionString += ";PWD="+pwd {% br %}
+        SFConnectionString = pyodbc.connect(SFConnectionString) {% br %}
+    except Exception as exceptionError: {% br %}
+      logStream.write("An error has occurred: : " + repr( exceptionError)) {% br %}
 
-    SFConnectionString = snowflake.connector.connect({% br %}
-                user=str(os.getenv('WSL_TGT_USER')),{% br %}
-                password=str(os.getenv('WSL_TGT_PWD')),{% br %}
-                account=os.environ["SNOWSQL_ACCOUNT"],{% br %}
-                warehouse=os.environ["SNOWSQL_WAREHOUSE"],{% br %}
-                database=os.environ["SNOWSQL_DATABASE"],{% br %}
-                schema=os.environ["SNOWSQL_SCHEMA"]{% br %}
-                ){% br %}
     try:{% br %}
-     removeSQL = "remove @~/WSL-"+"wsl"+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]+"_BATCH_"+str(batch[0])+"*"+";"{% br %}
+     removeSQL = "remove @~/WSL-"+"wsl"+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE','')+"_BATCH_"+str(batch[0])+"*"+";"{% br %}
      SFconn = SFConnectionString.cursor(){% br %}
      SFconn.execute(removeSQL){% br %}
      SFconn.close(){% br %}
-     putSQL =r"PUT 'file://" + (os.path.join(os.environ["WSL_WORKDIR"],"wsl"+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]+"_BATCH_"+str(batch[0])).replace(os.sep, '/'))
-     if str(os.environ["UNLOAD_GZIP"])== "TRUE":{% br %}
+     putSQL =r"PUT 'file://" + (os.path.join(os.environ.get('WSL_WORKDIR',''),"wsl"+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE','')+"_BATCH_"+str(batch[0])).replace(os.sep, '/'))
+     if str(os.environ.get('UNLOAD_GZIP',''))== "TRUE":{% br %}
       putSQL = str(putSQL)+r"*.gz' @~;"{% br %}
      else:{% br %}
       putSQL = str(putSQL)+r"*' @~;"{% br %}
@@ -237,7 +239,7 @@ SELECT {%- from table.columns as column %}
      SFconn = SFConnectionString.cursor(){% br %}
      SFconn.execute(putSQL){% br %}
      SFconn.close(){% br %}
-     if str(os.environ["DEBUG"]) == "TRUE":
+     if str(os.environ.get('DEBUG','')) == "TRUE":
         errStream.write("\n=================== FILE UPLOAD ===================\n")
         errStream.write(putSQL)
     except Exception as e:{% br %}
@@ -245,30 +247,30 @@ SELECT {%- from table.columns as column %}
           lastSnowSQLCode = 0{% br %}
           lastexitcode=1{% br %}
 
-    while lastexitcode != 0 and currentRetry < os.getenv('MAX_RETRIES'):{% br %}
+    while lastexitcode != 0 and currentRetry < os.environ.get('MAX_RETRIES',''):{% br %}
         currentRetry = currentRetry +1{% br %}
-        audStream.write("\nData file upload failed, retrying. Current retries: "+str(currentRetry)+". Max retries: "+os.environ('MAX_RETRIES')){% br %}
-        errStream.write("\nData file upload failed, retrying. Current retries: "+str(currentRetry)+". Max retries: "+os.environ('MAX_RETRIES')){% br %}
+        audStream.write("\nData file upload failed, retrying. Current retries: "+str(currentRetry)+". Max retries: "+os.environ.get('MAX_RETRIES','')){% br %}
+        errStream.write("\nData file upload failed, retrying. Current retries: "+str(currentRetry)+". Max retries: "+os.environ.get('MAX_RETRIES','')){% br %}
         {%- if PilotTable != "" %}{% br %}
-        batchUpdateSql ="""UPDATE """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""{% br %}
+        batchUpdateSql ="""UPDATE """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""{% br %}
           SET RETRY_COUNT = """+str(currentRetry)+"""
           WHERE BATCH_NUMBER ="""+str(batch[0])
-        udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]){% br %}
+        udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')){% br %}
 
         {%- endif %}
 
-        removeSQL = "remove @~/WSL-"+"wsl"+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]+"_BATCH_"+str(batch[0])+"*"+";"
+        removeSQL = "remove @~/WSL-"+"wsl"+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE','')+"_BATCH_"+str(batch[0])+"*"+";"
         SFconn = SFConnectionString.cursor()
         SFconn.execute("\n"+removeSQL)
         SFconn.close()
-        putSQL =r"PUT 'file://" + os.path.join(os.environ["WSL_WORKDIR"],fileDat).replace(os.sep, '/'){% br %}
+        putSQL =r"PUT 'file://" + os.path.join(os.environ.get('WSL_WORKDIR',''),fileDat).replace(os.sep, '/'){% br %}
         putSQL = str(putSQL)+r"*' @~;"{% br %}
         SFconn = SFConnectionString.cursor()
         SFconn.execute(putSQL)
         SFconn.close()
         lastexitcode=0
         lastSnowSQLCode = lastexitcode
-        if str(os.environ["DEBUG"]) == "TRUE":
+        if str(os.environ.get('DEBUG','')) == "TRUE":
             errStream.write(putSQL)
 
     if lastSnowSQLCode != 0:
@@ -281,21 +283,21 @@ SELECT {%- from table.columns as column %}
         print("\nData file upload failed. Retry limit exhausted. Aborting thread")
 
     {%- if PilotTable != "" %}{% br %}{% br %}
-    batchUpdateSql = """UPDATE """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""
-      SET START_LOAD_TIMESTAMP ="""+os.environ["RANGE_CURR_DATE"]+"""
-        , PUT_DURATION_SECONDS ="""+os.environ["PUT_SECS"]+"""
+    batchUpdateSql = """UPDATE """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
+      SET START_LOAD_TIMESTAMP ="""+os.environ.get('RANGE_CURR_DATE','')+"""
+        , PUT_DURATION_SECONDS ="""+os.environ.get('PUT_SECS','')+"""
     WHERE BATCH_NUMBER =  """+str(batch[0])
 
-    udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"])
+    udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE',''))
 
     {%- endif %}
 
     PURGE = "TRUE"{% br %}
-    if str(os.environ["DEBUG"]) == "TRUE":{% br %}
+    if str(os.environ.get('DEBUG','')) == "TRUE":{% br %}
         PURGE = "FALSE"{% br %}
 
     {%- set crLfList = crLfReplaced.split(",") %}{% br %}
-    copyStmt = """COPY INTO """+ os.environ["WSL_LOAD_FULLNAME"]+"""
+    copyStmt = """COPY INTO """+ os.environ.get('WSL_LOAD_FULLNAME','')+"""
     FROM ({%- br %}{% set csvPos = 0 %}
       SELECT {% for col in table.columns %}
                {%- if not loop.first %}           , {% endif %}
@@ -307,17 +309,17 @@ SELECT {%- from table.columns as column %}
                {%- if crLfList contains col.name %},'~~0A~~',CHAR(10)),'~~0D~~',CHAR(13)){%- endif %}
                {%- br %}
              {%- endfor %}
-      FROM @~/wsl"""+os.environ["WSL_LOAD_TABLE"]+os.environ["WSL_SEQUENCE"]+"_BATCH_"+str(batch[0])+""".dat t
+      FROM @~/wsl"""+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE','')+"_BATCH_"+str(batch[0])+""".dat t
     ){% br %}
     PATTERN = '.*'{%- br %}
-    FILE_FORMAT = """+str(os.environ["fileFormatFullName"])+"""
+    FILE_FORMAT = """+str(os.environ.get('fileFormatFullName',''))+"""
     PURGE = """+PURGE{% br %}
 
     {%- if table.loadInfo.fileLoaderOptions != "" %}    {{ table.loadInfo.fileLoaderOptions }}{%- br %}
     {%- endif %}
 
 
-    if str(os.environ["DEBUG"]) == "TRUE":
+    if str(os.environ.get('DEBUG','')) == "TRUE":
         errStream.write("\n=================== IMPORT SQL ===================\n")
         errStream.write(copyStmt)
         errStream.write("")
@@ -329,7 +331,7 @@ SELECT {%- from table.columns as column %}
         SFconn.close(){%- br %}
     except Exception as inst:
         print(inst.args)
-        if str(os.environ["DEBUG"]) == "TRUE":
+        if str(os.environ.get('DEBUG','')) == "TRUE":
             errStream.write("\n=================== IMPORT SQL ===================\n")
             errStream.write(copyStmt)
             errStream.write("")
@@ -365,19 +367,19 @@ SELECT {%- from table.columns as column %}
         print(inst.args){%- br %}
         errStream.write(str(inst)){%- br %}
     {%- if PilotTable != "" %}{%- br %}
-    batchUpdateSql = """UPDATE """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""
+    batchUpdateSql = """UPDATE """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
       SET STATUS = 'C'
-        , END_TIMESTAMP = """+os.environ["RANGE_CURR_DATE"]+"""
+        , END_TIMESTAMP = """+os.environ.get('RANGE_CURR_DATE','')+"""
         , LOADED_ROWS = """+str(rowsLoaded)+"""
-        , LOAD_DURATION_SECONDS = """+str(os.getenv('LOAD_SECS'))+"""
-        , TOTAL_DURATION_SECONDS ="""+str(os.getenv('TOTAL_SECS'))+"""
+        , LOAD_DURATION_SECONDS = """+str(os.environ.get('LOAD_SECS',''))+"""
+        , TOTAL_DURATION_SECONDS ="""+str(os.environ.get('TOTAL_SECS',''))+"""
         , ROWS_VALIDATED = CASE WHEN ROW_COUNTER = -1 THEN 'X' WHEN ROW_COUNTER = """+str(rowsLoaded)+""" THEN 'Y' ELSE 'N' END
       WHERE BATCH_NUMBER = """+str(batch[0]){%- br %}
 
-    udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]){%- br %}
+    udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')){%- br %}
 
-    if str(os.environ["DEBUG"]) != "TRUE":{%- br %}
-        os.remove(os.path.join(os.environ["WSL_WORKDIR"],fileDat)){%- br %}
+    if str(os.environ.get('DEBUG','')) != "TRUE":{%- br %}
+        os.remove(os.path.join(os.environ.get('WSL_WORKDIR',''),fileDat)){%- br %}
         SFconn = SFConnectionString.cursor(){%- br %}
         SFconn.execute(removeSQL){%- br %}
         SFconn.close(){%- br %}
@@ -389,7 +391,7 @@ SELECT {%- from table.columns as column %}
     errStream.close(){%- br %}
    except Exception as inst:
         print(inst.args)
-        threadError=threadError+1{%- br %}        
+        threadError=threadError+1{%- br %}
         queueObject.put(sys.exc_info())
 
 def GetRangeConnDet(
@@ -402,7 +404,7 @@ def GetRangeConnDet(
       WHERE  dc_name =  """+"'"+str(RANGE_WORK_CONNECTION)+"'"
 
     try:
-        rangeTableResult =WslPythonCommon.RunRedSQL(sMetaSql,str(os.getenv('WSL_META_DSN')),str(os.getenv('WSL_META_USER')), str(os.getenv('WSL_META_PWD')), '' , '','')
+        rangeTableResult =WslPythonCommon.RunRedSQL(sMetaSql,str(os.environ.get('WSL_META_DSN','')),str(os.environ.get('WSL_META_USER','')), str(os.environ.get('WSL_META_PWD','')), '' , '','')
     except Exception as inst:
                         print("\nGet range table connection query failed")
                         print("-2")
@@ -421,59 +423,53 @@ def GetRangeConnDet(
     return rangeTableDsn, rangeTableUser, rangeTablePwd
 
 def MAIN(logStream,errStream): {%- br %}
-    os.environ["DEBUG"]              = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_ACCOUNT"]    = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_ACCOUNT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_WAREHOUSE"]  = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_WAREHOUSE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_DATABASE"]   = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_DATABASE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["SNOWSQL_USER"]       = os.getenv('WSL_TGT_USER'){%br%}
-    os.environ["SNOWSQL_SCHEMA"]     = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_SCHEMA",str(os.environ["WSL_LOAD_TABLE"]))
-    os.environ["SNOWSQL_PWD"]        = os.getenv('WSL_TGT_PWD'){%br%}
-    os.environ["FILE_FORMAT"]        = WslPythonCommon.GetExtendedProperty("SF_FILE_FORMAT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNLOAD_GZIP"]        = WslPythonCommon.GetExtendedProperty("SF_SEND_FILES_ZIPPED",str(os.environ["WSL_LOAD_TABLE"])){%br%}
+    os.environ["DEBUG"]              = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["FILE_FORMAT"]        = WslPythonCommon.GetExtendedProperty("SF_FILE_FORMAT",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNLOAD_GZIP"]        = WslPythonCommon.GetExtendedProperty("SF_SEND_FILES_ZIPPED",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
    {%- from table.extendedPropertyValuesByName as entry where entry.key == "RANGE_BATCH_EXPRESSION" %}    os.environ["BATCH_EXPRESSION"]  = "{{entry.value}}" {%- br %}{%- endfrom %}
     {%- from table.extendedPropertyValuesByName as entry where entry.key == "RANGE_BATCH_INCREMENTAL_OVERRIDE" %}    os.environ["BATCH_OVERRIDE"]   = "{{entry.value}}" {%- br %}{%- endfrom %}
-    os.environ["PILOT_TABLE"]        = WslPythonCommon.GetExtendedProperty("RANGE_PILOT_TABLE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNLOAD_DELIM"]       = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_DELIMITER",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNLOAD_ENCLOSED"]    = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ENCLOSED_BY",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNLOAD_ESCAPE"]      = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ESCAPE_CHAR",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["MAX_RETRIES"]        = WslPythonCommon.GetExtendedProperty("RANGE_UPLOAD_MAX_RETRIES",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["UNICODE_SUPPORT"]    = WslPythonCommon.GetExtendedProperty("SF_UNICODE_SUPPORT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    THREAD_COUNT                     = WslPythonCommon.GetExtendedProperty("RANGE_THREAD_COUNT",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    THREAD_ERRORS                    = WslPythonCommon.GetExtendedProperty("RANGE_MAX_THREAD_FAILURES",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    THREAD_FAIL_ACTION               = WslPythonCommon.GetExtendedProperty("RANGE_FAIL_ON_THREAD_FAILURE",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["EXTRACT_CHAR_SET"]   = WslPythonCommon.GetExtendedProperty("RANGE_EXTRACT_CHARSET",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    os.environ["MAX_ROW_LENGTH"]     = WslPythonCommon.GetExtendedProperty("RANGE_MAX_ROW_LENGTH",str(os.environ["WSL_LOAD_TABLE"])){%br%}
+    os.environ["PILOT_TABLE"]        = WslPythonCommon.GetExtendedProperty("RANGE_PILOT_TABLE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNLOAD_DELIM"]       = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_DELIMITER",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNLOAD_ENCLOSED"]    = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ENCLOSED_BY",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNLOAD_ESCAPE"]      = WslPythonCommon.GetExtendedProperty("SF_UNLOAD_ESCAPE_CHAR",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["MAX_RETRIES"]        = WslPythonCommon.GetExtendedProperty("RANGE_UPLOAD_MAX_RETRIES",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["UNICODE_SUPPORT"]    = WslPythonCommon.GetExtendedProperty("SF_UNICODE_SUPPORT",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    THREAD_COUNT                     = WslPythonCommon.GetExtendedProperty("RANGE_THREAD_COUNT",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    THREAD_ERRORS                    = WslPythonCommon.GetExtendedProperty("RANGE_MAX_THREAD_FAILURES",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    THREAD_FAIL_ACTION               = WslPythonCommon.GetExtendedProperty("RANGE_FAIL_ON_THREAD_FAILURE",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["EXTRACT_CHAR_SET"]   = WslPythonCommon.GetExtendedProperty("RANGE_EXTRACT_CHARSET",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    os.environ["MAX_ROW_LENGTH"]     = WslPythonCommon.GetExtendedProperty("RANGE_MAX_ROW_LENGTH",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
     CR_LF_REPLACED                   = "{{crLfReplaced}}"
-    os.environ["RANGE_LOCATION"]     = WslPythonCommon.GetExtendedProperty("RANGE_WORK_TABLE_LOCATION",str(os.environ["WSL_LOAD_TABLE"])){%br%}
-    RANGE_WORK_CONNECTION            = WslPythonCommon.GetExtendedProperty("RANGE_WORK_CONNECTION",str(os.environ["WSL_LOAD_TABLE"])){%br%}
+    os.environ["RANGE_LOCATION"]     = WslPythonCommon.GetExtendedProperty("RANGE_WORK_TABLE_LOCATION",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
+    RANGE_WORK_CONNECTION            = WslPythonCommon.GetExtendedProperty("RANGE_WORK_CONNECTION",str(os.environ.get('WSL_LOAD_TABLE',''))){%br%}
 
-    if os.environ["UNLOAD_GZIP"]!="TRUE":
+    if os.environ.get('UNLOAD_GZIP','')!="TRUE":
         os.environ["UNLOAD_GZIP"] = "FALSE"
 
-    if os.environ["UNLOAD_DELIM"]=="":
+    if os.environ.get('UNLOAD_DELIM','')=="":
         os.environ["UNLOAD_DELIM"] = "|"
 
-    if os.environ["UNLOAD_ENCLOSED"]=="None":
+    if os.environ.get('UNLOAD_ENCLOSED','')=="None":
         os.environ["UNLOAD_ENCLOSED"] = '"'
 
-    if os.environ["UNLOAD_ESCAPE"]=="":
+    if os.environ.get('UNLOAD_ESCAPE','')=="":
         os.environ["UNLOAD_ESCAPE"] = "#"
 
-    if os.environ["FILE_FORMAT"]=="":
+    if os.environ.get('FILE_FORMAT','')=="":
         os.environ["FILE_FORMAT"] = "FMT_RED_CSV_SKIP_GZIP_COMMA"
 
     # Work out full file format name{%- br %}
-    FILE_FORMAT_FULL=WslPythonCommon.GetFileFormatFullName( os.environ["FILE_FORMAT"] )
+    FILE_FORMAT_FULL=WslPythonCommon.GetFileFormatFullName(os.environ.get('FILE_FORMAT','') )
     os.environ["fileFormatFullName"] = ""
     if FILE_FORMAT_FULL != "":
-         os.environ["fileFormatFullName"] = FILE_FORMAT_FULL+"."+os.environ["FILE_FORMAT"]
+       os.environ["fileFormatFullName"] = FILE_FORMAT_FULL+"."+os.environ.get('FILE_FORMAT','')
     else:
-      os.environ["fileFormatFullName"] = os.environ["FILE_FORMAT"]
+      os.environ["fileFormatFullName"] = os.environ.get('FILE_FORMAT','')
 
     global totalRows{% br %}
     global threadError{% br %}
     unicode = True
-    if str(os.getenv('UNICODE_SUPPORT'))== "TRUE":
+    if str(os.environ.get('UNICODE_SUPPORT',''))== "TRUE":
        unicode = True
 
     try:
@@ -483,83 +479,80 @@ def MAIN(logStream,errStream): {%- br %}
         print(inst.args)
     {%- br %}
 
-    if str(os.environ["DEBUG"]) == "TRUE": {%- br %}
+    if str(os.environ.get('DEBUG','')) == "TRUE": {%- br %}
         errStream.write("\n=================== LOAD OPTIONS ==================="){%- br %}
-        errStream.write("\nSpecified Load Table:             " + os.getenv('WSL_LOAD_TABLE')){%- br %}
-        errStream.write("\nSpecified Work Dir:               " + os.environ["WSL_WORKDIR"]){%- br %}
-        errStream.write("\nSpecified Sequence:               " + os.environ["WSL_SEQUENCE"]){%- br %}
-        errStream.write("\nSpecified Metadata ODBC DSN:      " + os.environ["WSL_META_DSN"]){%- br %}
-        errStream.write("\nSpecified Metadata Username:      " + str(os.getenv('WSL_META_USER'))){%- br %}
-        errStream.write("\nSpecified Metadata Password:      " + ('*'*len(str(os.getenv('WSL_META_PWD'))))+'\n'){%br%}
+        errStream.write("\nSpecified Load Table:             " + os.environ.get('WSL_LOAD_TABLE','')){%- br %}
+        errStream.write("\nSpecified Work Dir:               " + os.environ.get('WSL_WORKDIR','')){%- br %}
+        errStream.write("\nSpecified Sequence:               " + os.environ.get('WSL_SEQUENCE','')){%- br %}
+        errStream.write("\nSpecified Metadata ODBC DSN:      " + os.environ.get('WSL_META_DSN','')){%- br %}
+        errStream.write("\nSpecified Metadata Username:      " + str(os.environ.get('WSL_META_USER',''))){%- br %}
+        errStream.write("\nSpecified Metadata Password:      " + ('*'*len(str(os.environ.get('WSL_META_PWD',''))))+'\n'){%br%}
         errStream.write("\n"){%- br %}
         errStream.write("\n=================== SOURCE TABLE INFO ==================="){%- br %}
-        errStream.write("\nSource Schema:                    " + os.environ["WSL_SRC_SCHEMA"]){%- br %}
+        errStream.write("\nSource Schema:                    " + os.environ.get('WSL_SRC_SCHEMA','')){%- br %}
         errStream.write("\nSource Tables:                    " + "{{ table.loadInfo.sourceTables }}"){%- br %}
         errStream.write("\nSource Where:                     " + "{{ table.loadInfo.whereAndGroupByClauses.Replace('"','""') }}"){%- br %}
         errStream.write("\n"){%- br %}
         errStream.write("\n=================== SOURCE DB INFO ==================="){%- br %}
-        errStream.write("\nODBC Source DSN:                  " + os.environ["WSL_SRC_DSN"]){%- br %}
-        errStream.write("\nODBC Source Username:             " +  (str(os.getenv('WSL_SRC_USER')))){%- br %}
-        errStream.write("\nODBC Source Password:             " +('*'*len(str(os.getenv('WSL_SRC_PWD'))))+'\n'){%- br %}
+        errStream.write("\nODBC Source DSN:                  " + os.environ.get('WSL_SRC_DSN','')){%- br %}
+        errStream.write("\nODBC Source Username:             " +  (str(os.environ.get('WSL_SRC_USER','')))){%- br %}
+        errStream.write("\nODBC Source Password:             " +('*'*len(str(os.environ.get('WSL_SRC_PWD',''))))+'\n'){%- br %}
         errStream.write("\n"){%- br %}
         errStream.write("\n=================== EXTENDED PROPERTIES ==================="){%- br %}
-        errStream.write("\nSF_DEBUG_MODE:                    " + os.environ["DEBUG"]){%- br %}
-        errStream.write("\nSF_SNOWSQL_ACCOUNT:               " + os.environ["SNOWSQL_ACCOUNT"]){%- br %}
-        errStream.write("\nSF_SNOWSQL_WAREHOUSE:             " + os.environ["SNOWSQL_WAREHOUSE"]){%- br %}
-        errStream.write("\nSF_SNOWSQL_DATABASE:              " + os.environ["SNOWSQL_DATABASE"]){%- br %}
-        errStream.write("\nSF_FILE_FORMAT:                   " + os.environ["fileFormatFullName"]){%- br %}
-        errStream.write("\nSF_SEND_FILES_ZIPPED:             " + os.environ["UNLOAD_GZIP"]){%- br %}
-        errStream.write("\nSF_UNLOAD_DELIMITER:              " + os.environ["UNLOAD_DELIM"]){%- br %}
-        errStream.write("\nSF_UNLOAD_ENCLOSED_BY:            " + os.environ["UNLOAD_ENCLOSED"]){%- br %}
-        errStream.write("\nSF_UNLOAD_ESCAPE_CHAR:            " + os.environ["UNLOAD_ESCAPE"]){%- br %}
-        errStream.write("\nRANGE_BATCH_EXPRESSION:           " + os.environ["BATCH_EXPRESSION"]){%- br %}
-        errStream.write("\nRANGE_BATCH_INCREMENTAL_OVERRIDE: " + os.environ["BATCH_OVERRIDE"]){%- br %}
-        errStream.write("\nRANGE_PILOT_TABLE:                " + os.environ["PILOT_TABLE"]){%- br %}
+        errStream.write("\nSF_DEBUG_MODE:                    " + os.environ.get('DEBUG','')){%- br %}
+        errStream.write("\nSF_FILE_FORMAT:                   " + os.environ.get('fileFormatFullName','')){%- br %}
+        errStream.write("\nSF_SEND_FILES_ZIPPED:             " + os.environ.get('UNLOAD_GZIP','')){%- br %}
+        errStream.write("\nSF_UNLOAD_DELIMITER:              " + os.environ.get('UNLOAD_DELIM','')){%- br %}
+        errStream.write("\nSF_UNLOAD_ENCLOSED_BY:            " + os.environ.get('UNLOAD_ENCLOSED','')){%- br %}
+        errStream.write("\nSF_UNLOAD_ESCAPE_CHAR:            " + os.environ.get('UNLOAD_ESCAPE','')){%- br %}
+        errStream.write("\nRANGE_BATCH_EXPRESSION:           " + os.environ.get('BATCH_EXPRESSION','')){%- br %}
+        errStream.write("\nRANGE_BATCH_INCREMENTAL_OVERRIDE: " + os.environ.get('BATCH_OVERRIDE','')){%- br %}
+        errStream.write("\nRANGE_PILOT_TABLE:                " + os.environ.get('PILOT_TABLE','')){%- br %}
         errStream.write("\nRANGE_THREAD_COUNT:               " + THREAD_COUNT){%- br %}
         errStream.write("\nRANGE_MAX_THREAD_FAILURES:        " + THREAD_ERRORS){%- br %}
-        errStream.write("\nRANGE_UPLOAD_MAX_RETRIES:         " + os.environ["MAX_RETRIES"]){%- br %}
-        errStream.write("\nRANGE_EXTRACT_CHARSET:            " + os.environ["EXTRACT_CHAR_SET"]){%- br %}
-        errStream.write("\nRANGE_MAX_ROW_LENGTH:             " + os.environ["MAX_ROW_LENGTH"]){%- br %}
+        errStream.write("\nRANGE_UPLOAD_MAX_RETRIES:         " + os.environ.get('MAX_RETRIES','')){%- br %}
+        errStream.write("\nRANGE_EXTRACT_CHARSET:            " + os.environ.get('EXTRACT_CHAR_SET','')){%- br %}
+        errStream.write("\nRANGE_MAX_ROW_LENGTH:             " + os.environ.get('MAX_ROW_LENGTH','')){%- br %}
         errStream.write("\nRANGE_CR_LF_REPLACED:             " + CR_LF_REPLACED){%- br %}
-        errStream.write("\nRANGE_WORK_TABLE_LOCATION:        " + os.environ["RANGE_LOCATION"]){%- br %}
+        errStream.write("\nRANGE_WORK_TABLE_LOCATION:        " + os.environ.get('RANGE_LOCATION','')){%- br %}
         errStream.write("\nRANGE_WORK_CONNECTION:            " + RANGE_WORK_CONNECTION){%- br %}
         errStream.write("\n"){%- br %}
     {%- br %}
     {%- br %}
 
-    if  os.environ["RANGE_LOCATION"] == "SNOWFLAKE":
-        os.environ["RANGE_SCHEMA"] = os.environ["WSL_LOAD_SCHEMA"]
-        os.environ["RANGE_CURR_DATE"] = "CAST(CURRENT_TIMESTAMP AS TIMESTAMP)"
-        os.environ["EXTRACT_SECS"] = "TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
-        os.environ["PUT_SECS"] = "TIMESTAMPDIFF('SECOND',START_PUT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
-        os.environ["LOAD_SECS"] = "TIMESTAMPDIFF('SECOND',START_LOAD_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
-        os.environ["TOTAL_SECS"] = "TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"
-        os.environ["rangeTableDsn"] = os.environ["WSL_TGT_DSN"]
-        os.environ["rangeTableUser"] = os.environ["WSL_TGT_USER"]
-        os.environ["rangeTablePwd"] = os.environ["WSL_TGT_PWD"]
+    if  os.environ.get('RANGE_LOCATION','') == "SNOWFLAKE":{%- br %}
+        os.environ["RANGE_SCHEMA"] = os.environ.get('WSL_LOAD_SCHEMA',''){%- br %}
+        os.environ["RANGE_CURR_DATE"] = "CAST(CURRENT_TIMESTAMP AS TIMESTAMP)"{%- br %}
+        os.environ["EXTRACT_SECS"] = "TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"{%- br %}
+        os.environ["PUT_SECS"] = "TIMESTAMPDIFF('SECOND',START_PUT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"{%- br %}
+        os.environ["LOAD_SECS"] = "TIMESTAMPDIFF('SECOND',START_LOAD_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"{%- br %}
+        os.environ["TOTAL_SECS"] = "TIMESTAMPDIFF('SECOND',START_EXTRACT_TIMESTAMP,CAST(CURRENT_TIMESTAMP AS TIMESTAMP))"{%- br %}
+        os.environ["rangeTableDsn"] = os.environ.get('WSL_TGT_DSN',''){%- br %}
+        os.environ["rangeTableUser"] = os.environ.get('WSL_TGT_USER',''){%- br %}
+        os.environ["rangeTablePwd"] = os.environ.get('WSL_TGT_PWD',''){%- br %}
     else:
-        os.environ["RANGE_SCHEMA"] = "dbo"
-        os.environ["RANGE_CURR_DATE"] = "GETDATE()"
-        os.environ["EXTRACT_SECS"] = "DATEDIFF(SECOND,START_EXTRACT_TIMESTAMP,GETDATE())"
-        os.environ["PUT_SECS"] = "DATEDIFF(SECOND,START_PUT_TIMESTAMP,GETDATE())"
-        os.environ["LOAD_SECS"] = "DATEDIFF(SECOND,START_LOAD_TIMESTAMP,GETDATE())"
-        os.environ["TOTAL_SECS"] = "DATEDIFF(SECOND,START_EXTRACT_TIMESTAMP,GETDATE())"
-        rangeConn = GetRangeConnDet(RANGE_WORK_CONNECTION)
-        os.environ["rangeTableDsn"]  = rangeConn[0]
-        os.environ["rangeTableUser"] = rangeConn[1]
-        os.environ["rangeTablePwd"]  = rangeConn[2]
+        os.environ["RANGE_SCHEMA"] = "dbo"{%- br %}
+        os.environ["RANGE_CURR_DATE"] = "GETDATE()"{%- br %}
+        os.environ["EXTRACT_SECS"] = "DATEDIFF(SECOND,START_EXTRACT_TIMESTAMP,GETDATE())"{%- br %}
+        os.environ["PUT_SECS"] = "DATEDIFF(SECOND,START_PUT_TIMESTAMP,GETDATE())"{%- br %}
+        os.environ["LOAD_SECS"] = "DATEDIFF(SECOND,START_LOAD_TIMESTAMP,GETDATE())"{%- br %}
+        os.environ["TOTAL_SECS"] = "DATEDIFF(SECOND,START_EXTRACT_TIMESTAMP,GETDATE())"{%- br %}
+        rangeConn = GetRangeConnDet(RANGE_WORK_CONNECTION){%- br %}
+        os.environ["rangeTableDsn"]  = rangeConn[0]{%- br %}
+        os.environ["rangeTableUser"] = rangeConn[1]{%- br %}
+        os.environ["rangeTablePwd"]  = rangeConn[2]{%- br %}
 
 
     {%- if PilotTable != "" %}{%- br %}
     batchListSql = """SELECT batch_number
            , min_value
            , max_value
-      FROM """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""
+      FROM """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
       WHERE status IN ('N','R')
       ORDER BY batch_number"""
 
     try:
-         bdt = WslPythonCommon.RunRedSQL(batchListSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"])
+         bdt = WslPythonCommon.RunRedSQL(batchListSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE',''))
          if(bdt[1] == -2):
             print(-2)
             print("Load failed. Failed to access range table")
@@ -583,7 +576,7 @@ def MAIN(logStream,errStream): {%- br %}
                         logStream.write(inst.args)
                         print("-2")
                         print("\nLoad failed.")
-                        sys.exit(1)     
+                        sys.exit(1)
     try:
      queueObject=queue.Queue()
      threads = []
@@ -635,11 +628,11 @@ def MAIN(logStream,errStream): {%- br %}
    {%- br %}
    {%- endif %}
     {%- if PilotTable != "" %}
-    batchUpdateSql ="""UPDATE """+os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]+"""
+    batchUpdateSql ="""UPDATE """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
       SET STATUS = 'N'
       WHERE STATUS = 'R'
 """{%- br %}
-    bdt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ["rangeTableDsn"]),str(os.environ["rangeTableUser"]), str(os.environ["rangeTablePwd"]),'' , '',os.environ["RANGE_SCHEMA"]+"."+os.environ["PILOT_TABLE"]){%- br %}
+    bdt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')){%- br %}
     {%- endif %}
     try:
        WslPythonCommon.WsWrkTask(0,0,0,bdt[2],0,0,0)
@@ -662,16 +655,16 @@ def MAIN(logStream,errStream): {%- br %}
     errStream.close(){%- br %}
     print(1){%- br %}
     PrintLog(fileAud,fileErr){%- br %}
-    if str(os.environ["DEBUG"]) == "TRUE":{%- br %}
+    if str(os.environ.get('DEBUG','')) == "TRUE":{%- br %}
      j=1{%- br %}
      while j <= i:{%- br %}
-        PrintLog(os.path.join(os.environ["WSL_WORKDIR"], str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+"_THREAD_"+str(j)+".aud"),os.path.join(os.environ["WSL_WORKDIR"], str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+"_THREAD_"+str(j)+".err")){%- br %}
+        PrintLog(os.path.join(os.environ.get('WSL_WORKDIR',''), str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+"_THREAD_"+str(j)+".aud"),os.path.join(os.environ.get('WSL_WORKDIR',''), str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+"_THREAD_"+str(j)+".err")){%- br %}
         j=j+1{%- br %}
 try:{%- br %}
-	filePath = os.environ["WSL_WORKDIR"]{%- br %}
-	auditLog=  str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+".aud"{%- br %}
+	filePath = os.environ.get('WSL_WORKDIR',''){%- br %}
+	auditLog=  str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+".aud"{%- br %}
 	fileAud = os.path.join(filePath,auditLog){%- br %}
-	errorLog=  str(os.environ["WSL_LOAD_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+".err"{%- br %}
+	errorLog=  str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+".err"{%- br %}
 	fileErr = os.path.join(filePath,errorLog){%- br %}
 	MAIN(fileAud,fileErr){%- br %}
 
