@@ -49,7 +49,7 @@ def PrintLog(fileAud):{%br%}
 def ReplaceWslTags(stuff):{%br%}
 
     if '$SEQUENCE$' in stuff:{%br%}
-        stuff = stuff.replace('$SEQUENCE$',str(os.environ["WSL_SEQUENCE"])){%br%}
+        stuff = stuff.replace('$SEQUENCE$',str(os.environ.get('WSL_SEQUENCE',''))){%br%}
     if re.findall(r'\$(.+?)\$',stuff)!=[]:{%br%}
         # If stuff contains two or more $s and the $SEQUENCE$ string is not detected{%br%}
         # or has already been replaced then we assume a date{%br%}
@@ -119,12 +119,12 @@ def CreateTriggerFile(auditFile): {%- br %}
 
     trgFilePath = r'{{ table.exportInfo.triggerFile.path }} '.replace("\ ","").replace(" ",""){%- br %}
     if trgFilePath =="":
-       trgFilePath = os.environ["WSL_WORKDIR"]
+       trgFilePath = os.environ.get('WSL_WORKDIR','')
 
     trgFileName = '{{ table.exportInfo.triggerFile.name }}'{%- br %}
     trgFileName = ReplaceWslTags(trgFileName){%- br %}
     if trgFileName=="":
-        trgFileName = str(os.environ["WSL_EXP_NAME"])+"_"+str(os.getenv('WSL_SEQUENCE'))+".trg"
+        trgFileName = str(os.environ.get('WSL_EXP_NAME',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+".trg"
 
     trgFile = os.path.join(trgFilePath,trgFileName){% br %}
     mExpOptions = '{{ table.exportInfo.options.Replace("'","'''") }}'{%- br %}
@@ -145,15 +145,15 @@ def CreateTriggerFile(auditFile): {%- br %}
     {%- elseif (table.exportInfo.triggerParameter3 != "" ) %}
     , {{ table.exportInfo.triggerParameter3 }}{%- br %}
     {%- endif %}
-    FROM """+str(os.environ["WSL_EXP_FULLNAME"])+" "+str(os.environ["WSL_EXP_TABLE"]){%- br %}
+    FROM """+str(os.environ.get('WSL_EXP_FULLNAME',''))+" "+str(os.environ.get('WSL_EXP_TABLE','')){%- br %}
 {%- br %}
     SFConnectionString = snowflake.connector.connect(
-                user=str(os.getenv('WSL_SRC_USER')),
-                password=str(os.getenv('WSL_SRC_PWD')),
-                account=os.environ["SNOWSQL_ACCOUNT"],
-                warehouse=os.environ["SNOWSQL_WAREHOUSE"],
-                database=os.environ["SNOWSQL_DATABASE"],
-                schema=os.environ["SNOWSQL_SCHEMA"]
+                user=str(os.environ.get('WSL_SRC_USER')),
+                password=str(os.environ.get('WSL_SRC_PWD')),
+                account=os.environ.get('SNOWSQL_ACCOUNT',''),
+                warehouse=os.environ.get('SNOWSQL_WAREHOUSE',''),
+                database=os.environ.get('SNOWSQL_DATABASE',''),
+                schema=os.environ.get('SNOWSQL_SCHEMA','')
                 )
     deleteRes = "remove @~/"+trgFileName+";"{% br %}
     SFconn = SFConnectionString.cursor(){% br %}
@@ -202,39 +202,39 @@ def CreateTriggerFile(auditFile): {%- br %}
 {%- br %}
 {%- endif %}
 def ExportData(runMode):{%br%}
-    os.environ["DEBUG"]          = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ["WSL_EXP_NAME"])){%br%}
-    os.environ["ACCESS_KEY"]     = WslPythonCommon.GetExtendedProperty("SF_ACCESS_KEY",str(os.environ["WSL_EXP_TABLE"])){%br%}
-    os.environ["SECRET_KEY"]     = WslPythonCommon.GetExtendedProperty("SF_SECRET_KEY",str(os.environ["WSL_EXP_TABLE"])){%br%}
-    os.environ["SEND_FILES_ZIPPED"]  = WslPythonCommon.GetExtendedProperty("SF_SEND_FILES_ZIPPED",str(os.environ["WSL_EXP_TABLE"])){%br%}
-    os.environ["SNOWSQL_ACCOUNT"]= WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_ACCOUNT",str(os.environ["WSL_EXP_TABLE"])){%br%}
-    os.environ["SNOWSQL_DATABASE"]  = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_DATABASE",str(os.environ["WSL_EXP_TABLE"])){%br%}
-    os.environ["SNOWSQL_SCHEMA"] = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_SCHEMA",str(os.environ["WSL_EXP_TABLE"])){%br%}
-    os.environ["SNOWSQL_WAREHOUSE"] = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_WAREHOUSE",str(os.environ["WSL_EXP_TABLE"])){%br%}
-    os.environ["SNOWSQL_USER"] = os.environ["WSL_SRC_USER"]{%br%}
-    os.environ["SNOWSQL_PWD"]  = os.environ["WSL_SRC_PWD"]{%br%}
+    os.environ["DEBUG"]          = WslPythonCommon.GetExtendedProperty("SF_DEBUG_MODE",str(os.environ.get('WSL_EXP_NAME',''))){%br%}
+    os.environ["ACCESS_KEY"]     = WslPythonCommon.GetExtendedProperty("SF_ACCESS_KEY",str(os.environ.get('WSL_EXP_TABLE',''))){%br%}
+    os.environ["SECRET_KEY"]     = WslPythonCommon.GetExtendedProperty("SF_SECRET_KEY",str(os.environ.get('WSL_EXP_TABLE',''))){%br%}
+    os.environ["SEND_FILES_ZIPPED"]  = WslPythonCommon.GetExtendedProperty("SF_SEND_FILES_ZIPPED",str(os.environ.get('WSL_EXP_TABLE',''))){%br%}
+    os.environ["SNOWSQL_ACCOUNT"]= WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_ACCOUNT",str(os.environ.get('WSL_EXP_TABLE',''))){%br%}
+    os.environ["SNOWSQL_DATABASE"]  = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_DATABASE",str(os.environ.get('WSL_EXP_TABLE',''))){%br%}
+    os.environ["SNOWSQL_SCHEMA"] = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_SCHEMA",str(os.environ.get('WSL_EXP_TABLE',''))){%br%}
+    os.environ["SNOWSQL_WAREHOUSE"] = WslPythonCommon.GetExtendedProperty("SF_SNOWSQL_WAREHOUSE",str(os.environ.get('WSL_EXP_TABLE',''))){%br%}
+    os.environ["SNOWSQL_USER"] = os.environ.get('WSL_SRC_USER',''){%br%}
+    os.environ["SNOWSQL_PWD"]  = os.environ.get('WSL_SRC_PWD',''){%br%}
 
-    filePath = os.environ["WSL_WORKDIR"]{%br%}
-    auditLog=str(os.environ["WSL_EXP_TABLE"])+"_"+str(os.getenv('WSL_SEQUENCE'))+".txt"{%br%}
+    filePath = os.environ.get('WSL_WORKDIR',''){%br%}
+    auditLog=str(os.environ.get('WSL_EXP_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+".txt"{%br%}
     logStream = open(os.path.join(filePath,auditLog), 'a+'){%br%}
 
-    if str(os.getenv('DEBUG'))== "TRUE":{%br%}
+    if str(os.environ.get('DEBUG'))== "TRUE":{%br%}
          logStream.write("=================== EXPORT OPTIONS ===================\n"){%br%}
-         logStream.write("Specified Export Table:        " + str(os.environ["WSL_EXP_TABLE"])+'\n'){%br%}
-         logStream.write("Specified Work Dir:          " + str(os.getenv('WSL_WORKDIR'))+'\n'){%br%}
-         logStream.write("Specified Sequence:          " + str(os.getenv('WSL_SEQUENCE'))+'\n'){%br%}
-         logStream.write("Specified Metadata ODBC DSN: " + str(os.getenv('WSL_META_DSN'))+'\n'){%br%}
-         logStream.write("Specified Metadata Username: " + str(os.getenv('WSL_META_USER'))+'\n'){%br%}
-         logStream.write("Specified Metadata Password: " + ('*'*len(str(os.getenv('WSL_META_PWD'))))+'\n')#Add password character{%br%}
+         logStream.write("Specified Export Table:        " + str(os.environ.get('WSL_EXP_TABLE',''))+'\n'){%br%}
+         logStream.write("Specified Work Dir:          " + str(os.environ.get('WSL_WORKDIR',''))+'\n'){%br%}
+         logStream.write("Specified Sequence:          " + str(os.environ.get('WSL_SEQUENCE',''))+'\n'){%br%}
+         logStream.write("Specified Metadata ODBC DSN: " + str(os.environ.get('WSL_META_DSN',''))+'\n'){%br%}
+         logStream.write("Specified Metadata Username: " + str(os.environ.get('WSL_META_USER',''))+'\n'){%br%}
+         logStream.write("Specified Metadata Password: " + ('*'*len(str(os.environ.get('WSL_META_PWD',''))))+'\n'){%br%}
          logStream.write("")
          if runMode == 'S3':{%br%}
              logStream.write("=================== CONNECTION OPTIONS ==================="+'\n'){%br%}
-             logStream.write("Access Key:                  " +  ('*'*len(str(os.getenv('ACCESS_KEY'))))+'\n')#Add password character{%br%}
-             logStream.write("Secret Key:                  " +  ('*'*len(str(os.getenv('SECRET_KEY'))))+'\n')#Add password character{%br%}
+             logStream.write("Access Key:                  " +  ('*'*len(str(os.environ.get('ACCESS_KEY',''))))+'\n'){%br%}
+             logStream.write("Secret Key:                  " +  ('*'*len(str(os.environ.get('SECRET_KEY',''))))+'\n'){%br%}
              logStream.write("")
          logStream.write("=================== MODES ==================="+'\n'){%br%}
-         logStream.write("Specified Debug Mode:        " + str(os.getenv('DEBUG'))+'\n'){%br%}
+         logStream.write("Specified Debug Mode:        " + str(os.environ.get('DEBUG',''))+'\n'){%br%}
          logStream.write("Specified Run Mode:          " + runMode+'\n'){%br%}
-         logStream.write("Unicode Extract:             " + str(os.getenv('UNICODE_SUPPORT'))+'\n'){%br%}
+         logStream.write("Unicode Extract:             " + str(os.environ.get('UNICODE_SUPPORT',''))+'\n'){%br%}
          logStream.write(""){%br%}
 
          if runMode == 'Database':{%br%}
@@ -242,9 +242,9 @@ def ExportData(runMode):{%br%}
              logStream.write("Source Where:               " +  '{{ table.exportInfo.whereClause }}'+'\n'){%br%}
              logStream.write(""+'\n'){%br%}
              logStream.write("=================== SOURCE DB INFO ==================="+'\n'){%br%}
-             logStream.write("ODBC Source DSN:             " + str(os.getenv('WSL_SRC_DSN'))+'\n'){%br%}
-             logStream.write("ODBC Source Username:        " + str(os.getenv('WSL_SRC_USER'))+'\n'){%br%}
-             logStream.write("ODBC Source Password:        " + ('*'*len(str(os.getenv('WSL_SRC_PWD'))))+'\n')#Add password character{%br%}
+             logStream.write("ODBC Source DSN:             " + str(os.environ.get('WSL_SRC_DSN',''))+'\n'){%br%}
+             logStream.write("ODBC Source Username:        " + str(os.environ.get('WSL_SRC_USER',''))+'\n'){%br%}
+             logStream.write("ODBC Source Password:        " + ('*'*len(str(os.environ.get('WSL_SRC_PWD',''))))+'\n'){%br%}
              logStream.write("")
     {%- br %}
     logStream.write("================= EXTRACT SQL =====================\n"){%br%}
@@ -266,7 +266,7 @@ def ExportData(runMode):{%br%}
         {%- endif %}
         {%- br %}
       {%- endfrom %}
-    FROM """+str(os.environ["WSL_EXP_FULLNAME"])+" "+str(os.environ["WSL_EXP_TABLE"])+"""
+    FROM """+str(os.environ.get('WSL_EXP_FULLNAME',''))+" "+str(os.environ.get('WSL_EXP_TABLE',''))+"""
      {%- from table.exportInfo.whereClause | lines as whereLine %}
     {{ whereLine }}{% br %}
     {%- endfrom %}
@@ -274,17 +274,17 @@ def ExportData(runMode):{%br%}
    {%- br %}
     logStream.write(extractSql)
     SFConnectionString = snowflake.connector.connect(
-                user=str(os.getenv('WSL_SRC_USER')),
-                password=str(os.getenv('WSL_SRC_PWD')),
-                account=os.environ["SNOWSQL_ACCOUNT"],
-                warehouse=os.environ["SNOWSQL_WAREHOUSE"],
-                database=os.environ["SNOWSQL_DATABASE"],
-                schema=os.environ["SNOWSQL_SCHEMA"]
+                user=str(os.environ.get('WSL_SRC_USER','')),
+                password=str(os.environ.get('WSL_SRC_PWD','')),
+                account=os.environ.get('SNOWSQL_ACCOUNT',''),
+                warehouse=os.environ.get('SNOWSQL_WAREHOUSE',''),
+                database=os.environ.get('SNOWSQL_DATABASE',''),
+                schema=os.environ.get('SNOWSQL_SCHEMA','')
                 )
-    if str(os.getenv('DEBUG'))== "TRUE":{% br %}
+    if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
       logStream.write("\nBEGIN create of data file from source system: "+str(datetime.now())+'\n'){% br %}
     unicode = False{% br %}
-    if str(os.getenv('UNICODE_SUPPORT'))== "TRUE":{% br %}
+    if str(os.environ.get('UNICODE_SUPPORT',''))== "TRUE":{% br %}
        unicode = True{% br %}
     if runMode == "Windows":
        path = r"{{ table.exportInfo.file.path }} ".replace("\ ","").replace(" ",""){%- br %}
@@ -298,7 +298,7 @@ def ExportData(runMode):{%br%}
        headerRow= "{{ table.exportInfo.file.headerLine }}"{%- br %}
     {%- br %}
     else:{% br %}
-      path=(str(os.getenv('WSL_SERVER'))+" ").replace("\ ","").replace(" ",""){%- br %}{% br %}
+      path=(str(os.environ.get('WSL_SERVER',''))+" ").replace("\ ","").replace(" ",""){%- br %}{% br %}
       file = '{{ table.exportInfo.file.name }}'{%- br %}
       file = ReplaceWslTags(file){%- br %}
       fileDat=os.path.join(path,file)
@@ -358,15 +358,15 @@ def ExportData(runMode):{%br%}
         {%- br %}
     else: {%- br %}
         logStream.write("================= SNOWSQL ================="){%- br %}
-        copyStmt = "COPY INTO "+fileDat+" FROM ( "+extractSql +") CREDENTIALS = (AWS_KEY_ID='"+str(os.getenv('ACCESS_KEY'))+" AWS_SECRET_KEY='"+str(os.getenv('SECRET_KEY')){%- br %}
+        copyStmt = "COPY INTO "+fileDat+" FROM ( "+extractSql +") CREDENTIALS = (AWS_KEY_ID='"+str(os.environ.get('ACCESS_KEY',''))+" AWS_SECRET_KEY='"+str(os.environ.get('SECRET_KEY','')){%- br %}
         snowsqlExport = copyStmt{%- br %}
         SFconn = SFConnectionString.cursor()
         maskedExport=SFconn.execute(snowsqlExport).fetchall()
         SFconn.close()
-        if str(os.getenv('ACCESS_KEY'))!="": {%- br %}
-            snowsqlExport = snowsqlExport.replace(str(os.getenv('ACCESS_KEY')),'*' * len(str(os.getenv('ACCESS_KEY')))){%- br %}
-        if str(os.getenv('SECRET_KEY'))!="": {%- br %}
-            snowsqlExport = snowsqlExport.replace(str(os.getenv('SECRET_KEY')),'*' * len(str(os.getenv('SECRET_KEY')))){%- br %}
+        if str(os.environ.get('ACCESS_KEY',''))!="": {%- br %}
+            snowsqlExport = snowsqlExport.replace(str(os.environ.get('ACCESS_KEY','')),'*' * len(str(os.environ.get('ACCESS_KEY','')))){%- br %}
+        if str(os.environ.get('SECRET_KEY',''))!="": {%- br %}
+            snowsqlExport = snowsqlExport.replace(str(os.environ.get('SECRET_KEY','')),'*' * len(str(os.environ.get('SECRET_KEY','')))){%- br %}
         rowsExported=maskedExport[0][0]{%- br %}
         if maskedExport[0][0] != 0:{%- br %}
             rowsExported = maskedExport[0][0]{%- br %}
@@ -384,11 +384,11 @@ def ExportData(runMode):{%br%}
     logStream.close(){%- br %}
     return(os.path.join(filePath,auditLog),os.path.join(path,file)){%- br %}
 try:  {%- br %}
-    if os.getenv('WSL_SERVER') ==None: {%- br %}
+    if os.environ.get('WSL_SERVER','') ==None: {%- br %}
         runMode = "Windows"
     {%- br %}
     else: {%- br %}
-        if os.getenv('WSL_SERVER').find("s3://") == -1: {%- br %}
+        if os.environ.get('WSL_SERVER','').find("s3://") == -1: {%- br %}
            runMode = "Windows"{%- br %}
         {%- br %}
         else:{%- br %}

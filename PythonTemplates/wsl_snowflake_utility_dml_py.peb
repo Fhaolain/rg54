@@ -33,7 +33,7 @@
   {%- for whereLine in (table.sourceJoinDetails.where | lines)%}  {{whereLine}}{%br%}{%- endfor%}
   ORDER BY 1 {%- br %}
   """ {%- br %}
-  SnowflakeLoop = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed batch distinct select from source tables step  '+ str(step)  , '',step)
+  SnowflakeLoop = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')), str(os.environ.get('WSL_TGT_PWD','')), 'Failed batch distinct select from source tables step  '+ str(step)  , '',step)
 {%br%}
 {%- br %}
 for row in SnowflakeLoop[4]: {%- br %}

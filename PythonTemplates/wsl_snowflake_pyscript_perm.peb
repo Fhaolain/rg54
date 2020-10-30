@@ -51,11 +51,11 @@ ret=WslPythonCommon.HideWindow(){%br%}
 #--============================================================================{%br%}
 #-- General Variables{%br%}
 #--============================================================================{%br%}{%br%}
-sequence = os.environ["WSL_SEQUENCE"]{%br%}
-jobName = os.environ["WSL_JOB_NAME"]{%br%}
-taskName = os.environ["WSL_TASK_NAME"]{%br%}
-jobId = os.environ["WSL_JOB_KEY"]{%br%}
-taskId = os.environ["WSL_TASK_KEY"]{%br%}
+sequence =os.environ.get('WSL_SEQUENCE',''){%br%}
+jobName =os.environ.get('WSL_JOB_NAME',''){%br%}
+taskName =os.environ.get('WSL_TASK_NAME',''){%br%}
+jobId =os.environ.get('WSL_JOB_KEY',''){%br%}
+taskId =os.environ.get('WSL_TASK_KEY',''){%br%}
 returnMsg = "{{table.name}} updated."{%br%}
 status = 1{%br%}
 
@@ -98,7 +98,8 @@ step = {% counter %}00{%br%}{%br%}
 timeZone = WslPythonCommon.GetExtendedProperty("SF_TIMEZONE","{{table.name}}"){% br %}
 if timeZone and not timeZone.isspace():
     tzSql = "ALTER SESSION SET TIMEZONE = '"+timeZone+"'"
-    SnowflakeResult=WslPythonSnowflake.RunSnowflakeRedSQL(tzSql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')),str(os.getenv('WSL_TGT_PWD')),'Failed to alter session timezone to '+str(step),'',step)
+    SnowflakeResult=WslPythonSnowflake.RunSnowflakeRedSQL(tzSql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')),str(os.environ.get('WSL_TGT_PWD','')),
+    'Failed to alter session timezone to '+str(step),'',step)
     status=SnowflakeResult[1]
     if status<1:
       returnMsg = str(SnowflakeResult[3])
@@ -116,7 +117,8 @@ if status==1:
   #--============================================================================{%br%}{%br%}
   step = {% counter %}00{%br%}{%br%}
   sql = "TRUNCATE TABLE [TABLEOWNER].[{{table.name}}];"{%br%}
-  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed truncating table {{table.name}} step '+str(step) , '',step)
+  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')), str(os.environ.get('WSL_TGT_PWD','')),
+  'Failed truncating table {{table.name}} step '+str(step) , '',step)
   returnMsg = str(SnowflakeResult[2]){%br%}
   status=SnowflakeResult[1]
   if status<1:
@@ -135,7 +137,8 @@ if status==1:
   {%- if settings.deleteWhereClause | trim != "" %}  {{settings.deleteWhereClause}}{%br%}{%- endif %}
   ;{%br%}
 """
-  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed deleting table {{table.name}} step '+str(step) , '',step)
+  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')), str(os.environ.get('WSL_TGT_PWD','')),
+  'Failed deleting table {{table.name}} step '+str(step) , '',step)
   deleteCount = SnowflakeResult[2]
   status=SnowflakeResult[1]
   if status<1:
@@ -171,7 +174,8 @@ if status == 1:
   ){%br%}
   ;{%br%}
 """
-  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed to insert missing dimension keys into {{table.name}} at step '+str(step) , '',step)
+  SnowflakeResult =WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')), str(os.environ.get('WSL_TGT_PWD','')),
+  'Failed to insert missing dimension keys into {{table.name}} at step '+str(step) , '',step)
   status=SnowflakeResult[1]
   mergeCount = mergeCount + SnowflakeResult[2]
   if status<1:
@@ -193,7 +197,8 @@ if status == 1:{%br%}
   {%- for joinLine in (table.sourceJoinDetails.join | lines)%}  {{joinLine}}{%br%}{%- endfor%}
   ;{%br%}
 """ {%- br %}
-  SourceCount = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed batch distinct select from source tables {{table.name}}  step '+ str(step)  , '',step)
+  SourceCount = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')), str(os.environ.get('WSL_TGT_PWD','')),
+  'Failed batch distinct select from source tables {{table.name}}  step '+ str(step)  , '',step)
   status=SourceCount[1]
   if status<1:
    returnMsg = str(SourceCount[3])
@@ -237,7 +242,8 @@ if status == 1:{%br%}
       {%- endfrom %}
       ;{%br%}
 """
-      SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed logical delete in table {{table.name}}  step '+ str(step)  , '',step)
+      SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')), str(os.environ.get('WSL_TGT_PWD','')),
+      'Failed logical delete in table {{table.name}}  step '+ str(step)  , '',step)
       logicalDeleteCount = logicalDeleteCount + SnowflakeResult[2]
       returnMsg = SnowflakeResult[2]{%br%}
     {%br%}
@@ -310,7 +316,8 @@ if status==1:
   {{batchIndent}}){%br%}
   {{batchIndent}};{%br%}
 """
- {{batchIndent}}SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.getenv('WSL_TGT_DSN')),str(os.getenv('WSL_TGT_USER')), str(os.getenv('WSL_TGT_PWD')), 'Failed data merge into table {{table.name}} step'+ str(step)  , '',step)
+ {{batchIndent}}SnowflakeResult = WslPythonSnowflake.RunSnowflakeRedSQL(sql,str(os.environ.get('WSL_TGT_DSN','')),str(os.environ.get('WSL_TGT_USER','')), str(os.environ.get('WSL_TGT_PWD','')),
+  'Failed data merge into table {{table.name}} step'+ str(step)  , '',step)
  {{batchIndent}}mergeCount = mergeCount + SnowflakeResult[2]{%br%}
  {{batchIndent}}status=SnowflakeResult[1]{%br%}
  {{batchIndent}}if status<1:{%br%}
