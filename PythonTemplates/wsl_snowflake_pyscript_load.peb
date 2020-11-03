@@ -507,7 +507,7 @@ def LoadData(runMode):{%br%}
            filePath = os.environ.get('WSL_WORKDIR',''){% br %}
            logStream.write("File "+originalName+" GZipped to " + noPath+" prior to upload\n"){% br %}
            {%- else %}
-           logStream.write("File "+ originalName +" GZipped to"+ dataFiles[x] +" prior to upload\n") {% br %}
+           logStream.write("File "+ originalName +" GZipped to "+ dataFiles[x] +" prior to upload\n") {% br %}
            {%- endif %}
         x=x+1 {% br %}
      {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}
@@ -518,17 +518,20 @@ def LoadData(runMode):{%br%}
      {%- endif %}
     {%- br %}
     logStream.write("================= LOAD =================\n"){% br %}
-    try: {% br %}
+    try:
         uid=str(os.environ.get('WSL_TGT_USER','')) {% br %}
         pwd=str(os.environ.get('WSL_TGT_PWD','')) {% br %}
-        SFConnectionString = "DSN="+str(os.environ.get('WSL_TGT_DSN','')) {% br %}
+        SFConnectionString = "DSN="+str(os.environ.get('WSL_TGT_DSN','')){% br %}
         if uid and not uid.isspace(): {% br %}
           SFConnectionString += ";UID="+uid {% br %}
         if pwd and not pwd.isspace(): {% br %}
           SFConnectionString += ";PWD="+pwd {% br %}
-        SFConnectionString = pyodbc.connect(SFConnectionString) {% br %}
+        SFConnection = pyodbc.connect(SFConnectionString){% br %}
     except Exception as exceptionError: {% br %}
-      logStream.write("An error has occurred: : " + repr( exceptionError)) {% br %}
+        print(-2){% br %}
+        print("Connection error has occurred: : " + repr( exceptionError)){% br %}
+        logStream.write("Connection error has occurred: : " + repr( exceptionError)) {% br %}
+        sys.exit(){% br %}
 
     if os.environ.get('EXTERNAL_STAGE','') =="": {% br %}
        externalStageName="@~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+" t" {% br %}
@@ -537,21 +540,27 @@ def LoadData(runMode):{%br%}
     if (runMode != "S3" and runMode != "AZ") or os.environ.get('EXTERNAL_STAGE','') !="":{% br %}
         if runMode != "S3" and runMode != "AZ" and os.environ.get('EXTERNAL_STAGE','') =="":{% br %}
             removeSQL = "remove @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"*"+";"{% br %}
-            SFconn = SFConnectionString.cursor(){% br %}
-            SFconn.execute(removeSQL){% br %}
-            SFconn.close(){% br %}
+            try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(removeSQL)
+             SFCursor.close()
+            except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
             logStream.write(os.path.join(filePath,fileDat))
             if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE":{% br %}
                putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*.gz'"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
             else:{% br %}
                putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*'"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
-            try:{% br %}
-              SFconn = SFConnectionString.cursor(){% br %}
-              no=SFconn.execute(putSQL){% br %}
-              SFconn.close(){% br %}
-            except Exception as exceptionError:{% br %}
-              print(-2){% br %}
-              print("An error has occurred: : " + repr( exceptionError))
+            try:
+              SFCursor = SFConnection.cursor()
+              SFCursor.execute(putSQL)
+              SFCursor.close()
+            except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred:PUT Command Failed " + repr( exceptionError))
+              logStream.write("An error has occurred:PUT Failed " + repr( exceptionError))
+              sys.exit()
             if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
                  logStream.write("\nBEGIN PUT of files matching" +filePath+fileDat+" : "+str(datetime.now())+'\n'){% br %}
             logStream.write("\nPUT:\n"){% br %}
@@ -565,9 +574,9 @@ def LoadData(runMode):{%br%}
             tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ.get('TIMEZONE','')) +"'"+ ";`r`n"{% br %}
             logStream.write("\nSET TIMEZONE:"){% br %}
             logStream.write(tzStmt){% br %}
-            SFconn = SFConnectionString.cursor(){% br %}
-            SFconn.execute(tzStmt){% br %}
-            SFconn.close(){% br %}
+            SFCursor = SFConnection.cursor()
+            SFCursor.execute(tzStmt)
+            SFCursor.close()
 {% br %}
         if os.environ.get('FILE_TYPE','')== "CSV":{% br %}
             copyStatement ="""
@@ -610,11 +619,17 @@ def LoadData(runMode):{%br%}
         logStream.write(maskedLoad){%- br %}
         if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
             logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
-        SFconn = SFConnectionString.cursor(){%- br %}
-        loadResult=SFconn.execute(copyStatement).fetchall(){%- br %}
+        try:
+         SFCursor = SFConnection.cursor()
+         loadResult=SFCursor.execute(copyStatement).fetchall()
+         SFCursor.close()
+        except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            logStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            sys.exit()
         if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
             logStream.write("\nEND COPY INTO "+"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
-        SFconn.close(){%- br %}
         checkStatus=0{%- br %}
         rowsLoaded=0{%- br %}
         checkFlag=0{%- br %}
@@ -653,7 +668,7 @@ def LoadData(runMode):{%br%}
                     else:{%- br %}
                         os.remove(os.path.join(filePath,fileDat)){%- br %}
             {%- endif %}{%- br %}
-                SFconn = SFConnectionString.cursor(){%- br %}
+                SFconn = SFConnection.cursor(){%- br %}
                 SFconn.execute(removeSQL){%- br %}
                 SFconn.close(){%- br %}
             else: {%- br %}
