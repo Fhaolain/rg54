@@ -526,7 +526,7 @@ def LoadData(runMode):{%br%}
           SFConnectionString += ";UID="+uid {% br %}
         if pwd and not pwd.isspace(): {% br %}
           SFConnectionString += ";PWD="+pwd {% br %}
-        SFConnection = pyodbc.connect(SFConnectionString){% br %}
+        SFConnection = pyodbc.connect(SFConnectionString, autocommit=True){% br %}
     except Exception as exceptionError: {% br %}
         print(-2){% br %}
         print("Connection error has occurred: : " + repr( exceptionError)){% br %}
