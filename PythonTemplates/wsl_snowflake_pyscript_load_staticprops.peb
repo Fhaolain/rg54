@@ -50,7 +50,7 @@ def PrintLog(fileAud):{%br%}
 def ReplaceWslTags(stuff):{%br%}
 
     if '$SEQUENCE$' in stuff:{%br%}
-        stuff = stuff.replace('$SEQUENCE$',str(os.environ["WSL_SEQUENCE"])){%br%}
+        stuff = stuff.replace('$SEQUENCE$',str(os.environ.get('WSL_SEQUENCE',''))){%br%}
     if re.findall(r'\$(.+?)\$',stuff)!=[]:{%br%}
         # If stuff contains two or more $s and the $SEQUENCE$ string is not detected{%br%}
         # or has already been replaced then we assume a date{%br%}
@@ -184,6 +184,7 @@ def LoadData(runMode):{%br%}
     os.environ["AZ_ENCRYPTION_TYPE"] = '{{ getExtendedProperty( propertyName ="SF_AZURE_ENCRYPTION_TYPE" ) }}'{%br%}
     os.environ["AZ_ENCRYPTION_KEY"]  = '{{ getExtendedProperty( propertyName ="SF_AZURE_ENCRYPTION_KEY" ) }}'{%br%}
 
+
     #Set defaults to variables if not set from extended properties{%br%}
     if os.environ.get('UNICODE_SUPPORT','')!="TRUE":{%br%}
         os.environ["UNICODE_SUPPORT"] = "FALSE"{%br%}
@@ -192,7 +193,7 @@ def LoadData(runMode):{%br%}
         os.environ["SEND_FILES_ZIPPED"] = "FALSE"{%br%}
 
     if os.environ.get('FILE_COUNT','')== 1:{%br%}
-        os.environ["FILE_COUNT"]= 1{%br%}
+        os.environ["FILE_COUNT"] = 1{%br%}
 
     if os.environ.get('UNLOAD_DELIM','')=="":{%br%}
         os.environ["UNLOAD_DELIM"] = "|"{%br%}
@@ -207,20 +208,20 @@ def LoadData(runMode):{%br%}
         os.environ["FILE_TYPE"] = "CSV"{%br%}
 
     if os.environ.get('FILE_FORMAT','')=="":{%br%}
-        os.environ["FILE_FORMAT"] = "FMT_RED_CSV_SKIP_GZIP_COMMA"{%br%}
+        os.environ["FILE_FORMAT"]  = "FMT_RED_CSV_SKIP_GZIP_COMMA"{%br%}
 
     unicode = False{% br %}
-    if str(os.environ.get('UNICODE_SUPPORT'))== "TRUE":{% br %}
+    if str(os.environ.get('UNICODE_SUPPORT',''))== "TRUE":{% br %}
        unicode = True{% br %}
-    if str(os.environ.get('FILE_COUNT'))=="None":{% br %}
+    if int(os.environ.get('FILE_COUNT',0))==0:{% br %}
       fileCount=0{% br %}
     else:{% br %}
-      fileCount=int(str(os.environ.get('FILE_COUNT'))){% br %}
+      fileCount=int(os.environ.get('FILE_COUNT',0)){% br %}
 
-    if str(os.environ.get('SPLIT_THRESHOLD'))=="None":{% br %}
+    if str(os.environ.get('SPLIT_THRESHOLD',''))=="None":{% br %}
       splitThresholdCount=0{% br %}
     else:{% br %}
-      splitThresholdCount=int(str(os.environ.get('SPLIT_THRESHOLD'))){% br %}
+      splitThresholdCount=int(os.environ.get('SPLIT_THRESHOLD',0)){% br %}
 
 
     # Work out full file format name{%- br %}
@@ -229,16 +230,16 @@ def LoadData(runMode):{%br%}
     if FILE_FORMAT_FULL != "":
          os.environ["fileFormatFullName"] = FILE_FORMAT_FULL+"."+os.environ.get('FILE_FORMAT','')
     else:
-      os.environ["fileFormatFullName"] = os.environ.get('FILE_FORMAT','')
+     os.environ["fileFormatFullName"] = os.environ.get('FILE_FORMAT','')
 
     filePath = os.environ.get('WSL_WORKDIR',''){%br%}
-    auditLog=str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE'))+".txt"{%br%}
+    auditLog=str(os.environ.get('WSL_LOAD_TABLE',''))+"_"+str(os.environ.get('WSL_SEQUENCE',''))+".txt"{%br%}
     logStream = open(os.path.join(filePath,auditLog), 'a+'){%br%}
 
   except Exception as exceptionError:{%br%}
    raise{%br%}
   try:
-    if str(os.environ.get('DEBUG'))== "TRUE":{%br%}
+    if str(os.environ.get('DEBUG',''))== "TRUE":{%br%}
          logStream.write("=================== LOAD OPTIONS ===================\n"){%br%}
          logStream.write("Specified Load Table:        " + str(os.environ.get('WSL_LOAD_TABLE',''))+'\n'){%br%}
          logStream.write("Specified Work Dir:          " + str(os.environ.get('WSL_WORKDIR',''))+'\n'){%br%}
@@ -285,7 +286,7 @@ def LoadData(runMode):{%br%}
          logStream.write("SF_UNLOAD_ENCLOSED_BY:    " + str(os.environ.get('UNLOAD_ENC',''))+'\n'){%br%}
          logStream.write("SF_UNLOAD_ESCAPE_CHAR:    " + str(os.environ.get('UNLOAD_ESC',''))+'\n'){%br%}
          logStream.write("SF_SPLIT_THRESHOLD:       " + str(os.environ.get('SPLIT_THRESHOLD',''))+'\n'){%br%}
-         logStream.write("SF_SPLIT_COUNT:           " + str(os.environ.get('FILE_COUNT',''))+'\n'){%br%}
+         logStream.write("SF_SPLIT_COUNT:           " + str(os.environ.get('FILE_COUNT',0)) +'\n'){%br%}
          logStream.write("SF_TIMEZONE:              " + str(os.environ.get('TIMEZONE',''))+'\n'){%br%}
          logStream.write("SF_FILE_TYPE:             " + str(os.environ.get('FILE_TYPE',''))+'\n'){%br%}
          logStream.write("SF_EXTERNAL_STAGE:        " + str(os.environ.get('EXTERNAL_STAGE',''))+'\n'){%br%}
@@ -329,8 +330,7 @@ def LoadData(runMode):{%br%}
        logStream.write("BEGIN create of data file from source system: "+str(datetime.now())+'\n'){% br %}
 
 
-    rowCount = WslPythonCommon.GetDataToFile(extractSql,str(os.environ.get('WSL_SRC_DSN','')),str(os.environ.get('WSL_SRC_USER','')),str(os.environ.get('WSL_SRC_PWD','')),
-    os.path.join(filePath,fileDat),str(os.environ.get('UNLOAD_DELIM','')), fileCount, splitThresholdCount, True, unicode, str(os.environ.get('UNLOAD_ENC','')), str(os.environ.get('UNLOAD_ESC',''))){% br %}
+    rowCount = WslPythonCommon.GetDataToFile(extractSql,str(os.environ.get('WSL_SRC_DSN','')),str(os.environ.get('WSL_SRC_USER','')),str(os.environ.get('WSL_SRC_PWD','')),os.path.join(filePath,fileDat),str(os.environ.get('UNLOAD_DELIM','')), fileCount, splitThresholdCount, True, unicode, str(os.environ.get('UNLOAD_ENC','')), str(os.environ.get('UNLOAD_ESC',''))){% br %}
     if rowCount[0]== -2:
        logStream.write("An error has occurred: : " + rowCount[1]+"\n"+rowCount[2])
        raise Exception(rowCount[2])
@@ -435,56 +435,61 @@ def LoadData(runMode):{%br%}
         dataFilesCopy = dataFiles
         dataFiles=[]
         originalDat = fileDat
+        cleanedDat = originalDat.replace("*","")
         for sourceFile in dataFilesCopy:
             rowCount = 0
-            if os.environ.get('UNICODE_SUPPORT','')=="TRUE":
-             with open(sourceFile, 'r', encoding='utf-8') as f:
-              for line in f:
-                rowCount += 1
-            else:
-             with open(sourceFile, 'r') as f:
-              for line in f:
-                rowCount += 1
-            if fileHeader=="true":
-                rowCount =rowCount-1
-            cleanedDat = originalDat.replace("*","")
-            if int(os.environ.get('FILE_COUNT','')) > 1:
-                filePath = os.environ.get('WSL_WORKDIR','')
-                if rowCount > os.environ.get('SPLIT_THRESHOLD',''):
-                    fileToSplit = sourceFile
-                    i=0
-                    while i < os.environ.get('FILE_COUNT',''):
-                        threeDigits = str(i)
-                        newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "_p" + threeDigits)
-                        splitPath =os.path.join( os.environ.get('WSL_WORKDIR',''),newName)
-                        dataFiles.append(splitPath)
-                        swl.append(sw)
-                        if os.environ.get('DEBUG','')== "TRUE":
-                            logStream.write("Source file '$(Get-Item $sourceFile).Name' Part ${threeDigits}: $splitPath")
-                        i=i+1
-                    swNum = 0
-                    if fileHeader == "true":
-                        headerLine = fileToSplit.readline()
-                        for sw in swl:
-                          sw.writelines(headerLine)
-                    while True:
-                        line = fileToSplit.readline().strip()
-                        if line=="":
-                           break
-                        if swNum >=os.environ.get('FILE_COUNT',''):
-                            swNum = 0
-                        swl[swNum].writelines(line);
-                        swNum=swNum+1
-                else:
-                    newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','')+ "-" + os.environ.get('WSL_TASK_KEY','') + "_p000")
-                    notSplitPath = os.path.join(os.environ.get('WSL_WORKDIR',''),newName)
-                    sourceFile=notSplitPath
-                    dataFiles.append(notSplitPath)
-                    if os.environ.get('DEBUG','') == "TRUE":
-                        logStream.write("Source file "+sourceFile+" Part 000: "+notSplitPath)
-                fileDat = cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "*"
-            else:
-              dataFiles.append(sourceFile)
+            try:
+              if os.environ.get('UNICODE_SUPPORT','')=="TRUE":
+               with open(sourceFile, 'r', encoding='utf-8') as f:
+                for line in f:
+                  rowCount += 1
+              else:
+               with open(sourceFile, 'r') as f:
+                for line in f:
+                  rowCount += 1
+              if fileHeader=="true":
+                  rowCount =rowCount-1
+              if int(os.environ.get('FILE_COUNT',0)) > 1:
+                  filePath = os.environ.get('WSL_WORKDIR','')
+                  if rowCount > int(os.environ.get('SPLIT_THRESHOLD',0)):
+                      fileToSplit = sourceFile
+                      i=0
+                      while i < int(os.environ.get('FILE_COUNT',0)):
+                          threeDigits = str(i)
+                          newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "_p" + threeDigits)
+                          splitPath =os.path.join( os.environ.get('WSL_WORKDIR',''),newName)
+                          dataFiles.append(splitPath)
+                          swl.append(sw)
+                          if os.environ.get('DEBUG','')== "TRUE":
+                              logStream.write("Source file "+newName)
+                          i=i+1
+                      swNum = 0
+                      if fileHeader == "true":
+                          headerLine = fileToSplit.readline()
+                          for sw in swl:
+                            sw.writelines(headerLine)
+                      while True:
+                          line = fileToSplit.readline().strip()
+                          if line=="":
+                             break
+                          if swNum >=os.environ.get('FILE_COUNT',0):
+                              swNum = 0
+                          swl[swNum].writelines(line);
+                          swNum=swNum+1
+                  else:
+                      newName = sourceFile.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','')+ "-" + os.environ.get('WSL_TASK_KEY','') + "_p000")
+                      notSplitPath = os.path.join(os.environ.get('WSL_WORKDIR',''),newName)
+                      sourceFile=notSplitPath
+                      dataFiles.append(notSplitPath)
+                      if os.environ.get('DEBUG','') == "TRUE":
+                          logStream.write("Source file "+sourceFile+" Part 000: "+notSplitPath)
+                  fileDat = cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "*"
+              else:
+                dataFiles.append(sourceFile)
+            except Exception as exceptionError:{%- br %}
+               print(-2){%- br %}
+               print("An error has occurred:Source File  " + repr( exceptionError)){%- br %}
+               logStream.write("An error has occurred:Source File  " + repr( exceptionError)) {%- br %}
     else: {%- br %}
         filePath = s3Prefix{%- br %}
         if filePath.endswith('\\')==False:{%- br %}
@@ -499,7 +504,7 @@ def LoadData(runMode):{%br%}
         if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE":{% br %}
            {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}{% br %}
            noPath=os.path.basename(dataFiles[x]){% br %}
-           if int(os.environ.get('FILE_COUNT','')) < 2:
+           if int(os.environ.get('FILE_COUNT',0)) < 2:
               noPath = noPath.replace(cleanedDat,cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','')){% br %}
            dataFiles[x]=GzipFile(dataFiles[x],os.path.join(os.environ.get('WSL_WORKDIR',''),noPath),False){% br %}
            {%- else %}
@@ -509,28 +514,32 @@ def LoadData(runMode):{%br%}
            filePath = os.environ.get('WSL_WORKDIR',''){% br %}
            logStream.write("File "+originalName+" GZipped to " + noPath+" prior to upload\n"){% br %}
            {%- else %}
-           logStream.write("File "+ originalName +" GZipped to"+ dataFiles[x] +" prior to upload\n") {% br %}
+           logStream.write("File "+ originalName +" GZipped to "+ dataFiles[x] +" prior to upload\n") {% br %}
            {%- endif %}
         x=x+1 {% br %}
      {%- if table.loadInfo.sourceConnectionType.name == "Windows" %}
-     if int(os.environ.get('FILE_COUNT','')) < 2:
+     if int(os.environ.get('FILE_COUNT',0)) < 2:
         if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE": {% br %}
            fileDat = cleanedDat + "_" + os.environ.get('WSL_SEQUENCE','') + "-" + os.environ.get('WSL_TASK_KEY','') + "*"
         {%- br %}
      {%- endif %}
     {%- br %}
     logStream.write("================= LOAD =================\n"){% br %}
-    try: {% br %}
+    try:
         uid=str(os.environ.get('WSL_TGT_USER','')) {% br %}
         pwd=str(os.environ.get('WSL_TGT_PWD','')) {% br %}
-        SFConnectionString = "DSN="+str(os.environ.get('WSL_TGT_DSN','')) {% br %}
+        SFConnectionString = "DSN="+str(os.environ.get('WSL_TGT_DSN','')){% br %}
         if uid and not uid.isspace(): {% br %}
           SFConnectionString += ";UID="+uid {% br %}
         if pwd and not pwd.isspace(): {% br %}
           SFConnectionString += ";PWD="+pwd {% br %}
-        SFConnectionString = pyodbc.connect(SFConnectionString) {% br %}
+        SFConnection = pyodbc.connect(SFConnectionString, autocommit=True){% br %}
     except Exception as exceptionError: {% br %}
-      logStream.write("An error has occurred: : " + repr( exceptionError)) {% br %}
+        print(-2){% br %}
+        print("Connection error has occurred: : " + repr( exceptionError)){% br %}
+        logStream.write("Connection error has occurred: : " + repr( exceptionError)) {% br %}
+        sys.exit(){% br %}
+
     if os.environ.get('EXTERNAL_STAGE','') =="": {% br %}
        externalStageName="@~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+" t" {% br %}
     else: {% br %}
@@ -538,17 +547,27 @@ def LoadData(runMode):{%br%}
     if (runMode != "S3" and runMode != "AZ") or os.environ.get('EXTERNAL_STAGE','') !="":{% br %}
         if runMode != "S3" and runMode != "AZ" and os.environ.get('EXTERNAL_STAGE','') =="":{% br %}
             removeSQL = "remove @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"*"+";"{% br %}
-            SFconn = SFConnectionString.cursor(){% br %}
-            SFconn.execute(removeSQL){% br %}
-            SFconn.close(){% br %}
+            try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(removeSQL)
+             SFCursor.close()
+            except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
             logStream.write(os.path.join(filePath,fileDat))
             if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE":{% br %}
-               putSQL = "PUT "+"file://" +os.path.join(filePath,fileDat)+"*.gz"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
+               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*.gz'"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
             else:{% br %}
-               putSQL = "PUT "+"file://" +os.path.join(filePath,fileDat)+"*"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
-            SFconn = SFConnectionString.cursor(){% br %}
-            SFconn.execute(putSQL){% br %}
-            SFconn.close()
+               putSQL = r"PUT 'file://" +os.path.join(filePath,fileDat).replace(os.sep, '/')+r"*'"+" @~/WSL-"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"/ ;"{% br %}
+            try:
+              SFCursor = SFConnection.cursor()
+              SFCursor.execute(putSQL)
+              SFCursor.close()
+            except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred:PUT Command Failed " + repr( exceptionError))
+              logStream.write("An error has occurred:PUT Failed " + repr( exceptionError))
+              sys.exit()
             if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
                  logStream.write("\nBEGIN PUT of files matching" +filePath+fileDat+" : "+str(datetime.now())+'\n'){% br %}
             logStream.write("\nPUT:\n"){% br %}
@@ -562,10 +581,13 @@ def LoadData(runMode):{%br%}
             tzStmt = "ALTER SESSION SET TIMEZONE ="+"'"+str(os.environ.get('TIMEZONE','')) +"'"+ ";`r`n"{% br %}
             logStream.write("\nSET TIMEZONE:"){% br %}
             logStream.write(tzStmt){% br %}
-            SFconn = SFConnectionString.cursor(){% br %}
-            SFconn.execute(tzStmt){% br %}
-            SFconn.close(){% br %}
+            SFCursor = SFConnection.cursor()
+            SFCursor.execute(tzStmt)
+            SFCursor.close()
 {% br %}
+        PURGE = "TRUE"{% br %}
+        if str(os.environ.get('DEBUG','')) == "TRUE":{% br %}
+          PURGE = "FALSE"{% br %}
         if os.environ.get('FILE_TYPE','')== "CSV":{% br %}
             copyStatement ="""
             COPY INTO """+str(os.environ.get('WSL_LOAD_FULLNAME',''))+"""
@@ -590,7 +612,8 @@ def LoadData(runMode):{%br%}
               {%- endfor %}
               FROM """+externalStageName+"""
             ){%- br %}
-            FILE_FORMAT = '"""+os.environ.get('fileFormatFullName','') +"'"
+            FILE_FORMAT = '"""+os.environ.get('fileFormatFullName','') +"'"+"""
+    PURGE = """+PURGE{% br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
@@ -599,7 +622,8 @@ def LoadData(runMode):{%br%}
           copyStatement = """
           COPY INTO """+str(os.environ.get('WSL_LOAD_FULLNAME',''))+"""
           FROM"""+ " @~/WSL"+str(os.environ.get('WSL_SEQUENCE',''))+"-"+str(os.environ.get('WSL_TASK_KEY',''))+"""
-          FILE_FORMAT = '"""+os.environ.get('fileFormatFullName','') +"'"
+          FILE_FORMAT = '"""+os.environ.get('fileFormatFullName','') +"'"+"""
+    PURGE = """+PURGE{% br %}
 
         maskedLoad = copyStatement{%- br %}
 
@@ -607,11 +631,17 @@ def LoadData(runMode):{%br%}
         logStream.write(maskedLoad){%- br %}
         if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
             logStream.write("\nBEGIN COPY INTO" +"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
-        SFconn = SFConnectionString.cursor(){%- br %}
-        loadResult=SFconn.execute(copyStatement).fetchall(){%- br %}
+        try:
+         SFCursor = SFConnection.cursor()
+         loadResult=SFCursor.execute(copyStatement).fetchall()
+         SFCursor.close()
+        except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            logStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            sys.exit()
         if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
             logStream.write("\nEND COPY INTO "+"'"+ str(os.environ.get('WSL_LOAD_FULLNAME','')) +"'" +" : "+str(datetime.now())+'\n'){%- br %}
-        SFconn.close(){%- br %}
         checkStatus=0{%- br %}
         rowsLoaded=0{%- br %}
         checkFlag=0{%- br %}
@@ -633,7 +663,9 @@ def LoadData(runMode):{%br%}
                 logStream.write("Failed to update task row count"){%- br %}
             print("1"){%- br %}
             print("Load successful. "+str(rowsLoaded)+" rows loaded"){%- br %}
-            if str(os.environ.get('DEBUG',''))== "FALSE":{%- br %}
+            if str(os.environ.get('DEBUG',''))== "TRUE":{%- br %}
+              logStream.write("Temporary data files not removed as debug mode is enabled"){%- br %}
+            else: {%- br %}
             {%- if table.loadInfo.sourceConnectionType.name != "Windows" %}
                 x=0{%- br %}
                 while x< len(dataFiles):{%- br %}
@@ -641,7 +673,7 @@ def LoadData(runMode):{%br%}
                     x=x+1{%- br %}
             {%- else %}{%- br %}
               if os.environ.get('EXTERNAL_STAGE','') =="":
-                if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE" or int(os.environ.get('FILE_COUNT','')) >1:{%- br %}
+                if os.environ.get('SEND_FILES_ZIPPED','') == "TRUE" or int(os.environ.get('FILE_COUNT',0)) >1:{%- br %}
                     if fileDat[-1]=="*":
                         x=0{%- br %}
                         while x< len(glob.glob(os.path.join(filePath,fileDat))):{%- br %}
@@ -650,11 +682,9 @@ def LoadData(runMode):{%br%}
                     else:{%- br %}
                         os.remove(os.path.join(filePath,fileDat)){%- br %}
             {%- endif %}{%- br %}
-                SFconn = SFConnectionString.cursor(){%- br %}
+                SFconn = SFConnection.cursor(){%- br %}
                 SFconn.execute(removeSQL){%- br %}
                 SFconn.close(){%- br %}
-            else: {%- br %}
-                logStream.write("Temporary data files not removed as debug mode is enabled"){%- br %}
         else:{%- br %}
             logStream.write("-2"){%- br %}
             logStream.write("Load failed"){%- br %}
@@ -815,7 +845,7 @@ try: {%- br %}
     {% if (table.loadInfo.sourceConnectionType.name == "ODBC") or (table.loadInfo.sourceConnectionType.name == "Database") -%}
     runMode = "Database"{%- br %}
     {%- else -%}
-    s3Prefix = '{{ getExtendedProperty( propertyName ="SF_S3_BUCKET_PREFIX" ) }}'{%- br %}
+    s3Prefix = WslPythonCommon.GetExtendedProperty("SF_S3_BUCKET_PREFIX",str(os.environ.get('WSL_LOAD_TABLE',''))){%- br %}
     if s3Prefix=="": {%- br %}
         runMode = "Windows"{% br %}
     {%- br %}
