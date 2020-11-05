@@ -221,24 +221,37 @@ SELECT {%- from table.columns as column %}
           SFConnectionString += ";UID="+uid {% br %}
         if pwd and not pwd.isspace(): {% br %}
           SFConnectionString += ";PWD="+pwd {% br %}
-        SFConnectionString = pyodbc.connect(SFConnectionString) {% br %}
+        SFConnection = pyodbc.connect(SFConnectionString, autocommit=True){% br %}
     except Exception as exceptionError: {% br %}
-      logStream.write("An error has occurred: : " + repr( exceptionError)) {% br %}
-
+        print(-2){% br %}
+        print("Connection error has occurred: : " + repr( exceptionError)){% br %}
+        errStream.write("\nConnection error has occurred: : " + repr( exceptionError)) {% br %}
+        sys.exit(){% br %}
     try:{% br %}
      removeSQL = "remove @~/WSL-"+"wsl"+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE','')+"_BATCH_"+str(batch[0])+"*"+";"{% br %}
-     SFconn = SFConnectionString.cursor(){% br %}
-     SFconn.execute(removeSQL){% br %}
-     SFconn.close(){% br %}
+     try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(removeSQL)
+             SFCursor.close()
+     except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
      putSQL =r"PUT 'file://" + (os.path.join(os.environ.get('WSL_WORKDIR',''),"wsl"+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE','')+"_BATCH_"+str(batch[0])).replace(os.sep, '/'))
      if str(os.environ.get('UNLOAD_GZIP',''))== "TRUE":{% br %}
       putSQL = str(putSQL)+r"*.gz' @~;"{% br %}
      else:{% br %}
       putSQL = str(putSQL)+r"*' @~;"{% br %}
 
-     SFconn = SFConnectionString.cursor(){% br %}
-     SFconn.execute(putSQL){% br %}
-     SFconn.close(){% br %}
+     try:
+              SFCursor = SFConnection.cursor()
+              SFCursor.execute(putSQL)
+              SFCursor.close()
+     except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred:PUT Failed " + repr( exceptionError))
+              errStream.write("\nAn error has occurred:PUT Failed " + repr( exceptionError))
+              sys.exit()
+
      if str(os.environ.get('DEBUG','')) == "TRUE":
         errStream.write("\n=================== FILE UPLOAD ===================\n")
         errStream.write(putSQL)
@@ -260,14 +273,25 @@ SELECT {%- from table.columns as column %}
         {%- endif %}
 
         removeSQL = "remove @~/WSL-"+"wsl"+os.environ.get('WSL_LOAD_TABLE','')+os.environ.get('WSL_SEQUENCE','')+"_BATCH_"+str(batch[0])+"*"+";"
-        SFconn = SFConnectionString.cursor()
-        SFconn.execute("\n"+removeSQL)
-        SFconn.close()
+        try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(removeSQL)
+             SFCursor.close()
+        except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
         putSQL =r"PUT 'file://" + os.path.join(os.environ.get('WSL_WORKDIR',''),fileDat).replace(os.sep, '/'){% br %}
         putSQL = str(putSQL)+r"*' @~;"{% br %}
-        SFconn = SFConnectionString.cursor()
-        SFconn.execute(putSQL)
-        SFconn.close()
+        try:
+              SFCursor = SFConnection.cursor()
+              SFCursor.execute(putSQL)
+              SFCursor.close()
+        except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred:PUT Failed " + repr( exceptionError))
+              errStream.write("An error has occurred:PUT Failed " + repr( exceptionError))
+              sys.exit()
+
         lastexitcode=0
         lastSnowSQLCode = lastexitcode
         if str(os.environ.get('DEBUG','')) == "TRUE":
@@ -326,18 +350,19 @@ SELECT {%- from table.columns as column %}
 
 
     try:
-        SFconn = SFConnectionString.cursor(){%- br %}
-        loadResult=SFconn.execute(copyStmt).fetchall(){%- br %}
-        SFconn.close(){%- br %}
-    except Exception as inst:
-        print(inst.args)
-        if str(os.environ.get('DEBUG','')) == "TRUE":
-            errStream.write("\n=================== IMPORT SQL ===================\n")
-            errStream.write(copyStmt)
-            errStream.write("")
-        print(-2){%- br %}
-        threadError=threadError+1{%- br %}
-        errStream.write(str(inst)){%- br %}
+         SFCursor = SFConnection.cursor()
+         loadResult=SFCursor.execute(copyStmt).fetchall()
+         SFCursor.close()
+    except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            errStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            if str(os.environ.get('DEBUG','')) == "TRUE":
+              errStream.write("\n=================== IMPORT SQL ===================\n")
+              errStream.write(copyStmt)
+              errStream.write("")
+            threadError=threadError+1{%- br %}
+            sys.exit(){%- br %}
     try:
      checkStatus=0{%- br %}
      rowsLoaded=0{%- br %}
@@ -363,9 +388,10 @@ SELECT {%- from table.columns as column %}
             errStream.write("-2"){%- br %}
             errStream.write("Load failed"){%- br %}
             threadError=threadError+1{%- br %}
-    except Exception as inst:
-        print(inst.args){%- br %}
-        errStream.write(str(inst)){%- br %}
+    except Exception as exceptionError:{%- br %}
+        print("-2"){%- br %}
+        print(exceptionError.args){%- br %}
+        errStream.write(str(repr(exceptionError))){%- br %}
     {%- if PilotTable != "" %}{%- br %}
     batchUpdateSql = """UPDATE """+os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')+"""
       SET STATUS = 'C'
@@ -379,18 +405,22 @@ SELECT {%- from table.columns as column %}
     udt = WslPythonCommon.RunRedSQL(batchUpdateSql,str(os.environ.get('rangeTableDsn','')),str(os.environ.get('rangeTableUser','')), str(os.environ.get('rangeTablePwd','')),'' , '',os.environ.get('RANGE_SCHEMA','')+"."+os.environ.get('PILOT_TABLE','')){%- br %}
 
     if str(os.environ.get('DEBUG','')) != "TRUE":{%- br %}
-        os.remove(os.path.join(os.environ.get('WSL_WORKDIR',''),fileDat)){%- br %}
-        SFconn = SFConnectionString.cursor(){%- br %}
-        SFconn.execute(removeSQL){%- br %}
-        SFconn.close(){%- br %}
+        try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(removeSQL)
+             SFCursor.close()
+        except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: " + repr( exceptionError))
     else:{%- br %}
         errStream.write("Temporary data files not removed as debug mode is enabled"){%- br %}
     {%- endif %}{%- br %}
 
     audStream.close(){%- br %}
     errStream.close(){%- br %}
-   except Exception as inst:
-        print(inst.args)
+   except Exception as exceptionError:
+        print("-2")
+        print(exceptionError.args)
         threadError=threadError+1{%- br %}
         queueObject.put(sys.exc_info())
 
@@ -405,21 +435,21 @@ def GetRangeConnDet(
 
     try:
         rangeTableResult =WslPythonCommon.RunRedSQL(sMetaSql,str(os.environ.get('WSL_META_DSN','')),str(os.environ.get('WSL_META_USER','')), str(os.environ.get('WSL_META_PWD','')), '' , '','')
-    except Exception as inst:
-                        print("\nGet range table connection query failed")
+    except Exception as exceptionError:
                         print("-2")
-                        logStream.write("Get range table connection query failed")
+                        print("\nGet range table connection query failed"+str(repr(exceptionError)))
+                        errStream.write("\nGet range table connection query failed"+str(repr(exceptionError)))
     if rangeTableResult[1] == 0:
-        logStream.write("No range table connection defined")
+        errStream.write("No range table connection defined")
         print("-2")
         print("No range table connection defined")
     try:
       rangeTableDsn = str(rangeTableResult[4][0][0])
       rangeTableUser = str(rangeTableResult[4][0][1])
       rangeTablePwd = str(rangeTableResult[4][0][2])
-    except Exception as inst:
-                        print(inst)
+    except Exception as exceptionError:
                         print("-2")
+                        print(exceptionError.args)
     return rangeTableDsn, rangeTableUser, rangeTablePwd
 
 def MAIN(logStream,errStream): {%- br %}
@@ -609,20 +639,20 @@ def MAIN(logStream,errStream): {%- br %}
          if(threadError > int(THREAD_ERRORS)):
             THREAD_FAIL_ACTION = "TRUE"
             break
-      except Exception as inst:
-           print(-2)
-           print(str(inst))
+      except Exception as exceptionError:
+           print("-2")
+           print(str(exceptionError))
 
      # wait for the threads to be done
      for t in threads:
        t.join()
-    except Exception as inst:
+    except Exception as exceptionError:
         exc = queueObject.get(block=False)
         exc_type, exc_obj, exc_trace = exc
         print(exc_obj)
-        errStream.write(str(inst))
+        errStream.write(str(exceptionError))
     if(THREAD_FAIL_ACTION == "TRUE"):
-         print(-2)
+         print("-2")
          print("Maximum thread failed : "+str(threadErrors))
 
    {%- br %}
@@ -636,9 +666,9 @@ def MAIN(logStream,errStream): {%- br %}
     {%- endif %}
     try:
        WslPythonCommon.WsWrkTask(0,0,0,bdt[2],0,0,0)
-    except Exception as inst:
+    except Exception as exceptionError:
         logStream.write("Call to WsWrkTask failed")
-        logStream.write(inst.args)
+        logStream.write(repr(exceptionError.args))
 
     if bdt[1]==1:
         logStream.write("Load successful. Total of "+ str(totalRows) +" rows loaded")
@@ -668,7 +698,7 @@ try:{%- br %}
 	fileErr = os.path.join(filePath,errorLog){%- br %}
 	MAIN(fileAud,fileErr){%- br %}
 
-except Exception as inst:{%- br %}
+except Exception as exceptionError:{%- br %}
         print("-2"){%- br %}
-        print(inst.args){%- br %}
+        print(exceptionError.args){%- br %}
         print("Load failed"){%- br %}
