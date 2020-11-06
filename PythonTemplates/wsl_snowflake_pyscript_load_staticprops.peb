@@ -264,7 +264,7 @@ def LoadData(runMode):{%br%}
          if runMode == 'Database':{%br%}
              logStream.write("=================== SOURCE TABLE INFO ==================="+'\n'){%br%}
              logStream.write("Source Schema:               " + str(os.environ.get('WSL_SRC_SCHEMA',''))+'\n'){%br%}
-             logStream.write("Source Tables:               " + "address"+'\n'){%br%}
+             logStream.write("Source Tables:               " +  '{{ table.loadInfo.sourceTables }}'+'\n'){%br%}
              logStream.write("Source Where:                " + ""+'\n'){%br%}
              logStream.write(""+'\n'){%br%}
              logStream.write("=================== SOURCE DB INFO ==================="+'\n'){%br%}
