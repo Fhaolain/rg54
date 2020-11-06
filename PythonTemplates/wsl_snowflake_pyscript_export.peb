@@ -36,7 +36,6 @@ import sys{%br%}
 from datetime import datetime{%br%}
 import glob{%br%}
 import pyodbc{%br%}
-import snowflake.connector{%br%}
 import time{%br%}
 sys.path.append('C:\ProgramData\WhereScape\Modules\WslPython'){%br%}
 import WslPythonCommon{%br%}
@@ -147,24 +146,41 @@ def CreateTriggerFile(auditFile): {%- br %}
     {%- endif %}
     FROM """+str(os.environ.get('WSL_EXP_FULLNAME',''))+" "+str(os.environ.get('WSL_EXP_TABLE','')){%- br %}
 {%- br %}
-    SFConnectionString = snowflake.connector.connect(
-                user=str(os.environ.get('WSL_SRC_USER')),
-                password=str(os.environ.get('WSL_SRC_PWD')),
-                account=os.environ.get('SNOWSQL_ACCOUNT',''),
-                warehouse=os.environ.get('SNOWSQL_WAREHOUSE',''),
-                database=os.environ.get('SNOWSQL_DATABASE',''),
-                schema=os.environ.get('SNOWSQL_SCHEMA','')
-                )
+    try:
+        uid=str(os.environ.get('WSL_SRC_USER','')) {% br %}
+        pwd=str(os.environ.get('WSL_SRC_PWD','')) {% br %}
+        SFConnectionString = "DSN="+str(os.environ.get('WSL_SRC_DSN','')){% br %}
+        if uid and not uid.isspace(): {% br %}
+          SFConnectionString += ";UID="+uid {% br %}
+        if pwd and not pwd.isspace(): {% br %}
+          SFConnectionString += ";PWD="+pwd {% br %}
+        SFConnection = pyodbc.connect(SFConnectionString, autocommit=True){% br %}
+    except Exception as exceptionError: {% br %}
+        print(-2){% br %}
+        print("Connection error has occurred: : " + repr( exceptionError)){% br %}
+        logStream.write("Connection error has occurred: : " + repr( exceptionError)) {% br %}
+        sys.exit(){% br %}
+
     deleteRes = "remove @~/"+trgFileName+";"{% br %}
-    SFconn = SFConnectionString.cursor(){% br %}
-    SFconn.execute(deleteRes){% br %}
-    SFconn.close(){% br %}
+    try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(deleteRes)
+             SFCursor.close()
+    except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
     copyStmt = """
       COPY INTO @~/"""+trgFileName+"""
       FROM ( """+ trgSelectStmt +""")FILE_FORMAT = (TYPE = 'CSV' FIELD_DELIMITER = '|' COMPRESSION = NONE) single=true;"""
-    SFconn = SFConnectionString.cursor()
-    maskedTrgExport=SFconn.execute(copyStmt).fetchall()
-    SFconn.close()
+    try:
+         SFCursor = SFConnection.cursor()
+         maskedTrgExport=SFCursor.execute(copyStmt).fetchall()
+         SFCursor.close()
+    except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            logStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            sys.exit()
     {%- br %}
     logStream.write("\nTrigger File:    " + trgFileName)
       {%- br %}
@@ -176,17 +192,27 @@ def CreateTriggerFile(auditFile): {%- br %}
             PrintLog(logStream){%- br %}
     snowsqlGet = "GET @~/"+trgFileName+" file://"+trgFilePath+";"{%- br %}
     logStream.write("\nGET:    " + snowsqlGet){%- br %}
-    SFconn = SFConnectionString.cursor(){% br %}
-    getRes=SFconn.execute(snowsqlGet).fetchall(){% br %}
-    SFconn.close(){% br %}
+    try:
+         SFCursor = SFConnection.cursor()
+         getRes=SFCursor.execute(snowsqlGet).fetchall()
+         SFCursor.close()
+    except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            logStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            sys.exit()
     getFile = getRes[0][0]{%- br %}
     getStatus = getRes[0][2]{%- br %}
     getMessage = getRes[0][3]{%- br %}
     if getStatus == "DOWNLOADED":{%- br %}
           deleteRes = "remove @~/"+trgFileName+";"{%- br %}
-          SFconn = SFConnectionString.cursor()
-          SFconn.execute(deleteRes)
-          SFconn.close()
+          try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(deleteRes)
+             SFCursor.close()
+          except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
           if getMessage!="": {%- br %}
               logStream.write("\nMessage returned from GET call: "+getMessage){%- br %}
           print("1"){%- br %}
@@ -273,14 +299,21 @@ def ExportData(runMode):{%br%}
 """{%- br %}
    {%- br %}
     logStream.write(extractSql)
-    SFConnectionString = snowflake.connector.connect(
-                user=str(os.environ.get('WSL_SRC_USER','')),
-                password=str(os.environ.get('WSL_SRC_PWD','')),
-                account=os.environ.get('SNOWSQL_ACCOUNT',''),
-                warehouse=os.environ.get('SNOWSQL_WAREHOUSE',''),
-                database=os.environ.get('SNOWSQL_DATABASE',''),
-                schema=os.environ.get('SNOWSQL_SCHEMA','')
-                )
+    try:
+        uid=str(os.environ.get('WSL_SRC_USER','')) {% br %}
+        pwd=str(os.environ.get('WSL_SRC_PWD','')) {% br %}
+        SFConnectionString = "DSN="+str(os.environ.get('WSL_SRC_DSN','')){% br %}
+        if uid and not uid.isspace(): {% br %}
+          SFConnectionString += ";UID="+uid {% br %}
+        if pwd and not pwd.isspace(): {% br %}
+          SFConnectionString += ";PWD="+pwd {% br %}
+        SFConnection = pyodbc.connect(SFConnectionString, autocommit=True){% br %}
+    except Exception as exceptionError: {% br %}
+        print(-2){% br %}
+        print("Connection error has occurred: : " + repr( exceptionError)){% br %}
+        logStream.write("Connection error has occurred: : " + repr( exceptionError)) {% br %}
+        sys.exit(){% br %}
+
     if str(os.environ.get('DEBUG',''))== "TRUE":{% br %}
       logStream.write("\nBEGIN create of data file from source system: "+str(datetime.now())+'\n'){% br %}
     unicode = False{% br %}
@@ -303,18 +336,28 @@ def ExportData(runMode):{%br%}
       file = ReplaceWslTags(file){%- br %}
       fileDat=os.path.join(path,file)
     if runMode != "S3":{%- br %}
-      logStream.write("================= SNOWSQL =================\n"){% br %}
+      logStream.write("\n================= SNOWSQL =================\n"){% br %}
       deleteRes = "remove @~/"+file+";"{% br %}
-      SFconn = SFConnectionString.cursor(){% br %}
-      SFconn.execute(deleteRes){% br %}
-      SFconn.close(){% br %}
+      try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(deleteRes)
+             SFCursor.close()
+      except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
       copyStmt = """
       COPY INTO @~/"""+file+"""
       FROM ( """+ extractSql +""")FILE_FORMAT = (TYPE = 'CSV' COMPRESSION = NONE
       FIELD_DELIMITER = """+delimitedBy+""" field_optionally_enclosed_by= '{{ table.exportInfo.file.fieldEnclosure.Replace("'","''") }}')single=true HEADER = """+headerRow+"""; {{ table.exportInfo.options }}"""
-      SFconn = SFConnectionString.cursor()
-      maskedExport=SFconn.execute(copyStmt).fetchall()
-      SFconn.close()
+      try:
+         SFCursor = SFConnection.cursor()
+         maskedExport=SFCursor.execute(copyStmt).fetchall()
+         SFCursor.close()
+      except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            logStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            sys.exit()
 
       {%- br %}
       logStream.write("\nExport:    " + str(maskedExport[0][0]))
@@ -331,17 +374,27 @@ def ExportData(runMode):{%br%}
       snowsqlGet = "GET @~/"+file+" file://"+path+";"{%- br %}
       logStream.write("\nGET:    " + snowsqlGet){%- br %}
 
-      SFconn = SFConnectionString.cursor(){% br %}
-      getRes=SFconn.execute(snowsqlGet).fetchall(){% br %}
-      SFconn.close(){% br %}
+      try:
+         SFCursor = SFConnection.cursor()
+         getRes=SFCursor.execute(snowsqlGet).fetchall()
+         SFCursor.close()
+      except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            logStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            sys.exit()
       getFile = getRes[0][0]{%- br %}
       getStatus = getRes[0][2]{%- br %}
       getMessage = getRes[0][3]{%- br %}
       if getStatus == "DOWNLOADED":{%- br %}
             deleteRes = "remove @~/"+file+";"{%- br %}
-            SFconn = SFConnectionString.cursor()
-            SFconn.execute(deleteRes)
-            SFconn.close()
+            try:
+             SFCursor = SFConnection.cursor()
+             SFCursor.execute(deleteRes)
+             SFCursor.close()
+            except Exception as exceptionError:
+              print(-2)
+              print("An error has occurred: : " + repr( exceptionError))
             logStream.write("\nFile "+file+" downloaded as "+os.path.join(path,getFile)+"\n"){%- br %}
             if getMessage!="": {%- br %}
                 logStream.write("\nMessage returned from GET call: "+getMessage){%- br %}
@@ -357,12 +410,18 @@ def ExportData(runMode):{%br%}
             PrintLog(logStream){%- br %}
         {%- br %}
     else: {%- br %}
-        logStream.write("================= SNOWSQL ================="){%- br %}
+        logStream.write("\n================= SNOWSQL ================="){%- br %}
         copyStmt = "COPY INTO "+fileDat+" FROM ( "+extractSql +") CREDENTIALS = (AWS_KEY_ID='"+str(os.environ.get('ACCESS_KEY',''))+" AWS_SECRET_KEY='"+str(os.environ.get('SECRET_KEY','')){%- br %}
         snowsqlExport = copyStmt{%- br %}
-        SFconn = SFConnectionString.cursor()
-        maskedExport=SFconn.execute(snowsqlExport).fetchall()
-        SFconn.close()
+        try:
+         SFCursor = SFConnection.cursor()
+         maskedExport=SFCursor.execute(snowsqlExport).fetchall()
+         SFCursor.close()
+        except Exception as exceptionError:
+            print(-2)
+            print("An error has occurred:COPY Failed " + repr( exceptionError)){%- br %}
+            logStream.write("An error has occurred: : " + repr( exceptionError)){%- br %}
+            sys.exit()
         if str(os.environ.get('ACCESS_KEY',''))!="": {%- br %}
             snowsqlExport = snowsqlExport.replace(str(os.environ.get('ACCESS_KEY','')),'*' * len(str(os.environ.get('ACCESS_KEY','')))){%- br %}
         if str(os.environ.get('SECRET_KEY',''))!="": {%- br %}
