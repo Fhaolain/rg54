@@ -192,9 +192,6 @@ def LoadData(runMode):{%br%}
     if os.environ.get('SEND_FILES_ZIPPED','')!="TRUE":{%br%}
         os.environ["SEND_FILES_ZIPPED"] = "FALSE"{%br%}
 
-    if os.environ.get('FILE_COUNT','')== 1:{%br%}
-        os.environ["FILE_COUNT"] = 1{%br%}
-
     if os.environ.get('UNLOAD_DELIM','')=="":{%br%}
         os.environ["UNLOAD_DELIM"] = "|"{%br%}
 
@@ -218,10 +215,7 @@ def LoadData(runMode):{%br%}
     else:{% br %}
       fileCount=int(os.environ.get('FILE_COUNT',0)){% br %}
 
-    if str(os.environ.get('SPLIT_THRESHOLD',''))=="None":{% br %}
-      splitThresholdCount=0{% br %}
-    else:{% br %}
-      splitThresholdCount=int(os.environ.get('SPLIT_THRESHOLD',0)){% br %}
+    splitThresholdCount=int(os.environ.get('SPLIT_THRESHOLD',0)){% br %}
 
 
     # Work out full file format name{%- br %}

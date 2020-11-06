@@ -479,7 +479,7 @@ def MAIN(logStream,errStream): {%- br %}
     if os.environ.get('UNLOAD_DELIM','')=="":
         os.environ["UNLOAD_DELIM"] = "|"
 
-    if os.environ.get('UNLOAD_ENCLOSED','')=="None":
+    if os.environ.get('UNLOAD_ENCLOSED','')=="":
         os.environ["UNLOAD_ENCLOSED"] = '"'
 
     if os.environ.get('UNLOAD_ESCAPE','')=="":

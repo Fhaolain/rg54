@@ -190,9 +190,6 @@ def LoadData(runMode):{%br%}
     if os.environ.get('SEND_FILES_ZIPPED','')!="TRUE":{%br%}
         os.environ["SEND_FILES_ZIPPED"] = "FALSE"{%br%}
 
-    if os.environ.get('FILE_COUNT','')== 1:{%br%}
-        os.environ["FILE_COUNT"] = 1{%br%}
-
     if os.environ.get('UNLOAD_DELIM','')=="":{%br%}
         os.environ["UNLOAD_DELIM"] = "|"{%br%}
 
@@ -216,10 +213,7 @@ def LoadData(runMode):{%br%}
     else:{% br %}
       fileCount=int(os.environ.get('FILE_COUNT',0)){% br %}
 
-    if str(os.environ.get('SPLIT_THRESHOLD',''))=="None":{% br %}
-      splitThresholdCount=0{% br %}
-    else:{% br %}
-      splitThresholdCount=int(os.environ.get('SPLIT_THRESHOLD',0)){% br %}
+    splitThresholdCount=int(os.environ.get('SPLIT_THRESHOLD',0)){% br %}
 
 
     # Work out full file format name{%- br %}
@@ -317,7 +311,7 @@ def LoadData(runMode):{%br%}
       {%- endfrom %}
     {%- if table.loadInfo.sourceTables != "" -%}FROM """+str(os.environ.get('WSL_SRC_SCHEMA',''))+""".{{ table.loadInfo.sourceTables }} {{table.loadInfo.sourceTables }}{%- br %}{% endif %}
     {%- from table.loadInfo.whereAndGroupByClauses | lines as whereLine %}
-		 {{ whereLine }}{% br %}
+     {{ whereLine }}{% br %}
     {%- endfrom %}
 """{%- br %}
     {%- br %}
@@ -447,7 +441,7 @@ def LoadData(runMode):{%br%}
                   rowCount += 1
               if fileHeader=="true":
                   rowCount =rowCount-1
-							cleanedDat = originalDat.replace("*","")
+              cleanedDat = originalDat.replace("*","")
               if int(os.environ.get('FILE_COUNT',0)) > 1:
                   filePath = os.environ.get('WSL_WORKDIR','')
                   if rowCount > int(os.environ.get('SPLIT_THRESHOLD',0)):
@@ -826,7 +820,7 @@ def LoadData(runMode):{%br%}
     return os.path.join(str(os.environ.get('WSL_WORKDIR','')),auditLog){%- br %}
   except Exception as exceptionError:
     logStream.write("An error has occurred: : " + repr( exceptionError))
-		 # Get a list of all the files created by load
+     # Get a list of all the files created by load
     fileList = glob.glob(os.path.join(str(os.environ.get('WSL_WORKDIR','')),"*"+fileDat+"*"))
      # Iterate over the list of filepaths & remove each file.
     logStream.write("\nRolling back all files created")
@@ -854,7 +848,7 @@ try: {%- br %}
     else:
         runMode = "AZ"
     {%- endif %}
-		{%- br %}
+    {%- br %}
     auditFile=LoadData(runMode){%- br %}
     PrintLog(auditFile){%- br %}
 except Exception as exceptionError:{%- br %}

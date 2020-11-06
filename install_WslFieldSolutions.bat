@@ -13,8 +13,8 @@ IF %ERRORLEVEL% == 0 (
 fsutil dirty query %systemdrive% >nul
 EXIT /B
 :run
-echo Powershell will attempt to set the Execution policy for the current process to be AllSigned.
+echo Powershell will attempt to set the Execution policy for the current process to be ByPass.
 echo This only effects the current process and is required to allow the running of powershell scripts.
 set currentDir=%~dp0
-Powershell -C "try { Set-ExecutionPolicy AllSigned -Scope Process -Confirm } catch {}; & $(join-path -path ${env:currentDir} -childPath 'FieldSolutions\import_fieldsolutions.ps1')"
+Powershell -C "try { Set-ExecutionPolicy ByPass -Scope Process -Confirm } catch {}; & $(join-path -path ${env:currentDir} -childPath 'FieldSolutions\import_fieldsolutions.ps1')"
 pause

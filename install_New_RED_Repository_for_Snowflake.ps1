@@ -81,27 +81,31 @@ if ( $help -or $unmatchedParameter -or ( $Args.Count -gt 0 )) {
 else {
   # Prompt for any required paramaters
   if([string]::IsNullOrEmpty($metaDsn))                 {$metaDsn = Read-Host -Prompt "Enter RED MetaRepo DSN"}
-  if($PSBoundParameters.count -eq 0)                    {$metaUser = Read-Host -Prompt "Enter RED MetaRepo User or 'enter' for none"}
+  if($PSBoundParameters.count -eq 0 -or ($PSBoundParameters.ContainsKey('startAtStep') -and $PSBoundParameters.count -eq 1)) {
+    $metaUser = Read-Host -Prompt "Enter RED MetaRepo User or 'enter' for none"
+  }
   if(![string]::IsNullOrEmpty($metaUser) -and [string]::IsNullOrEmpty($metaPwd)) {
     $metaPwdSecureString = Read-Host -Prompt "Enter RED MetaRepo Pwd" -AsSecureString
     $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($metaPwdSecureString)
     $metaPwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   }
   if([string]::IsNullOrEmpty($metaBase))                {$metaBase = Read-Host -Prompt "Enter RED MetaRepo DB"}
-  if([string]::IsNullOrEmpty($snowflakeDB))             {$snowflakeDB = Read-Host -Prompt "Enter Snowflake DB"}
-  if([string]::IsNullOrEmpty($tgtLoadSchema))           {$tgtLoadSchema = Read-Host -Prompt "Enter Snowflake 'Load' Target Schema (the vaule entered will be the default for following schemas)" | %{if([string]::IsNullOrEmpty($_)){'DEV_LOAD'}else{$_.ToUpper()}} }
-  if([string]::IsNullOrEmpty($tgtStageSchema))          {$tgtStageSchema = Read-Host -Prompt "Enter Snowflake 'Stage' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
-  if([string]::IsNullOrEmpty($tgtEdwSchema))            {$tgtEdwSchema = Read-Host -Prompt "Enter Snowflake 'EDW' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
-  if([string]::IsNullOrEmpty($tgtDvSchema))             {$tgtDvSchema = Read-Host -Prompt "Enter Snowflake 'Data Vault' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
   if([string]::IsNullOrEmpty($snowflakeDsn))            {$snowflakeDsn = Read-Host -Prompt "Enter Snowflake DSN"}
-  if($PSBoundParameters.count -eq 0)                    {$snowflakeUser = Read-Host -Prompt "Enter Snowflake User or 'enter' for none"}
+  if($PSBoundParameters.count -eq 0 -or ($PSBoundParameters.ContainsKey('startAtStep') -and $PSBoundParameters.count -eq 1)) {
+    $snowflakeUser = Read-Host -Prompt "Enter Snowflake User or 'enter' for none"
+  }
   if(![string]::IsNullOrEmpty($snowflakeUser) -and [string]::IsNullOrEmpty($snowflakePwd) ) {
     $snowflakePwdSecureString = Read-Host -Prompt "Enter Snowflake Pwd" -AsSecureString
     $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($snowflakePwdSecureString)
     $snowflakePwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   }
+  if([string]::IsNullOrEmpty($snowflakeDB))             {$snowflakeDB = Read-Host -Prompt "Enter Snowflake DB"}
   if([string]::IsNullOrEmpty($snowflakeDataWarehouse))  {$snowflakeDataWarehouse = Read-Host -Prompt "Enter Snowflake DataWarehouse"}
   if([string]::IsNullOrEmpty($sfSnowsqlAcc))            {$sfSnowsqlAcc = Read-Host -Prompt "Enter Snowflake Account, usually your server name with '.snowflakecomputing.com' removed"}
+  if([string]::IsNullOrEmpty($tgtLoadSchema))           {$tgtLoadSchema = Read-Host -Prompt "Enter Snowflake 'Load' Target Schema (the vaule entered will be the default for following schemas)" | %{if([string]::IsNullOrEmpty($_)){'DEV_LOAD'}else{$_.ToUpper()}} }
+  if([string]::IsNullOrEmpty($tgtStageSchema))          {$tgtStageSchema = Read-Host -Prompt "Enter Snowflake 'Stage' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
+  if([string]::IsNullOrEmpty($tgtEdwSchema))            {$tgtEdwSchema = Read-Host -Prompt "Enter Snowflake 'EDW' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
+  if([string]::IsNullOrEmpty($tgtDvSchema))             {$tgtDvSchema = Read-Host -Prompt "Enter Snowflake 'Data Vault' Target Schema, default: '$tgtLoadSchema'" | %{if([string]::IsNullOrEmpty($_)){$tgtLoadSchema}else{$_.ToUpper()}} }
   if([string]::IsNullOrEmpty($templateSet))  {$templateSet = Read-Host -Prompt "Enter the template set to apply for template installation, either 'Powershell' (default) or 'Python'"}
   if ($templateSet -notin 'Powershell','Python') {
     Write-Warning "-templateSet not set or invalid defaulting to 'Powershell'"
@@ -114,7 +118,7 @@ else {
   Write-Host "`nINFO: Script command line executed (passwords removed): $cmdLineArgs`n"
 }
 
-$logLevel=5
+$logLevel=1
 $outputMode="json"
 $dstDir="C:\temp\"
 $schedulerName="WIN0001"
@@ -223,21 +227,21 @@ parameter add --name TIMEZONE --comments "Used to specify the timezone in DAILY_
 $connectionSetupCmds=@"
 connection delete --force --name "Tutorial (OLTP)"
 connection rename --force --new-name "Runtime Connection for Scripts" --old-name "windows"
-connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32  --work-dir $dstDir --default-load-type "Script based load" 
-connection add --name "$snowflakeDsn" --con-type "Database" --db-id $snowflakeDB --odbc-source "$snowflakeDsn" --odbc-source-arch $metaDsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$($(@($tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema) | Sort-Object | Get-Unique) -join ',')" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --con-info-proc "wsl_snowflake_table_information" --extract-user-id $snowflakeUser --extract-pwd $snowflakePwd
-target add --connection-name "$snowflakeDsn" --name load --database $snowflakeDB --schema $tgtLoadSchema --tree-colour #ff0000
-target add --connection-name "$snowflakeDsn" --name stage --database $snowflakeDB --schema $tgtStageSchema --tree-colour #4e00c0
-target add --connection-name "$snowflakeDsn" --name edw --database $snowflakeDB --schema $tgtEdwSchema --tree-colour #008054
-target add --connection-name "$snowflakeDsn" --name data_vault --database $snowflakeDB --schema $tgtDvSchema --tree-colour #c08000
+connection modify --name "Runtime Connection for Scripts" --con-type "Windows" --odbc-source-arch 32 --work-dir $dstDir --default-load-type "Script based load" 
+connection add --name "$snowflakeDsn" --con-type "Database" --db-id "$snowflakeDB" --odbc-source "$snowflakeDsn" --odbc-source-arch $metaDsnArch --dtm-set-name "SNOWFLAKE from SNOWFLAKE" --db-type Custom --def-update-script-con "Runtime Connection for Scripts" --def-pre-load-action "Truncate" --display-data-sql "SELECT * FROM `$OBJECT`$ SAMPLE (`$MAXDISPLAYDATA`$ ROWS)" --row-count-sql "SELECT COUNT(*) FROM `$OBJECT`$" --drop-table-sql "DROP TABLE `$OBJECT`$" --drop-view-sql "DROP VIEW `$OBJECT`$" --truncate-sql "TRUNCATE TABLE `$OBJECT`$" --def-browser-schema "$($(@($tgtLoadSchema,$tgtStageSchema,$tgtEdwSchema,$tgtDvSchema) | Sort-Object | Get-Unique) -join ',')" --def-odbc-user Extract --def-table-alter-ddl-tem "wsl_snowflake_alter_ddl" --def-table-create-ddl-tem "wsl_snowflake_create_table" --def-view-create-ddl-tem "wsl_snowflake_create_view" --con-info-proc "wsl_snowflake_table_information" --extract-user-id "$snowflakeUser" --extract-pwd "$snowflakePwd"
+target add --connection-name "$snowflakeDsn" --name load --database "$snowflakeDB" --schema "$tgtLoadSchema" --tree-colour #ff0000
+target add --connection-name "$snowflakeDsn" --name stage --database "$snowflakeDB" --schema "$tgtStageSchema" --tree-colour #4e00c0
+target add --connection-name "$snowflakeDsn" --name edw --database "$snowflakeDB" --schema "$tgtEdwSchema" --tree-colour #008054
+target add --connection-name "$snowflakeDsn" --name data_vault --database "$snowflakeDB" --schema "$tgtDvSchema" --tree-colour #c08000
 connection add --name "Database Source System" --con-type ODBC --odbc-source "SET THIS VALUE" --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --dtm-set-name "SNOWFLAKE from SQL Server" --def-pre-load-action "Truncate" --def-browser-schema "SET THIS VALUE" --def-odbc-user Extract
 ext-prop-value modify --object-name "Database Source System" --value-data "+" --value-name "RANGE_CONCATWORD"
-connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --def-pre-load-action Truncate --def-browser-schema $defBrowserSchema --def-odbc-user Extract
-target add --connection-name "Range Table Location" --name RangeTables --database RANGE_WORK_DB --schema $defBrowserSchema --tree-colour #ff57ff
+connection add --name "Range Table Location" --con-type ODBC --db-id RANGE_WORK_DB --odbc-source RANGE_WORK_DB --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --def-pre-load-action Truncate --def-browser-schema "$defBrowserSchema" --def-odbc-user Extract
+target add --connection-name "Range Table Location" --name RangeTables --database RANGE_WORK_DB --schema "$defBrowserSchema" --tree-colour #ff57ff
 connection rename --force --new-name Repository --old-name "DataWarehouse"
-connection modify --name "Repository" --con-type Database --db-id $metaBase --odbc-source $metaDsn --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --function-set SNOWFLAKE --def-browser-schema $defBrowserSchema --def-odbc-user Extract --extract-user-id "$metaUser" --extract-pwd "$metaPwd"
+connection modify --name "Repository" --con-type Database --db-id "$metaBase" --odbc-source "$metaDsn" --odbc-source-arch $metaDsnArch --work-dir $dstDir --db-type "SQL Server" --meta-repo true --function-set SNOWFLAKE --def-browser-schema "$defBrowserSchema" --def-odbc-user Extract --extract-user-id "$metaUser" --extract-pwd "$metaPwd"
 connection add --name "Windows Comma Sep Files" --con-type Windows --work-dir $dstDir --dtm-set-name "SNOWFLAKE from File"
 ext-prop-value modify --object-name "Windows Comma Sep Files" --value-data "FMT_RED_CSV_SKIP_GZIP_COMMA" --value-name "SF_FILE_FORMAT"
-connection add --name "Windows Fixed Width" --con-type Windows  --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE"
+connection add --name "Windows Fixed Width" --con-type Windows --work-dir $dstDir --dtm-set-name "SNOWFLAKE from FIXED WIDTH FILE"
 ext-prop-value modify --object-name "Windows Fixed Width" --value-data "FMT_RED_FIX_NOSKIP_GZIP" --value-name "SF_FILE_FORMAT"
 connection add --name "Windows JSON Files" --con-type Windows --work-dir $dstDir --dtm-set-name "SNOWFLAKE from XML and JSON "
 ext-prop-value modify --object-name "Windows JSON Files" --value-data "FMT_RED_JSON_GZIP" --value-name "SF_FILE_FORMAT"
@@ -247,9 +251,9 @@ connection add --name "Windows XML Files" --con-type Windows --work-dir $dstDir 
 ext-prop-value modify --object-name "Windows XML Files" --value-data "FMT_RED_XML_GZIP" --value-name "SF_FILE_FORMAT"
 ext-prop-value modify --object-name "$snowflakeDsn" --value-data "+" --value-name "RANGE_CONCATWORD"
 ext-prop-value modify --object-name "$snowflakeDsn" --value-data False --value-name "SF_DEBUG_MODE"
-ext-prop-value modify --object-name "$snowflakeDsn" --value-data $sfSnowsqlAcc --value-name "SF_SNOWSQL_ACCOUNT"
-ext-prop-value modify --object-name "$snowflakeDsn" --value-data $snowflakeDB --value-name "SF_SNOWSQL_DATABASE"
-ext-prop-value modify --object-name "$snowflakeDsn" --value-data $snowflakeDataWarehouse --value-name "SF_SNOWSQL_WAREHOUSE"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data "$sfSnowsqlAcc" --value-name "SF_SNOWSQL_ACCOUNT"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data "$snowflakeDB" --value-name "SF_SNOWSQL_DATABASE"
+ext-prop-value modify --object-name "$snowflakeDsn" --value-data "$snowflakeDataWarehouse" --value-name "SF_SNOWSQL_WAREHOUSE"
 ext-prop-value modify --object-name "$snowflakeDsn" --value-data "FMT_RED_CSV_NOSKIP_GZIP_PIPE" --value-name "SF_FILE_FORMAT"
 ext-prop-value modify --object-name "$snowflakeDsn" --value-data "TRUE" --value-name "SF_SEND_FILES_ZIPPED"
 ext-prop-value modify --object-name "$snowflakeDsn" --value-data 1000000 --value-name "SF_SPLIT_THRESHOLD"
@@ -416,9 +420,9 @@ $installStep=300
 if ($installStep -ge $startAtStep) { 
 
   if( ([string]::IsNullOrEmpty($metaUser) -and [string]::IsNullOrEmpty($metaPwd)) -or ([string]::IsNullorWhitespace($metaUser) -and [string]::IsNullorWhitespace($metaPwd))) {
-   & powershell -ExecutionPolicy RemoteSigned -file "$templatesFile" -metaDsn "$metaDsn"
+   & powershell -ExecutionPolicy ByPass -file "$templatesFile" -metaDsn "$metaDsn"
   }else{
-  & powershell -ExecutionPolicy RemoteSigned -file "$templatesFile" -metaDsn "$metaDsn" -metaUser "$metaUser" -metaPwd "$metaPwd"
+  & powershell -ExecutionPolicy ByPass -file "$templatesFile" -metaDsn "$metaDsn" -metaUser "$metaUser" -metaPwd "$metaPwd"
   }
   if( $LASTEXITCODE -eq 0 ) {
     Write-Output "Templates, Scripts and Procedures updated successfully"
@@ -638,9 +642,9 @@ INSERT (ta_obj_key,ta_type,ta_text_1,ta_text_2,ta_text_3,ta_text_4,ta_text_5,ta_
 $installStep=800
 if ($installStep -ge $startAtStep) {
   if( ([string]::IsNullOrEmpty($metaUser) -and [string]::IsNullOrEmpty($metaPwd)) -or ([string]::IsNullorWhitespace($metaUser) -and [string]::IsNullorWhitespace($metaPwd))) {
-   & powershell -ExecutionPolicy RemoteSigned -file "$FSFile" -metaDsn "$metaDsn"
+   & powershell -ExecutionPolicy ByPass -file "$FSFile" -metaDsn "$metaDsn"
   }else{
-  & powershell -ExecutionPolicy RemoteSigned -file "$FSFile" -metaDsn "$metaDsn" -metaUser "$metaUser" -metaPwd "$metaPwd"
+  & powershell -ExecutionPolicy ByPass -file "$FSFile" -metaDsn "$metaDsn" -metaUser "$metaUser" -metaPwd "$metaPwd"
   }
   if( $LASTEXITCODE -eq 0 ) {
     Write-Output "FieldSolutions updated successfully"
