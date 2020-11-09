@@ -324,6 +324,11 @@ function Load-Data { {%- br %}
     ${env:SNOWSQL_PWD}  = ${env:WSL_TGT_PWD}{%- br %}
     {%- br %}
 
+	$PURGE = "TRUE"{%- br %}
+	if(${env:DEBUG} -eq "TRUE") { {%- br %}
+        $PURGE = "FALSE"{%- br %}
+	}{%- br %}
+
     # Work out full file format name{%- br %}
     Add-Type -Path $(Join-Path -Path ${env:WSL_BINDIR} -ChildPath 'WslMetadataServiceClient.dll')
     $metaDbType = [WslMetadataServiceClient.MetaDatabaseType]::SqlServer
@@ -693,6 +698,8 @@ function Load-Data { {%- br %}
             $tzCmd = New-Object System.Data.Odbc.OdbcCommand($tzStmt,$sfOdbc)
             $null = $tzCmd.ExecuteNonQuery()
         }
+
+
         if(${env:FILE_TYPE} -eq "CSV") {
             $copyStmt = @"
             COPY INTO ${env:WSL_LOAD_FULLNAME}{% br %}
@@ -719,6 +726,7 @@ function Load-Data { {%- br %}
                      else { "@${env:EXTERNAL_STAGE}/${fileDat} t" })
             ){%- br %}
             FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
+	      	PURGE = $PURGE{% br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
@@ -729,6 +737,7 @@ function Load-Data { {%- br %}
             COPY INTO ${env:WSL_LOAD_FULLNAME}
             FROM @~/WSL-${env:WSL_SEQUENCE}-${env:WSL_TASK_KEY}
             FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
+			PURGE = $PURGE{% br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
@@ -805,6 +814,7 @@ function Load-Data { {%- br %}
             FROM ${filePath}${fileDat}{%- br %}
             CREDENTIALS = (AWS_KEY_ID='${env:ACCESS_KEY}' AWS_SECRET_KEY='${env:SECRET_KEY}'){%- br %}
             FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
+			PURGE = $PURGE{% br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
@@ -864,6 +874,7 @@ function Load-Data { {%- br %}
             CREDENTIALS = (AZURE_SAS_TOKEN='${env:AZ_SAS_TOKEN}'){%- br %}
             $(if( ! [string]::IsNullOrWhiteSpace(${env:AZ_ENCRYPTION_TYPE})) { "ENCRYPTION = (TYPE='${env:AZ_ENCRYPTION_TYPE}' MASTER_KEY='${env:AZ_ENCRYPTION_KEY}')" })
             FILE_FORMAT = '${env:fileFormatFullName}'{%- br %}
+			PURGE = $PURGE{% br %}
             {%- if table.loadInfo.fileLoaderOptions != "" %}
             {{ table.loadInfo.fileLoaderOptions }}{%- br %}
             {%- endif %}
