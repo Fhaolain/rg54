@@ -9,8 +9,8 @@ Prereqs:
      powershell -c $psversiontable
 
 And the following software downloaded:
-7. WhereScape RED 8.2.1.1 Release Version
-8. Snowflake 32-bit ODBC Driver.
+7. WhereScape RED 8.4.1 Release Version
+8. Snowflake 64-bit ODBC Driver.
 9. Snowflake Snowsql client.
 10. TNT Drive (only if files are going to be loaded from an non-Snowflake S3 bucket)
 
